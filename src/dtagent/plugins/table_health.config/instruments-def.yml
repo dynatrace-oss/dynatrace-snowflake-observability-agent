@@ -21,6 +21,7 @@ dimensions:
   db.collection.name:
     __semdict: ref
     __type: string
+    displayName: Snowflake table name
     __context_names:
       - table_storage
       - table_clustering
@@ -30,6 +31,7 @@ dimensions:
   db.namespace:
     __semdict: ref
     __type: string
+    displayName: Snowflake database name
     __context_names:
       - table_storage
       - table_clustering
@@ -38,15 +40,17 @@ dimensions:
     __description: The name of the database that contains the table.
   snowflake.schema.name:
     __type: string
+    displayName: Snowflake schema name
     __stability: stable
     __context_names:
       - table_storage
       - table_clustering
       - table_health_derived
     __example: public
-    __description: The name of the schema that contains the table.
+    __description: The name of the schema.
   snowflake.table.clustering_key:
     __type: string
+    displayName: Snowflake table clustering key
     __context_names:
       - table_clustering
     __example: "REGION, YEAR"
@@ -54,13 +58,14 @@ dimensions:
       The clustering key defined on the table, or NONE if no clustering key is defined.
   snowflake.table.full_name:
     __type: string
+    displayName: Snowflake fully qualified table name
     __stability: stable
     __context_names:
       - table_storage
       - table_clustering
       - table_health_derived
     __example: analytics_db.public.sales_data
-    __description: The full name of the table, including the catalog, schema, and table name.
+    __description: Fully qualified name of the Snowflake table (database.schema.table).
 
 #  * Metric definitions
 #  * KEY                    - will be matched against METRICS object with measurements prepared for sending
@@ -75,7 +80,7 @@ metrics:
       - table_storage
     __example: 1073741824
     __description: Number of bytes of active data in the table.
-    displayName: Active Bytes
+    displayName: Snowflake table active bytes
     unit: By
   snowflake.table.time_travel_bytes:
     __type: long
@@ -83,7 +88,7 @@ metrics:
       - table_storage
     __example: 536870912
     __description: Number of bytes of data in the table that is maintained for Time Travel.
-    displayName: Time Travel Bytes
+    displayName: Snowflake table time travel bytes
     unit: By
   snowflake.table.failsafe_bytes:
     __type: long
@@ -91,7 +96,7 @@ metrics:
       - table_storage
     __example: 268435456
     __description: Number of bytes of data in the table that is maintained for Failsafe.
-    displayName: Failsafe Bytes
+    displayName: Snowflake table failsafe bytes
     unit: By
   snowflake.table.retained_for_clone_bytes:
     __type: long
@@ -99,15 +104,15 @@ metrics:
       - table_storage
     __example: 134217728
     __description: Number of bytes of data in the table that is retained for cloning.
-    displayName: Retained for Clone Bytes
+    displayName: Snowflake table retained-for-clone bytes
     unit: By
   snowflake.data.rows:
     __type: long
     __context_names:
       - table_storage
     __example: 1000000
-    __description: Number of rows in the table.
-    displayName: Row Count
+    __description: Number of rows in the Snowflake object.
+    displayName: Snowflake data row count
     unit: row
   snowflake.table.clustering.depth:
     __type: double
@@ -117,7 +122,7 @@ metrics:
     __description: |
       Average clustering depth of the table. Lower values indicate better clustering.
       A value of 1.0 means all micro-partitions are perfectly clustered.
-    displayName: Clustering Depth
+    displayName: Snowflake table clustering depth
     unit: count
   snowflake.table.clustering.overlap:
     __type: double
@@ -127,7 +132,7 @@ metrics:
     __description: |
       Average overlap depth of the table. Lower values indicate less overlap between
       micro-partitions and better clustering efficiency.
-    displayName: Clustering Overlap
+    displayName: Snowflake table clustering overlap
     unit: count
   snowflake.table.clustering.constant_partition_ratio:
     __type: double
@@ -137,7 +142,7 @@ metrics:
     __description: |
       Fraction of micro-partitions that are constant (fully within a single clustering
       key range). Higher values indicate better clustering quality.
-    displayName: Constant Partition Ratio
+    displayName: Snowflake table constant partition ratio
     unit: ratio
   snowflake.table.clustering.total_partitions:
     __type: long
@@ -145,7 +150,7 @@ metrics:
       - table_clustering
     __example: 1200
     __description: Total number of micro-partitions in the table.
-    displayName: Total Partitions
+    displayName: Snowflake table total partitions
     unit: count
   snowflake.table.growth_bytes:
     __type: long
@@ -155,7 +160,7 @@ metrics:
     __description: |
       Change in active bytes between the two most recent snapshots.
       Positive values indicate growth; negative values indicate shrinkage.
-    displayName: Table Growth (Bytes)
+    displayName: Snowflake table growth in bytes
     unit: By
   snowflake.table.growth_pct:
     __type: double
@@ -165,7 +170,7 @@ metrics:
     __description: |
       Percentage change in active bytes between the two most recent snapshots.
       Null when the previous snapshot had zero bytes.
-    displayName: Table Growth (%)
+    displayName: Snowflake table growth percentage
     unit: "%"
   snowflake.table.clustering.depth_change:
     __type: double
@@ -175,7 +180,7 @@ metrics:
     __description: |
       Change in average clustering depth between the two most recent snapshots.
       Positive values indicate degradation; negative values indicate improvement.
-    displayName: Clustering Depth Change
+    displayName: Snowflake table clustering depth change
     unit: count
   snowflake.table.clustering.degraded:
     __type: long
@@ -186,7 +191,7 @@ metrics:
       Flag indicating whether clustering has degraded beyond the configured threshold
       (plugins.table_health.clustering_degradation_threshold).
       1 = degraded, 0 = healthy or no clustering data available.
-    displayName: Clustering Degraded
+    displayName: Snowflake table clustering degraded indicator
     unit: count
 dql_queries:
   - query_string: |

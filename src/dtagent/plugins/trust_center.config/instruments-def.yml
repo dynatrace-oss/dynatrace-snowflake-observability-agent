@@ -18,55 +18,67 @@
 attributes:
   snowflake.error.code:
     __type: string
+    displayName: Snowflake error code
     __semdict: new
     __semdict_note: >-
       DSOA-specific string error code for Snowflake Trust Center scanner failures. Not the same as the Dynatrace SD error.code field (type:
       long for iOS/mobile numeric codes). Pending rename to snowflake.trust_center.error.code for namespace clarity.
     __example: "TRUST_CENTER_ERR001"
-    __description: The error code associated with the scanner, if any.
+    __description: The error code returned by the operation, if any.
+    __interface_note: Error code associated with the Trust Center scanner.
   event.id:
     __semdict: ref
     __example: 13825839647097210
     __type: long
+    displayName: Security event ID
     __description: A unique identifier for the security event.
   event.kind:
     __semdict: ref
     __example: SECURITY_EVENT
     __stability: stable
     __type: string
+    displayName: Security event kind
     __description: The kind of event, in this case, 'SECURITY_EVENT'.
   snowflake.entity.details:
     __type: string
+    displayName: Snowflake entity details
     __stability: stable
     __example: Contains user data
     __description: Additional details about the entity involved in the event.
   snowflake.entity.id:
     __type: string
+    displayName: Snowflake entity ID
     __example: entity123
     __description: The unique identifier for the entity involved in the event.
   snowflake.entity.name:
     __type: string
+    displayName: Snowflake entity name
     __stability: stable
     __example: User Table
     __description: The name of the entity involved in the event.
   snowflake.entity.type:
     __type: string
+    displayName: Snowflake entity type
     __example: table
     __description: The type of entity involved in the event, such as a table, view, or user.
   snowflake.trust_center.scanner.name:
     __type: string
+    displayName: Snowflake Trust Center scanner name
     __example: "2.4"
     __description: The name of the scanner used in the Trust Center.
   snowflake.trust_center.scanner.description:
     __type: string
+    displayName: Snowflake Trust Center scanner description
     __example: Ensure monitoring and alerting exist for password sign-in without MFA
     __description: A short description of the scanner used in the Trust Center.
   snowflake.trust_center.scanner.package.name:
     __type: string
+    displayName: Snowflake Trust Center scanner package name
     __example: CIS Package
     __description: The name of the scanner package used in the Trust Center.
   snowflake.status.message:
     __type: string
+    displayName: Snowflake Trust Center status message
     __semdict: new
     __example: 2.4 Ensure monitoring and alerting exist for password sign-in without MFA
     __description: The name and description of the scanner, providing additional details about the status.
@@ -75,18 +87,22 @@ dimensions:
     __semdict: ref
     __example: Warning
     __type: string
+    displayName: Security event category
     __description: The category of the event, such as 'Warning' or 'Vulnerability management', based on the severity.
   snowflake.trust_center.scanner.id:
     __type: string
+    displayName: Snowflake Trust Center scanner ID
     __stability: stable
     __example: scanner123
     __description: The unique identifier for the scanner used in the Trust Center.
   snowflake.trust_center.scanner.package.id:
     __type: string
+    displayName: Snowflake Trust Center scanner package ID
     __example: package123
     __description: The unique identifier for the scanner package used in the Trust Center.
   snowflake.trust_center.scanner.type:
     __type: string
+    displayName: Snowflake Trust Center scanner type
     __stability: stable
     __example: CIS Benchmarks
     __description: The type of scanner used in the Trust Center, such as 'CIS Benchmarks' or 'Threat Intelligence'.
@@ -94,6 +110,7 @@ dimensions:
     __semdict: ref
     __semdict_note: Snowflake Trust Center uses values LOW, MEDIUM, HIGH, CRITICAL — all within the SD global enum.
     __type: string
+    displayName: Vulnerability risk level
     __example: HIGH
     __description: The risk level of the vulnerability as reported by Snowflake Trust Center.
 metrics:
@@ -101,7 +118,7 @@ metrics:
     __type: long
     __example: 10
     __description: The total number of findings at risk identified by the scanner.
-    displayName: Trust Center Findings Count
+    displayName: Snowflake Trust Center findings count
     unit: count
 dql_queries:
   - query_string: |

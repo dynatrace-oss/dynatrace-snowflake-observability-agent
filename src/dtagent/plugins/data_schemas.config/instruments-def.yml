@@ -17,25 +17,31 @@
 attributes:
   snowflake.query.id:
     __type: string
+    displayName: Snowflake query ID
     __stability: stable
     __example: 01b30d58-0604-6e1c-0040-e003029c1322
     __description: An internal, system-generated identifier for the SQL statement.
   db.user:
+    __semdict: ref
+    __stability: experimental
     __type: string
-    __stability: stable
+    displayName: Database user
     __example: SYSTEM
-    __description: The user who issued the query.
+    __description: The name of the database user associated with the operation.
   snowflake.query.parent_id:
     __type: string
+    displayName: Snowflake parent query ID
     __stability: stable
     __example: 01b2fd01-0604-6864-0040-e003029abda2
     __description: The query ID of the parent job or NULL if the job does not have a parent.
   snowflake.query.root_id:
     __type: string
+    displayName: Snowflake root query ID
     __example: 01b2fd00-0604-6864-0040-e003029abd82
     __description: The query ID of the top most job in the chain or NULL if the job does not have a parent.
   snowflake.object.ddl.modified:
     __type: string
+    displayName: Snowflake DDL-modified object details
     __semdict_note: "Serialized JSON object stored as string in Grail. Contains modified DDL object details. Parse with parseJson() in DQL."
     __example:
       '{ "DTAGENT_DB.APP.TMP_RECENT_QUERIES": { "objectColumns": "HISTOGRAM_METRICS, COUNTER_METRICS, START_TIME, STATUS_CODE, SESSION_ID,
@@ -43,6 +49,7 @@ attributes:
     __description: A JSON array that specifies the objects that were associated with a write operation in the query.
   snowflake.object.type:
     __type: string
+    displayName: Snowflake DDL object type
     __stability: stable
     __example: "Table"
     __description: |
@@ -53,15 +60,18 @@ attributes:
   snowflake.object.id:
     __stability: stable
     __type: long
+    displayName: Snowflake DDL object ID
     __example: 747545
     __description: An identifier for the object, which is unique within a given account and domain.
   snowflake.object.name:
     __type: string
+    displayName: Snowflake DDL object name
     __stability: stable
     __example: "DTAGENT_DB.APP.TMP_RECENT_QUERIES"
     __description: The fully qualified name of the object defined or modified by the DDL operation.
   snowflake.object.ddl.operation:
     __type: string
+    displayName: Snowflake DDL operation
     __stability: stable
     __example: "REPLACE"
     __description: |
@@ -74,6 +84,7 @@ attributes:
   snowflake.object.ddl.properties:
     __stability: stable
     __type: string
+    displayName: Snowflake DDL property changes
     __example: '{"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}}'
     __semdict_note: "Stored as a serialized JSON string, not plain text."
     __description: |

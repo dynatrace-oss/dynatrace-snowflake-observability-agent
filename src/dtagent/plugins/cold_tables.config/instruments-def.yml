@@ -20,6 +20,7 @@
 dimensions:
   db.namespace:
     __type: string
+    displayName: Snowflake database name
     __semdict: ref
     __stability: stable
     __semdict_note: >
@@ -30,12 +31,14 @@ dimensions:
     __description: The name of the database containing the table.
   snowflake.schema.name:
     __type: string
+    displayName: Snowflake schema name
     __stability: stable
     __context_names: ["cold_tables"]
     __example: public
-    __description: The schema containing the table.
+    __description: The name of the schema.
   db.collection.name:
     __type: string
+    displayName: Snowflake table name
     __semdict: ref
     __stability: stable
     __semdict_note: >
@@ -46,10 +49,11 @@ dimensions:
     __description: The table name.
   snowflake.table.full_name:
     __type: string
+    displayName: Snowflake fully qualified table name
     __stability: stable
     __context_names: ["cold_tables"]
     __example: ANALYTICS_DB.PUBLIC.ORDERS
-    __description: Fully qualified table name (catalog.schema.table).
+    __description: Fully qualified name of the Snowflake table (database.schema.table).
   snowflake.table.cold_status:
     __type: string
     __stability: stable
@@ -65,10 +69,12 @@ dimensions:
         - id: warm
           value: warm
           brief: Table data has been recently accessed within the cold threshold period.
+    displayName: Snowflake table cold status indicator
 
 attributes:
   snowflake.table.last_accessed_at:
     __type: string
+    displayName: Snowflake table last access timestamp
     __context_names: ["cold_tables"]
     __example: "2026-01-15T10:30:00Z"
     __description: ISO 8601 timestamp of the most recent query that accessed this table.
@@ -79,14 +85,14 @@ metrics:
     __context_names: ["cold_tables"]
     __example: 42
     __description: Total number of query accesses to this table within the lookback window.
-    displayName: Table Access Count
+    displayName: Snowflake table access count
     unit: count
   snowflake.table.days_since_last_access:
     __type: long
     __context_names: ["cold_tables"]
     __example: 95
     __description: Number of days since the table was last accessed by any query.
-    displayName: Days Since Last Access
+    displayName: Snowflake days since last table access
     unit: d
 dql_queries:
   - query_string: |
