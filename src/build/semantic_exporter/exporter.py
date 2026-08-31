@@ -30,18 +30,18 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import yaml
 
+from build.semantic_exporter.constants import SD_OWNED_GROUP_PREFIXES
 from build.semantic_exporter.yaml_helpers import ExportError
 from build.semantic_exporter.discovery import EntryDiscoverer
 from build.semantic_exporter.document_builders import DocumentBuilder
 from build.semantic_exporter.schema import SchemaValidator
 from build.semantic_exporter.writers import OutputWriter
 from build.semantic_exporter.field_emitters import (
-    SD_OWNED_GROUP_PREFIXES,
     SPAN_PLUGINS,
-    _dql_for_context,
-    _merge_field_entries,
-    _plugin_label,
-    _resolve_model_group_dql,
+    dql_for_context,
+    merge_field_entries,
+    plugin_label,
+    resolve_model_group_dql,
 )
 
 log = logging.getLogger("build.export_semantics")
@@ -197,7 +197,7 @@ class SemanticExporter:
         dim_context_by_plugin: Dict[str, Dict[str, Set[str]]] = {}
         # Per-plugin DQL query examples collected directly from the top-level dql_queries: key
         # in each instruments-def.yml file.  Keyed by plugin_name (or "_core").  Each entry's
-        # ``context`` list routes it to the matching model type(s) via ``_dql_for_context``.
+        # ``context`` list routes it to the matching model type(s) via ``dql_for_context``.
         plugin_dql_queries: Dict[str, List[Dict[str, Any]]] = {}
         for plugin_name, path in files:
             log.debug("Parsing %s (%s)", plugin_name, path)
@@ -220,7 +220,7 @@ class SemanticExporter:
                     ctx = set(meta["entry"].get("__context_names") or [])
                     dim_context_by_plugin.setdefault(plugin_name, {}).setdefault(key, set()).update(ctx)
                 if key in all_entries:
-                    all_entries[key] = _merge_field_entries(key, all_entries[key], meta)
+                    all_entries[key] = merge_field_entries(key, all_entries[key], meta)
                 else:
                     all_entries[key] = meta
         if all_errors:
@@ -237,7 +237,7 @@ class SemanticExporter:
                 log.warning("Could not read model_group_dql file from %s: %s", _mg_dql_path, exc)
         else:
             log.warning("model_group_dql file not found at %s", _mg_dql_path)
-        resolved_mg_dql = _resolve_model_group_dql(_core_raw.get("model_group_dql"), plugin_dql_queries)
+        resolved_mg_dql = resolve_model_group_dql(_core_raw.get("model_group_dql"), plugin_dql_queries)
         log.info("Resolved model_group_dql for %d group(s): %s", len(resolved_mg_dql), sorted(resolved_mg_dql))
 
         # Step 3: Group
@@ -302,7 +302,7 @@ class SemanticExporter:
                 self._counters,
                 dim_plugins,
                 dim_context_by_plugin,
-                dql_queries=_dql_for_context(plugin_dql_queries.get(plugin_name), "metrics"),
+                dql_queries=dql_for_context(plugin_dql_queries.get(plugin_name), "metrics"),
             )
             p = self._writer.write_yaml(doc, f"metrics/snowflake_metrics_{plugin_name}.yaml", self._counters)
             self._schema_validator.validate_against_schema(doc, p)
@@ -328,7 +328,7 @@ class SemanticExporter:
                     plugin_name,
                     event_ts_entries,
                     self._counters,
-                    dql_queries=_dql_for_context(plugin_dql_queries.get(plugin_name), "events"),
+                    dql_queries=dql_for_context(plugin_dql_queries.get(plugin_name), "events"),
                 )
                 p = self._writer.write_yaml(doc, f"model/snowflake/events/snowflake.events.{plugin_name}.yaml", self._counters)
                 self._schema_validator.validate_against_schema(doc, p)
@@ -356,7 +356,7 @@ class SemanticExporter:
                 doc = self._builder.build_log_model_yaml(
                     plugin_name,
                     all_entries,
-                    dql_queries=_dql_for_context(plugin_dql_queries.get(plugin_name), "logs"),
+                    dql_queries=dql_for_context(plugin_dql_queries.get(plugin_name), "logs"),
                 )
                 p = self._writer.write_yaml(doc, f"model/snowflake/logs/snowflake.logs.{plugin_name}.yaml", self._counters)
                 self._schema_validator.validate_against_schema(doc, p)
@@ -381,7 +381,7 @@ class SemanticExporter:
                 doc = self._builder.build_span_model_yaml(
                     plugin_name,
                     all_entries,
-                    dql_queries=_dql_for_context(plugin_dql_queries.get(plugin_name), "spans"),
+                    dql_queries=dql_for_context(plugin_dql_queries.get(plugin_name), "spans"),
                 )
                 p = self._writer.write_yaml(doc, f"model/snowflake/spans/snowflake.spans.{plugin_name}.yaml", self._counters)
                 self._schema_validator.validate_against_schema(doc, p)
@@ -406,7 +406,7 @@ class SemanticExporter:
             doc = self._builder.build_span_model_yaml(
                 "event_log",
                 all_entries,
-                dql_queries=_dql_for_context(plugin_dql_queries.get("event_log"), "spans"),
+                dql_queries=dql_for_context(plugin_dql_queries.get("event_log"), "spans"),
             )
             p = self._writer.write_yaml(doc, "model/snowflake/spans/snowflake.spans.event_log.yaml", self._counters)
             self._schema_validator.validate_against_schema(doc, p)
@@ -464,7 +464,7 @@ class SemanticExporter:
                 per_model_stubs.append(
                     {
                         "id": f"snowflake.logs.{plugin_name}",
-                        "title": f"Snowflake {_plugin_label(plugin_name)} log records",
+                        "title": f"Snowflake {plugin_label(plugin_name)} log records",
                         "brief": f"Log records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE and system views.",
                         "signal_type": "logs",
                         "has_fields": True,
@@ -474,7 +474,7 @@ class SemanticExporter:
                 per_model_stubs.append(
                     {
                         "id": f"snowflake.events.{plugin_name}",
-                        "title": f"Snowflake {_plugin_label(plugin_name)} lifecycle events",
+                        "title": f"Snowflake {plugin_label(plugin_name)} lifecycle events",
                         "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
                         "signal_type": "events",
                         "has_fields": True,
@@ -485,7 +485,7 @@ class SemanticExporter:
                 per_model_stubs.append(
                     {
                         "id": f"snowflake.spans.{plugin_name}",
-                        "title": f"Snowflake {_plugin_label(plugin_name)} spans",
+                        "title": f"Snowflake {plugin_label(plugin_name)} spans",
                         "brief": f"Span records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
                         "signal_type": "spans",
                         # A span model has an inner <plugin>.fields attribute_group only when it

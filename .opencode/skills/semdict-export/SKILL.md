@@ -153,7 +153,7 @@ native types correctly:
 | `boolean`          | `bool`              | `true` / `false` |
 | `string` / `string[]` / any other | `str` | `"COMPUTE_WH"` |
 
-The `_coerce_attribute_example(value, field_type)` function in `src/build/export_semantics.py`
+The `coerce_attribute_example(value, field_type)` function in `src/build/semantic_exporter/field_emitters.py`
 implements this mapping. If the SD tool reports a type mismatch on an example, verify that:
 
 1. The `__type` annotation in `instruments-def.yml` is correct.

@@ -37,7 +37,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from build.semantic_exporter.yaml_helpers import _QuotedStr, _SingleQuotedStr
+from build.semantic_exporter.constants import SD_OWNED_GROUP_PREFIXES
+from build.semantic_exporter.yaml_helpers import QuotedStr, SingleQuotedStr
 
 log = logging.getLogger("build.export_semantics")
 
@@ -150,11 +151,6 @@ SD_TEAM = "DSOA"
 #: Set via SD_OWNERS env var as a space-separated list (or .env file — see .env.example).
 SD_OWNERS: List[str] = os.environ.get("SD_OWNERS", "").split() or []
 
-#: Group ID prefixes that DSOA owns exclusively in the Semantic Dictionary.
-#: Used to decide which signal_fields files and doc/fields/*.md entries go
-#: into the OWNERS section (shared fields like db, client, authentication are excluded).
-SD_OWNED_GROUP_PREFIXES: frozenset = frozenset({"snowflake", "dsoa", "anomaly", "observed_timestamp"})
-
 #: Acronyms that must stay ALL-CAPS in display_name (longer tokens first).
 DISPLAY_NAME_ACRONYMS = ("DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID", "DB", "QA", "SQL")
 
@@ -172,19 +168,19 @@ TITLE_PROPER_NOUNS = (
     "Snowpipes",
 )
 
-#: Word-level substitutions applied in _make_title, _make_display_name, and _plugin_label.
+#: Word-level substitutions applied in make_title, make_display_name, and plugin_label.
 _WORD_SUBS: Dict[str, str] = {"org": "organization"}
 
 #: Override map for doc/fields/ stub ## h2 headings (the hand-authored top-of-file
 #: heading in the doc stub, "line 1" per PR #1964 review feedback) keyed by group_id
-#: (ns_key after stripping any .resource suffix). Used when _make_title produces an
+#: (ns_key after stripping any .resource suffix). Used when make_title produces an
 #: inadequate heading — e.g. the top-level "dsoa" group needs the full product name.
 #: Per reviewer feedback (Schoenberger, PR #1964): "write in line 1 as it is [full
 #: name] and in the group then just [abbreviated] ### DSOA debug signal fields" — so
 #: this ## h2 override intentionally stays the FULL product name; only the YAML
 #: title: (rendered as the ### h3 inside the semconv block, see
-#: _GROUP_TITLE_OVERRIDES below) is abbreviated.
-_FIELD_STUB_H2_OVERRIDES: Dict[str, str] = {
+#: GROUP_TITLE_OVERRIDES below) is abbreviated.
+FIELD_STUB_H2_OVERRIDES: Dict[str, str] = {
     "dsoa": "Dynatrace Snowflake Observability Agent (DSOA)",
     "dsoa.debug": "Dynatrace Snowflake Observability Agent (DSOA) debug",
     "dsoa.plugins": "Dynatrace Snowflake Observability Agent (DSOA) plugins",
@@ -193,8 +189,8 @@ _FIELD_STUB_H2_OVERRIDES: Dict[str, str] = {
 #: Override map for a group's YAML title: field (rendered by the SD generator as the
 #: ### h3 heading inside the semconv block — distinct from the ## h2 doc-stub heading
 #: above, which intentionally keeps the full product name per PR #1964 review
-#: feedback). Keyed by group_id the same way as _FIELD_STUB_H2_OVERRIDES.
-_GROUP_TITLE_OVERRIDES: Dict[str, str] = {
+#: feedback). Keyed by group_id the same way as FIELD_STUB_H2_OVERRIDES.
+GROUP_TITLE_OVERRIDES: Dict[str, str] = {
     "dsoa": "DSOA",
     "dsoa.debug": "DSOA debug",
     "dsoa.plugins": "DSOA plugins",
@@ -273,7 +269,7 @@ VALID_SEMDICT_FLAGS = {"ref", "new", "deprecated-alias", "otel-only"}
 # See IA guidance: type:span is reserved for groups whose semantics are exclusively
 # span/trace wire-format (HTTP, RPC). Using it for DSOA fields would be incorrect.
 # TODO: Re-evaluate after @information-architect review of span semantics.
-_SIG_NS: List[Tuple[str, str, str]] = [
+SIG_NS: List[Tuple[str, str, str]] = [
     ("snowflake.warehouse", "snowflake.warehouse", "attribute_group"),
     ("snowflake.query", "snowflake.query", "attribute_group"),
     ("snowflake.time", "snowflake.time", "attribute_group"),
@@ -283,7 +279,7 @@ _SIG_NS: List[Tuple[str, str, str]] = [
     ("snowflake.error", "snowflake.error", "attribute_group"),
     ("snowflake.data", "snowflake.data", "attribute_group"),
     # Dedicated sub-group for the dynamic-table dependency-graph fields — must precede the
-    # generic "snowflake.table" entry below since _ns_group returns the first prefix match.
+    # generic "snowflake.table" entry below since ns_group returns the first prefix match.
     ("snowflake.table.dynamic.graph", "snowflake.table.dynamic.graph", "attribute_group"),
     ("snowflake.table", "snowflake.table", "attribute_group"),
     ("snowflake.pipe", "snowflake.pipe", "attribute_group"),
@@ -339,7 +335,7 @@ _SIG_NS: List[Tuple[str, str, str]] = [
 ]
 
 # (prefix, group_id, group_type) for resource fields.
-_RES_NS: List[Tuple[str, str, str]] = [
+RES_NS: List[Tuple[str, str, str]] = [
     # DSOA execution metadata — always resource (in RESOURCE_ATTRIBUTE_KEYS)
     ("dsoa", "dsoa", "resource"),
     ("deployment", "deployment", "resource"),
@@ -347,7 +343,7 @@ _RES_NS: List[Tuple[str, str, str]] = [
     # (e.g. snowflake.warehouse.size, snowflake.warehouse.type when they describe
     # a stable property of the warehouse resource rather than per-event context)
     # NOTE: group IDs use a ".resource" suffix to avoid collision with the signal-field
-    # attribute_groups of the same namespace (snowflake.warehouse and db) defined in _SIG_NS.
+    # attribute_groups of the same namespace (snowflake.warehouse and db) defined in SIG_NS.
     ("snowflake.warehouse", "snowflake.warehouse.resource", "resource"),
     ("snowflake.resource_monitor", "snowflake.resource_monitor.resource", "resource"),
     ("snowflake.account", "snowflake.account", "resource"),
@@ -383,7 +379,7 @@ def _restore_acronyms(text: str) -> str:
     return " ".join(restored)
 
 
-def _make_display_name(key: str) -> str:
+def make_display_name(key: str) -> str:
     """Convert dot-notation key to human-readable display name.
 
     Args:
@@ -397,7 +393,7 @@ def _make_display_name(key: str) -> str:
     return _restore_acronyms(" ".join(p.title() for p in parts))
 
 
-def _make_title(key: str) -> str:
+def make_title(key: str) -> str:
     """Convert dot-notation key to sentence-case title for SD group ``title:`` fields.
 
     Sentence case means only the first word is capitalised; subsequent words are
@@ -424,10 +420,10 @@ def _make_title(key: str) -> str:
     return result
 
 
-def _plugin_label(plugin_name: str, *, cap_first: bool = False) -> str:
+def plugin_label(plugin_name: str, *, cap_first: bool = False) -> str:
     """Convert a plugin identifier to a human-readable label with proper-noun capitalisation.
 
-    Unlike :func:`_make_title`, this function does not call :func:`_restore_acronyms` or
+    Unlike :func:`make_title`, this function does not call :func:`_restore_acronyms` or
     split on dots — it only processes underscore-joined plugin identifiers (e.g.
     ``"trust_center"``, ``"org_costs"``, ``"snowpipes"``).
 
@@ -450,7 +446,7 @@ def _plugin_label(plugin_name: str, *, cap_first: bool = False) -> str:
     return label
 
 
-def _map_attr_type(raw_type: Optional[str]) -> str:
+def map_attr_type(raw_type: Optional[str]) -> str:
     """Map instruments-def __type to semconv attribute type string.
 
     Args:
@@ -464,7 +460,7 @@ def _map_attr_type(raw_type: Optional[str]) -> str:
     return ATTR_TYPE_MAP.get(str(raw_type).lower(), "string")
 
 
-def _map_metric_instrument(raw_type: Optional[str]) -> str:
+def map_metric_instrument(raw_type: Optional[str]) -> str:
     """Map instruments-def __type to semconv instrument string.
 
     Args:
@@ -487,7 +483,7 @@ def _map_metric_instrument(raw_type: Optional[str]) -> str:
     return "gauge"
 
 
-def _classify_field(key: str, section: str, field_type_override: Optional[str]) -> str:
+def classify_field(key: str, section: str, field_type_override: Optional[str]) -> str:
     """Determine the SD bucket for a field.
 
     SD definition (source/readme.md):
@@ -527,7 +523,7 @@ def _classify_field(key: str, section: str, field_type_override: Optional[str]) 
     return "signal"
 
 
-def _ns_group(key: str, ns_map: List[Tuple[str, str, str]], default_id: str, default_type: str) -> Tuple[str, str]:
+def ns_group(key: str, ns_map: List[Tuple[str, str, str]], default_id: str, default_type: str) -> Tuple[str, str]:
     """Map a field key to (group_id, group_type) via prefix matching.
 
     Args:
@@ -545,7 +541,7 @@ def _ns_group(key: str, ns_map: List[Tuple[str, str, str]], default_id: str, def
     return default_id, default_type
 
 
-def _merge_field_entries(key: str, existing: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
+def merge_field_entries(key: str, existing: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
     """Merge two definitions of the same field key, preferring richer enum metadata.
 
     Rules:
@@ -600,7 +596,7 @@ def _merge_field_entries(key: str, existing: Dict[str, Any], incoming: Dict[str,
     return existing
 
 
-def _dql_for_context(queries: Optional[List[Dict[str, Any]]], target: str) -> List[Dict[str, Any]]:
+def dql_for_context(queries: Optional[List[Dict[str, Any]]], target: str) -> List[Dict[str, Any]]:
     """Filter a plugin's DQL example queries down to those applicable to one model type.
 
     Each entry's ``context`` list declares which model types it illustrates
@@ -625,7 +621,7 @@ def _dql_for_context(queries: Optional[List[Dict[str, Any]]], target: str) -> Li
     return result
 
 
-def _resolve_model_group_dql(
+def resolve_model_group_dql(
     raw: Dict[str, Any],
     plugin_dql_queries: Dict[str, List[Dict[str, Any]]],
 ) -> Dict[str, List[Dict[str, Any]]]:
@@ -634,7 +630,7 @@ def _resolve_model_group_dql(
     Each entry in the raw block is either a literal ``DqlQuery`` dict or a
     ``use_plugin_dql`` reference ``{plugin: <name>, context: <ctx>}``.  References are
     expanded by pulling matching queries from ``plugin_dql_queries`` via
-    ``_dql_for_context``; the ``context`` routing key is stripped in both cases so the
+    ``dql_for_context``; the ``context`` routing key is stripped in both cases so the
     result is a clean list of ``DqlQuery`` objects suitable for direct embedding in
     model_group YAML.
 
@@ -655,7 +651,7 @@ def _resolve_model_group_dql(
             if ref:
                 plugin = ref.get("plugin", "")
                 context = ref.get("context", "")
-                expanded = _dql_for_context(plugin_dql_queries.get(plugin), context)
+                expanded = dql_for_context(plugin_dql_queries.get(plugin), context)
                 if not expanded:
                     log.warning("model_group_dql[%s]: use_plugin_dql plugin=%s context=%s yielded no queries", group_id, plugin, context)
                 queries.extend(expanded)
@@ -675,7 +671,7 @@ def _resolve_model_group_dql(
 ##region Validation
 
 
-def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: str) -> List[str]:
+def validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: str) -> List[str]:
     """Validate a single instruments-def entry for required semdict metadata.
 
     Checks:
@@ -774,7 +770,7 @@ def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: 
 ##region Emit helpers
 
 
-def _emit_ref_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
+def emit_ref_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     """Build a ref: attribute entry.
 
     Args:
@@ -791,7 +787,7 @@ def _emit_ref_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     return node
 
 
-def _build_type_node(entry: Dict[str, Any], no_display_name: bool = False) -> Any:
+def build_type_node(entry: Dict[str, Any], no_display_name: bool = False) -> Any:
     """Build the ``type:`` value — enum dict when __enum present, else type string.
 
     Args:
@@ -807,17 +803,17 @@ def _build_type_node(entry: Dict[str, Any], no_display_name: bool = False) -> An
         for m in enum_def.get("members", []):
             member: Dict[str, Any] = {
                 "id": m["id"],  # plain — SD: no quotes on member id
-                "value": _QuotedStr(m["value"]),  # double-quoted — SD convention
+                "value": QuotedStr(m["value"]),  # double-quoted — SD convention
                 "brief": m["brief"],
             }
             if "display_name" in m and not no_display_name:
-                member["display_name"] = _SingleQuotedStr(m["display_name"])  # single-quoted
+                member["display_name"] = SingleQuotedStr(m["display_name"])  # single-quoted
             members.append(member)
         return {"allow_custom_values": bool(enum_def.get("allow_custom_values", True)), "members": members}
-    return _map_attr_type(entry.get("__type"))
+    return map_attr_type(entry.get("__type"))
 
 
-def _coerce_string_array_examples(key: str, example_raw: Any) -> List[List[str]]:
+def coerce_string_array_examples(key: str, example_raw: Any) -> List[List[str]]:
     """Coerce a raw ``__example`` value into SD-valid list-of-lists format for ``string[]`` fields.
 
     The Semantic Dictionary build tool requires ``string[]`` attribute examples to be a
@@ -846,10 +842,10 @@ def _coerce_string_array_examples(key: str, example_raw: Any) -> List[List[str]]
     if isinstance(example_raw, list):
         if example_raw and isinstance(example_raw[0], list):
             # Already list-of-lists — validate/coerce inner elements to str
-            return [[_SingleQuotedStr(item) for item in inner] for inner in example_raw]
+            return [[SingleQuotedStr(item) for item in inner] for inner in example_raw]
         # Flat list — wrap in outer list
         log.debug("string[] field '%s': wrapping flat list example in outer list", key)
-        return [[_SingleQuotedStr(item) for item in example_raw]]
+        return [[SingleQuotedStr(item) for item in example_raw]]
 
     # Scalar — try JSON parse first
     as_str = str(example_raw).strip()
@@ -858,14 +854,14 @@ def _coerce_string_array_examples(key: str, example_raw: Any) -> List[List[str]]
             parsed = json.loads(as_str)
             if isinstance(parsed, list):
                 log.debug("string[] field '%s': parsed JSON array scalar example", key)
-                return [[_SingleQuotedStr(item) for item in parsed]]
+                return [[SingleQuotedStr(item) for item in parsed]]
         except (json.JSONDecodeError, ValueError):
             log.debug("string[] field '%s': JSON parse failed on scalar; wrapping as single string", key)
 
-    return [[_SingleQuotedStr(as_str)]]
+    return [[SingleQuotedStr(as_str)]]
 
 
-def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_display_name: bool = False) -> Dict[str, Any]:
+def emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_display_name: bool = False) -> Dict[str, Any]:
     """Build a full id: attribute definition block.
 
     Respects the ``__stability`` annotation in instruments-def.  When
@@ -893,7 +889,7 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_displa
     Returns:
         Dict with all required semconv attribute fields.
     """
-    attr_type = _build_type_node(entry, no_display_name=no_display_name)
+    attr_type = build_type_node(entry, no_display_name=no_display_name)
     description = str(entry["__description"]).strip()
     field_type = str(entry.get("__type") or "").strip().lower()
     example_raw = entry.get("__example", "")
@@ -902,12 +898,12 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_displa
 
     if field_type == "string[]":
         # SD requires examples for string[] to be a list of arrays (list-of-lists).
-        examples = _coerce_string_array_examples(key, example_raw)
+        examples = coerce_string_array_examples(key, example_raw)
     else:
         examples = (
-            [_coerce_attribute_example(example_raw, field_type)]
+            [coerce_attribute_example(example_raw, field_type)]
             if not isinstance(example_raw, list)
-            else [_coerce_attribute_example(e, field_type) for e in example_raw]
+            else [coerce_attribute_example(e, field_type) for e in example_raw]
         )
 
     # Determine stability: respect __stability annotation, default to experimental.
@@ -919,7 +915,7 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_displa
         deprecated_msg = f"Use {entry['__otel_replacement']} instead." if entry.get("__otel_replacement") else "Deprecated."
         node: Dict[str, Any] = {
             "id": key,
-            **({} if no_display_name else {"display_name": _SingleQuotedStr(_make_display_name(key))}),
+            **({} if no_display_name else {"display_name": SingleQuotedStr(make_display_name(key))}),
             "type": attr_type,
             "deprecated": deprecated_msg,
             "brief": description,
@@ -928,7 +924,7 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_displa
     else:
         node = {
             "id": key,
-            **({} if no_display_name else {"display_name": _SingleQuotedStr(_make_display_name(key))}),
+            **({} if no_display_name else {"display_name": SingleQuotedStr(make_display_name(key))}),
             "type": attr_type,
             "stability": stability,
             "brief": description,
@@ -959,7 +955,7 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_displa
     return node
 
 
-def _coerce_attribute_example(value: Any, field_type: str = "") -> Any:  # pylint: disable=too-many-return-statements
+def coerce_attribute_example(value: Any, field_type: str = "") -> Any:  # pylint: disable=too-many-return-statements
     """Coerce an attribute example to the Python type matching the declared SD field type.
 
     The Semantic Dictionary build tool rejects examples whose Python type does not match
@@ -1007,11 +1003,11 @@ def _coerce_attribute_example(value: Any, field_type: str = "") -> Any:  # pylin
         return lowered not in ("false", "0", "no", "")
     # Default: string (also handles string[], array, record, enum, timestamp, unknown)
     if isinstance(value, bool):
-        return _SingleQuotedStr("true" if value else "false")
-    return _SingleQuotedStr(str(value).strip())
+        return SingleQuotedStr("true" if value else "false")
+    return SingleQuotedStr(str(value).strip())
 
 
-def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
+def emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     """Build a type: metric group entry.
 
     Args:
@@ -1021,7 +1017,7 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dict representing a semconv metric definition.
     """
-    instrument = _map_metric_instrument(entry.get("__type"))
+    instrument = map_metric_instrument(entry.get("__type"))
     description = str(entry.get("__description", "")).strip()
     raw_unit = entry.get("unit") or entry.get("__unit")
     if not raw_unit:
@@ -1031,7 +1027,7 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     mapped_unit = UNIT_MAP.get(raw_unit_str, raw_unit_str) if raw_unit_str else None
     if raw_unit_str and mapped_unit != raw_unit_str:
         log.debug("Metric '%s': unit '%s' → '%s'", key, raw_unit_str, mapped_unit)
-    display_name = entry.get("displayName") or _make_display_name(key)
+    display_name = entry.get("displayName") or make_display_name(key)
     node: Dict[str, Any] = {
         "id": key,
         "type": "metric",
@@ -1057,10 +1053,10 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
 ##endregion
 
 
-def _requote_scalars(doc: Dict[str, Any]) -> None:
+def requote_scalars(doc: Dict[str, Any]) -> None:
     """Re-wrap string scalars that require explicit quoting after a YAML round-trip.
 
-    yaml.safe_load strips subclass type info (_SingleQuotedStr, _QuotedStr), turning
+    yaml.safe_load strips subclass type info (SingleQuotedStr, QuotedStr), turning
     them back into plain str. This restores the correct quote style per SD convention:
     - attribute display_name: single-quoted
     - examples: single-quoted
@@ -1071,13 +1067,13 @@ def _requote_scalars(doc: Dict[str, Any]) -> None:
     for group in doc.get("groups", []):
         for attr in group.get("attributes", []):
             if isinstance(attr.get("display_name"), str):
-                attr["display_name"] = _SingleQuotedStr(attr["display_name"])
+                attr["display_name"] = SingleQuotedStr(attr["display_name"])
             if "examples" in attr:
-                attr["examples"] = [_SingleQuotedStr(v) if isinstance(v, str) else v for v in attr["examples"]]
+                attr["examples"] = [SingleQuotedStr(v) if isinstance(v, str) else v for v in attr["examples"]]
             attr_type = attr.get("type")
             if isinstance(attr_type, dict):
                 for member in attr_type.get("members", []):
                     if isinstance(member.get("value"), str):
-                        member["value"] = _QuotedStr(member["value"])
+                        member["value"] = QuotedStr(member["value"])
                     if isinstance(member.get("display_name"), str):
-                        member["display_name"] = _SingleQuotedStr(member["display_name"])
+                        member["display_name"] = SingleQuotedStr(member["display_name"])

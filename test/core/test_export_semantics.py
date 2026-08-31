@@ -40,23 +40,23 @@ from build.semantic_exporter import (
     VALID_STABILITY_VALUES,
     ExportError,
     SemanticExporter,
-    _IndentedDumper,
-    _build_type_node,
-    _classify_field,
-    _coerce_attribute_example,
-    _coerce_string_array_examples,
-    _emit_id_entry,
-    _emit_metric_entry,
-    _emit_ref_entry,
-    _make_title,
-    _make_ruamel_yaml,
-    _map_attr_type,
-    _plugin_label,
-    _map_metric_instrument,
-    _merge_field_entries,
-    _merge_into_ruamel,
-    _ns_group,
-    _validate_entry,
+    IndentedDumper,
+    build_type_node,
+    classify_field,
+    coerce_attribute_example,
+    coerce_string_array_examples,
+    emit_id_entry,
+    emit_metric_entry,
+    emit_ref_entry,
+    make_title,
+    make_ruamel_yaml,
+    map_attr_type,
+    plugin_label,
+    map_metric_instrument,
+    merge_field_entries,
+    merge_into_ruamel,
+    ns_group,
+    validate_entry,
 )
 
 ##region Fixtures
@@ -82,140 +82,140 @@ class TestTypeMappings:
 
     def test_attr_type_string_default(self):
         """Missing __type maps to string."""
-        assert _map_attr_type(None) == "string"
+        assert map_attr_type(None) == "string"
 
     def test_attr_type_long(self):
         """long/int map to long."""
-        assert _map_attr_type("long") == "long"
-        assert _map_attr_type("int") == "long"
+        assert map_attr_type("long") == "long"
+        assert map_attr_type("int") == "long"
 
     def test_attr_type_double(self):
         """double/float map to double."""
-        assert _map_attr_type("double") == "double"
-        assert _map_attr_type("float") == "double"
+        assert map_attr_type("double") == "double"
+        assert map_attr_type("float") == "double"
 
     def test_attr_type_boolean(self):
         """Boolean maps to boolean."""
-        assert _map_attr_type("boolean") == "boolean"
+        assert map_attr_type("boolean") == "boolean"
 
     def test_metric_instrument_gauge(self):
         """Gauge maps to gauge."""
-        assert _map_metric_instrument("gauge") == "gauge"
+        assert map_metric_instrument("gauge") == "gauge"
 
     def test_metric_instrument_count(self):
         """Count and counter both map to counter."""
-        assert _map_metric_instrument("count") == "counter"
-        assert _map_metric_instrument("counter") == "counter"
+        assert map_metric_instrument("count") == "counter"
+        assert map_metric_instrument("counter") == "counter"
 
     def test_metric_instrument_updowncounter(self):
         """Updowncounter maps to updowncounter."""
-        assert _map_metric_instrument("updowncounter") == "updowncounter"
+        assert map_metric_instrument("updowncounter") == "updowncounter"
 
     def test_metric_instrument_histogram(self):
         """Histogram maps to histogram."""
-        assert _map_metric_instrument("histogram") == "histogram"
+        assert map_metric_instrument("histogram") == "histogram"
 
     def test_metric_instrument_default_gauge(self):
         """Missing __type defaults to gauge."""
-        assert _map_metric_instrument(None) == "gauge"
+        assert map_metric_instrument(None) == "gauge"
 
     def test_attr_type_array_types(self):
         """Array and record types map to their SD equivalents."""
-        assert _map_attr_type("string[]") == "string[]"
-        assert _map_attr_type("long[]") == "long[]"
-        assert _map_attr_type("array") == "array"
-        assert _map_attr_type("record") == "record"
-        assert _map_attr_type("record[]") == "record[]"
+        assert map_attr_type("string[]") == "string[]"
+        assert map_attr_type("long[]") == "long[]"
+        assert map_attr_type("array") == "array"
+        assert map_attr_type("record") == "record"
+        assert map_attr_type("record[]") == "record[]"
 
     def test_attr_type_timestamp_falls_through_to_string(self):
         """__type: timestamp (legacy) falls through to string (Grail reality)."""
-        assert _map_attr_type("timestamp") == "string"
+        assert map_attr_type("timestamp") == "string"
 
 
 ##endregion
 
 
-##region Unit tests — _make_title
+##region Unit tests — make_title
 
 
 class TestMakeTitle:
-    """Verify _make_title produces sentence-case titles with preserved proper nouns."""
+    """Verify make_title produces sentence-case titles with preserved proper nouns."""
 
     def test_simple_key(self):
         """Single namespace word is capitalised."""
-        assert _make_title("snowflake") == "Snowflake"
+        assert make_title("snowflake") == "Snowflake"
 
     def test_dotted_key_sentence_case(self):
         """Dot-separated key produces sentence case — only first word capitalised."""
-        assert _make_title("snowflake.warehouse") == "Snowflake warehouse"
+        assert make_title("snowflake.warehouse") == "Snowflake warehouse"
 
     def test_underscore_key(self):
         """Underscore-separated words are treated as word boundaries."""
-        assert _make_title("snowflake.resource_monitor") == "Snowflake Resource Monitor"
+        assert make_title("snowflake.resource_monitor") == "Snowflake Resource Monitor"
 
     def test_acronym_preserved(self):
         """Known acronyms (e.g. DSOA, SQL) are kept ALL-CAPS."""
-        assert _make_title("dsoa.run.plugin") == "DSOA run plugin"
-        assert _make_title("snowflake.sql.query") == "Snowflake SQL query"
+        assert make_title("dsoa.run.plugin") == "DSOA run plugin"
+        assert make_title("snowflake.sql.query") == "Snowflake SQL query"
 
     def test_proper_noun_trust_center(self):
         """Trust Center (Snowflake product name) retains its capitalisation."""
-        assert _make_title("snowflake.trust_center") == "Snowflake Trust Center"
+        assert make_title("snowflake.trust_center") == "Snowflake Trust Center"
 
     def test_proper_noun_trust_center_with_suffix(self):
         """Trust Center is preserved even when a suffix follows."""
-        result = _make_title("snowflake.trust_center") + " signal fields"
+        result = make_title("snowflake.trust_center") + " signal fields"
         assert result == "Snowflake Trust Center signal fields"
 
     def test_empty_key(self):
         """Empty key returns empty string."""
-        assert _make_title("") == ""
+        assert make_title("") == ""
 
     def test_org_expanded_to_organization(self):
         """'org' as a standalone word is expanded to 'organization'."""
-        assert _make_title("snowflake.org") == "Snowflake organization"
+        assert make_title("snowflake.org") == "Snowflake organization"
 
     def test_org_costs_expanded(self):
         """'org' word in compound key is expanded."""
-        assert _make_title("org_costs") == "Organization costs"
+        assert make_title("org_costs") == "Organization costs"
 
     def test_snowpipe_proper_noun(self):
         """Snowpipe and Snowpipes are treated as proper nouns."""
-        assert _make_title("snowpipe") == "Snowpipe"
-        assert _make_title("snowpipes") == "Snowpipes"
+        assert make_title("snowpipe") == "Snowpipe"
+        assert make_title("snowpipes") == "Snowpipes"
 
 
 ##endregion
 
 
-##region Unit tests — _plugin_label
+##region Unit tests — plugin_label
 
 
 class TestPluginLabel:
-    """Verify _plugin_label applies word substitutions and proper-noun capitalisation."""
+    """Verify plugin_label applies word substitutions and proper-noun capitalisation."""
 
     def test_snowpipes_capitalised(self):
         """'snowpipes' plugin name becomes 'Snowpipes' (proper noun)."""
-        assert _plugin_label("snowpipes") == "Snowpipes"
+        assert plugin_label("snowpipes") == "Snowpipes"
 
     def test_trust_center_capitalised(self):
         """'trust_center' becomes 'Trust Center' (proper noun)."""
-        assert _plugin_label("trust_center") == "Trust Center"
+        assert plugin_label("trust_center") == "Trust Center"
 
     def test_org_costs_expanded(self):
         """'org' word is expanded to 'organization'."""
-        assert _plugin_label("org_costs") == "organization costs"
+        assert plugin_label("org_costs") == "organization costs"
 
     def test_plain_plugin_name_unchanged(self):
         """Plain plugin names (no substitution needed) are returned as-is (lowercase)."""
-        assert _plugin_label("metering") == "metering"
-        assert _plugin_label("event_log") == "event log"
+        assert plugin_label("metering") == "metering"
+        assert plugin_label("event_log") == "event log"
 
     def test_cap_first_upcases_first_char_only(self):
         """cap_first=True upcases only the first character without lowercasing the rest."""
-        assert _plugin_label("trust_center", cap_first=True) == "Trust Center"
-        assert _plugin_label("org_costs", cap_first=True) == "Organization costs"
-        assert _plugin_label("snowpipes", cap_first=True) == "Snowpipes"
+        assert plugin_label("trust_center", cap_first=True) == "Trust Center"
+        assert plugin_label("org_costs", cap_first=True) == "Organization costs"
+        assert plugin_label("snowpipes", cap_first=True) == "Snowpipes"
 
 
 ##endregion
@@ -225,33 +225,33 @@ class TestPluginLabel:
 
 
 class TestAttributeExampleCoercion:
-    """Verify _coerce_attribute_example handles Python bool and other types correctly."""
+    """Verify coerce_attribute_example handles Python bool and other types correctly."""
 
     def test_bool_true_produces_lowercase_true(self):
         """Python True (from YAML true) → 'true' (lowercase, per semconv)."""
-        assert _coerce_attribute_example(True) == "true"
+        assert coerce_attribute_example(True) == "true"
 
     def test_bool_false_produces_lowercase_false(self):
         """Python False (from YAML false) → 'false' (lowercase, per semconv)."""
-        assert _coerce_attribute_example(False) == "false"
+        assert coerce_attribute_example(False) == "false"
 
     def test_string_passthrough(self):
         """String examples pass through unchanged (stripped)."""
-        assert _coerce_attribute_example("  hello  ") == "hello"
+        assert coerce_attribute_example("  hello  ") == "hello"
 
     def test_int_to_string_default(self):
         """Integer examples with no field_type are converted to string (default behaviour)."""
-        assert _coerce_attribute_example(42) == "42"
+        assert coerce_attribute_example(42) == "42"
 
     def test_int_with_long_type_returns_int(self):
         """Integer examples with field_type='long' return Python int."""
-        assert _coerce_attribute_example(42, "long") == 42
-        assert isinstance(_coerce_attribute_example(42, "long"), int)
+        assert coerce_attribute_example(42, "long") == 42
+        assert isinstance(coerce_attribute_example(42, "long"), int)
 
     def test_emit_id_entry_boolean_example_is_bool(self):
-        """_emit_id_entry with __type: boolean and __example: true produces Python bool in examples."""
+        """emit_id_entry with __type: boolean and __example: true produces Python bool in examples."""
         entry = {"__semdict": "new", "__type": "boolean", "__description": "Is active.", "__example": True}
-        node = _emit_id_entry("snowflake.resource_monitor.is_active", entry, "new")
+        node = emit_id_entry("snowflake.resource_monitor.is_active", entry, "new")
         assert node["type"] == "boolean"
         assert node["examples"] == [True], "boolean True must emit as Python bool True (PyYAML → 'true')"
 
@@ -263,48 +263,48 @@ class TestAttributeExampleCoercion:
 
 
 class TestAttributeExampleTypeCoercion:
-    """Verify _coerce_attribute_example returns the correct native type per declared __type."""
+    """Verify coerce_attribute_example returns the correct native type per declared __type."""
 
     def test_long_example_emits_int(self):
         """__type: long + int example → Python int."""
-        result = _coerce_attribute_example(2, "long")
+        result = coerce_attribute_example(2, "long")
         assert result == 2
         assert isinstance(result, int)
 
     def test_int_example_emits_int(self):
         """__type: int + int example → Python int."""
-        result = _coerce_attribute_example(5, "int")
+        result = coerce_attribute_example(5, "int")
         assert result == 5
         assert isinstance(result, int)
 
     def test_double_example_emits_float(self):
         """__type: double + float example → Python float."""
-        result = _coerce_attribute_example(1.5, "double")
+        result = coerce_attribute_example(1.5, "double")
         assert result == 1.5
         assert isinstance(result, float)
 
     def test_boolean_example_emits_bool(self):
         """__type: boolean + True example → Python bool."""
-        result = _coerce_attribute_example(True, "boolean")
+        result = coerce_attribute_example(True, "boolean")
         assert result is True
         assert isinstance(result, bool)
 
     def test_string_example_still_str(self):
         """__type: string + str example → str (unchanged behaviour)."""
-        result = _coerce_attribute_example("foo", "string")
+        result = coerce_attribute_example("foo", "string")
         assert result == "foo"
         assert isinstance(result, str)
 
     def test_quoted_long_string_coerced_to_int(self):
         """__type: long + quoted 19-digit string example → Python int (arbitrary precision)."""
-        result = _coerce_attribute_example("1633046400000000000", "long")
+        result = coerce_attribute_example("1633046400000000000", "long")
         assert result == 1633046400000000000
         assert isinstance(result, int)
 
     def test_clusters_count_example_is_int(self):
         """snowflake.warehouse.clusters.count (long) must emit int example in generated output.
 
-        Regression: before the fix, _coerce_attribute_example always returned str,
+        Regression: before the fix, coerce_attribute_example always returned str,
         causing the SD build tool to reject string '2' for a long field.
         """
         instruments_def_path = REPO_ROOT / "src" / "dtagent" / "plugins" / "warehouse_usage.config" / "instruments-def.yml"
@@ -317,7 +317,7 @@ class TestAttributeExampleTypeCoercion:
         assert entry.get("__type") == "long", "field must be typed long"
         field_type = str(entry.get("__type") or "").lower()
         example_raw = entry.get("__example")
-        result = _coerce_attribute_example(example_raw, field_type)
+        result = coerce_attribute_example(example_raw, field_type)
         assert isinstance(result, int), f"clusters.count example must be int, got {type(result).__name__}: {result!r}"
 
     def test_has_query_acceleration_example_is_bool(self):
@@ -335,7 +335,7 @@ class TestAttributeExampleTypeCoercion:
         assert entry.get("__type") == "boolean", "field must be typed boolean"
         field_type = str(entry.get("__type") or "").lower()
         example_raw = entry.get("__example")
-        result = _coerce_attribute_example(example_raw, field_type)
+        result = coerce_attribute_example(example_raw, field_type)
         assert isinstance(result, bool), f"has_query_acceleration_enabled example must be bool, got {type(result).__name__}: {result!r}"
 
 
@@ -346,7 +346,7 @@ class TestAttributeExampleTypeCoercion:
 
 
 class TestFieldClassification:
-    """Verify _classify_field produces correct bucket based on key + section + override.
+    """Verify classify_field produces correct bucket based on key + section + override.
 
     SD definition (source/readme.md):
     - resource field: STABLE for the resource lifetime (only RESOURCE_ATTRIBUTE_KEYS qualify)
@@ -355,10 +355,10 @@ class TestFieldClassification:
 
     def test_resource_attribute_key_is_resource(self):
         """Keys in RESOURCE_ATTRIBUTE_KEYS → resource regardless of section."""
-        assert _classify_field("db.system", "dimensions", None) == "resource"
-        assert _classify_field("service.name", "attributes", None) == "resource"
-        assert _classify_field("host.name", "dimensions", None) == "resource"
-        assert _classify_field("dsoa.run.id", "attributes", None) == "resource"
+        assert classify_field("db.system", "dimensions", None) == "resource"
+        assert classify_field("service.name", "attributes", None) == "resource"
+        assert classify_field("host.name", "dimensions", None) == "resource"
+        assert classify_field("dsoa.run.id", "attributes", None) == "resource"
 
     def test_dimension_default_is_signal(self):
         """Metric dimensions without __field_type override and not in RESOURCE_ATTRIBUTE_KEYS → signal.
@@ -367,30 +367,30 @@ class TestFieldClassification:
         observation — they are signal fields per SD definition even though DSOA
         uses them for low-cardinality metric splitting.
         """
-        assert _classify_field("snowflake.warehouse.name", "dimensions", None) == "signal"
-        assert _classify_field("db.namespace", "dimensions", None) == "signal"
-        assert _classify_field("db.user", "dimensions", None) == "signal"
+        assert classify_field("snowflake.warehouse.name", "dimensions", None) == "signal"
+        assert classify_field("db.namespace", "dimensions", None) == "signal"
+        assert classify_field("db.user", "dimensions", None) == "signal"
 
     def test_dimension_signal_override(self):
         """Metric `dimensions` with __field_type: signal → signal (explicit override)."""
-        assert _classify_field("snowflake.warehouse.event.name", "dimensions", "signal") == "signal"
+        assert classify_field("snowflake.warehouse.event.name", "dimensions", "signal") == "signal"
 
     def test_attribute_default_is_signal(self):
         """Definition of attributes without __field_type override → signal."""
-        assert _classify_field("snowflake.query.id", "attributes", None) == "signal"
+        assert classify_field("snowflake.query.id", "attributes", None) == "signal"
 
     def test_attribute_resource_override(self):
         """Definition of attributes with __field_type: resource → resource (explicit override)."""
-        assert _classify_field("snowflake.warehouse.size", "attributes", "resource") == "resource"
+        assert classify_field("snowflake.warehouse.size", "attributes", "resource") == "resource"
 
     def test_metric_always_metric(self):
         """Definition of metrics section always → metric regardless of override."""
-        assert _classify_field("snowflake.credits.used", "metrics", None) == "metric"
-        assert _classify_field("snowflake.credits.used", "metrics", "signal") == "metric"
+        assert classify_field("snowflake.credits.used", "metrics", None) == "metric"
+        assert classify_field("snowflake.credits.used", "metrics", "signal") == "metric"
 
     def test_event_timestamps_classification(self):
         """Definition of event_timestamps section → event_timestamp."""
-        assert _classify_field("snowflake.user.created_on", "event_timestamps", None) == "event_timestamp"
+        assert classify_field("snowflake.user.created_on", "event_timestamps", None) == "event_timestamp"
 
 
 ##endregion
@@ -400,45 +400,45 @@ class TestFieldClassification:
 
 
 class TestNamespaceGrouping:
-    """Verify _ns_group maps field keys to (group_id, group_type) correctly."""
+    """Verify ns_group maps field keys to (group_id, group_type) correctly."""
 
     def test_warehouse_signal_group(self):
         """snowflake.warehouse.* signal fields → snowflake.warehouse group, type: attribute_group."""
-        from build.semantic_exporter import _SIG_NS  # pylint: disable=import-outside-toplevel
+        from build.semantic_exporter import SIG_NS  # pylint: disable=import-outside-toplevel
 
-        gid, gtype = _ns_group("snowflake.warehouse.name", _SIG_NS, "snowflake.misc", "attribute_group")
+        gid, gtype = ns_group("snowflake.warehouse.name", SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "snowflake.warehouse"
         assert gtype == "attribute_group", "All DSOA signal groups use attribute_group per IA guidance"
 
     def test_warehouse_resource_group(self):
         """snowflake.warehouse.* resource fields → snowflake.warehouse.resource group (avoids collision with signal group)."""
-        from build.semantic_exporter import _RES_NS  # pylint: disable=import-outside-toplevel
+        from build.semantic_exporter import RES_NS  # pylint: disable=import-outside-toplevel
 
-        gid, gtype = _ns_group("snowflake.warehouse.size", _RES_NS, "snowflake.resource", "resource")
+        gid, gtype = ns_group("snowflake.warehouse.size", RES_NS, "snowflake.resource", "resource")
         assert gid == "snowflake.warehouse.resource"
         assert gtype == "resource"
 
     def test_db_resource_group(self):
         """db.* resource fields → db.resource group (avoids collision with db signal attribute_group)."""
-        from build.semantic_exporter import _RES_NS  # pylint: disable=import-outside-toplevel
+        from build.semantic_exporter import RES_NS  # pylint: disable=import-outside-toplevel
 
-        gid, gtype = _ns_group("db.namespace", _RES_NS, "snowflake.resource", "resource")
+        gid, gtype = ns_group("db.namespace", RES_NS, "snowflake.resource", "resource")
         assert gid == "db.resource"
         assert gtype == "resource"
 
     def test_db_signal_group(self):
         """db.* signal fields → db attribute_group (not span — cross-signal per IA guidance)."""
-        from build.semantic_exporter import _SIG_NS  # pylint: disable=import-outside-toplevel
+        from build.semantic_exporter import SIG_NS  # pylint: disable=import-outside-toplevel
 
-        gid, gtype = _ns_group("db.namespace", _SIG_NS, "snowflake.misc", "attribute_group")
+        gid, gtype = ns_group("db.namespace", SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "db"
         assert gtype == "attribute_group"
 
     def test_unknown_key_fallback(self):
         """Unknown key falls back to default group."""
-        from build.semantic_exporter import _SIG_NS  # pylint: disable=import-outside-toplevel
+        from build.semantic_exporter import SIG_NS  # pylint: disable=import-outside-toplevel
 
-        gid, gtype = _ns_group("completely.unknown.field", _SIG_NS, "snowflake.misc", "attribute_group")
+        gid, gtype = ns_group("completely.unknown.field", SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "snowflake.misc"
         assert gtype == "attribute_group"
 
@@ -450,84 +450,84 @@ class TestNamespaceGrouping:
 
 
 class TestValidation:
-    """Verify _validate_entry detects missing required metadata."""
+    """Verify validate_entry detects missing required metadata."""
 
     def test_valid_entry_passes(self):
         """Entry with all required fields produces no errors."""
         entry = {"__description": "A description.", "__example": "an_example"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert errors == []
 
     def test_missing_description_fails(self):
         """Entry without __description produces an error."""
         entry = {"__example": "an_example"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__description" in e for e in errors)
 
     def test_missing_example_fails(self):
         """Entry without __example produces an error."""
         entry = {"__description": "A description."}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__example" in e for e in errors)
 
     def test_empty_string_example_fails(self):
         """Empty string __example is invalid — all fields must provide a real example."""
         entry = {"__description": "A description.", "__example": ""}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__example" in e for e in errors)
 
     def test_blank_string_example_fails(self):
         """Whitespace-only __example is invalid."""
         entry = {"__description": "A description.", "__example": "   "}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__example" in e for e in errors)
 
     def test_zero_example_passes(self):
         """Zero __example is valid for long/double fields."""
         entry = {"__description": "A description.", "__example": 0, "__type": "long"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert errors == []
 
     def test_type_mismatch_long_with_string_fails(self):
         """__type: long with a string example is a hard error."""
         entry = {"__description": "An id.", "__example": "wh123", "__type": "long"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__type=long" in e for e in errors)
 
     def test_type_mismatch_string_with_int_fails(self):
         """__type: string with an integer example is a hard error."""
         entry = {"__description": "A name.", "__example": 42, "__type": "string"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__type=string" in e for e in errors)
 
     def test_type_mismatch_boolean_with_string_fails(self):
         """__type: boolean with a string example is a hard error."""
         entry = {"__description": "A flag.", "__example": "N", "__type": "boolean"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__type=boolean" in e for e in errors)
 
     def test_type_mismatch_long_with_bool_fails(self):
         """__type: long with a bool example is a hard error (bool is subclass of int but not a valid long)."""
         entry = {"__description": "A count.", "__example": True, "__type": "long"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__type=long" in e for e in errors)
 
     def test_type_mismatch_string_array_with_string_fails(self):
         """__type: string[] with a plain string example is a hard error."""
         entry = {"__description": "Names.", "__example": "COMPUTE_WH", "__type": "string[]"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__type=string[]" in e for e in errors)
 
     def test_type_match_long_with_int_passes(self):
         """__type: long with an integer example passes."""
         entry = {"__description": "An id.", "__example": 12345, "__type": "long"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert errors == []
 
     def test_type_match_string_array_with_list_passes(self):
         """__type: string[] with a list example passes."""
         entry = {"__description": "Names.", "__example": ["WH_A", "WH_B"], "__type": "string[]"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert errors == []
 
     def test_enum_field_skips_type_match_check(self):
@@ -538,43 +538,43 @@ class TestValidation:
             "__type": "string",
             "__enum": {"allow_custom_values": False, "members": []},
         }
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert errors == []
 
     def test_metrics_section_skips_type_match(self):
         """Type-match is not enforced in the metrics section."""
         entry = {"__description": "Credits.", "__example": "some_string", "__type": "long"}
-        errors = _validate_entry("test.metric", entry, "metrics", "test.yml")
+        errors = validate_entry("test.metric", entry, "metrics", "test.yml")
         assert errors == []
 
     def test_deprecated_alias_requires_otel_replacement(self):
         """deprecated-alias without __otel_replacement fails."""
         entry = {"__description": "D.", "__example": "E.", "__semdict": "deprecated-alias"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__otel_replacement" in e for e in errors)
 
     def test_otel_only_requires_otel_note(self):
         """otel-only without __semdict_note fails."""
         entry = {"__description": "D.", "__example": "E.", "__semdict": "otel-only"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__semdict_note" in e for e in errors)
 
     def test_invalid_field_type_fails(self):
         """Unknown __field_type produces an error."""
         entry = {"__description": "D.", "__example": "E.", "__field_type": "invalid_value"}
-        errors = _validate_entry("test.field", entry, "dimensions", "test.yml")
+        errors = validate_entry("test.field", entry, "dimensions", "test.yml")
         assert any("__field_type" in e for e in errors)
 
     def test_valid_field_type_resource_passes(self):
         """__field_type: resource is valid."""
         entry = {"__description": "D.", "__example": "E.", "__field_type": "resource"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert errors == []
 
     def test_valid_field_type_signal_passes(self):
         """__field_type: signal is valid."""
         entry = {"__description": "D.", "__example": "E.", "__field_type": "signal"}
-        errors = _validate_entry("test.field", entry, "dimensions", "test.yml")
+        errors = validate_entry("test.field", entry, "dimensions", "test.yml")
         assert errors == []
 
 
@@ -590,14 +590,14 @@ class TestRefEmission:
     def test_ref_entry_has_ref_key(self):
         """Ref entry produces dict with 'ref' key."""
         entry = {"__semdict": "ref", "__description": "System.", "__example": "snowflake"}
-        node = _emit_ref_entry("db.system", entry)
+        node = emit_ref_entry("db.system", entry)
         assert node["ref"] == "db.system"
         assert "id" not in node
 
     def test_ref_with_otel_note_includes_note(self):
         """Ref entry with __semdict_note includes note in output."""
         entry = {"__semdict": "ref", "__description": "Auth method.", "__example": "PASSWORD", "__semdict_note": "Custom enum gap."}
-        node = _emit_ref_entry("authentication.type", entry)
+        node = emit_ref_entry("authentication.type", entry)
         assert node.get("note") == "Custom enum gap."
 
 
@@ -613,7 +613,7 @@ class TestIdEmission:
     def test_new_entry_has_id_block(self):
         """New entry produces id: block with required fields."""
         entry = {"__semdict": "new", "__description": "Unique run ID.", "__example": "4aa7c76c"}
-        node = _emit_id_entry("dsoa.run.id", entry, "new")
+        node = emit_id_entry("dsoa.run.id", entry, "new")
         assert node["id"] == "dsoa.run.id"
         assert node["type"] == "string"
         assert node["stability"] == "experimental"
@@ -623,7 +623,7 @@ class TestIdEmission:
     def test_new_entry_has_display_name(self):
         """New entry includes a display_name field."""
         entry = {"__semdict": "new", "__description": "D.", "__example": "E."}
-        node = _emit_id_entry("dsoa.run.id", entry, "new")
+        node = emit_id_entry("dsoa.run.id", entry, "new")
         assert "display_name" in node
 
     def test_deprecated_alias_stability(self):
@@ -635,7 +635,7 @@ class TestIdEmission:
             "__description": "Deployment env.",
             "__example": "PROD",
         }
-        node = _emit_id_entry("deployment.environment", entry, "deprecated-alias")
+        node = emit_id_entry("deployment.environment", entry, "deprecated-alias")
         assert node["stability"] == "experimental", "deprecated-alias must stay experimental"
         assert "deprecated" not in node, "deprecated key must not appear for active DSOA fields"
         assert "note" in node, "deprecated-alias must produce a note about the OTel rename"
@@ -649,14 +649,14 @@ class TestIdEmission:
             "__description": "Deployment env.",
             "__example": "PROD",
         }
-        node = _emit_id_entry("deployment.environment", entry, "deprecated-alias")
+        node = emit_id_entry("deployment.environment", entry, "deprecated-alias")
         assert "Renamed in v1.26." in node.get("note", "")
         assert "backward compatibility" in node.get("note", "")
 
     def test_otel_only_has_note(self):
         """otel-only entry includes note from __semdict_note."""
         entry = {"__semdict": "otel-only", "__semdict_note": "OTel Development-tier.", "__description": "Session ID.", "__example": "123"}
-        node = _emit_id_entry("session.id", entry, "otel-only")
+        node = emit_id_entry("session.id", entry, "otel-only")
         assert node["stability"] == "experimental"
         assert node.get("note") == "OTel Development-tier."
         assert "deprecated" not in node
@@ -664,7 +664,7 @@ class TestIdEmission:
     def test_long_type_mapping(self):
         """__type: long maps to type: long in output and example is emitted as int."""
         entry = {"__semdict": "new", "__type": "long", "__description": "D.", "__example": 42}
-        node = _emit_id_entry("test.long.field", entry, "new")
+        node = emit_id_entry("test.long.field", entry, "new")
         assert node["type"] == "long"
         assert node["examples"] == [42]
         assert isinstance(node["examples"][0], int), "long field example must be Python int"
@@ -692,7 +692,7 @@ class TestEnumEmission:
                 ],
             },
         }
-        type_node = _build_type_node(entry)
+        type_node = build_type_node(entry)
         assert isinstance(type_node, dict), "enum field should produce dict type"
         assert "allow_custom_values" in type_node
         assert "members" in type_node
@@ -708,7 +708,7 @@ class TestEnumEmission:
                 "members": [{"id": "account", "value": "ACCOUNT", "brief": "Account level."}],
             },
         }
-        type_node = _build_type_node(entry)
+        type_node = build_type_node(entry)
         assert type_node["allow_custom_values"] is False
 
     def test_enum_member_ids_are_snake_case(self):
@@ -724,7 +724,7 @@ class TestEnumEmission:
                 ],
             },
         }
-        type_node = _build_type_node(entry)
+        type_node = build_type_node(entry)
         member_ids = [m["id"] for m in type_node["members"]]
         assert "x_small" in member_ids
         assert "x2_large" in member_ids
@@ -732,11 +732,11 @@ class TestEnumEmission:
     def test_no_enum_returns_string(self):
         """Entry without __enum returns the mapped type string."""
         entry = {"__description": "D.", "__example": "E."}
-        type_node = _build_type_node(entry)
+        type_node = build_type_node(entry)
         assert type_node == "string"
 
     def test_enum_in_emit_id_entry(self):
-        """_emit_id_entry produces enum dict in type: field when __enum present."""
+        """emit_id_entry produces enum dict in type: field when __enum present."""
         entry = {
             "__semdict": "new",
             "__description": "Warehouse type.",
@@ -746,7 +746,7 @@ class TestEnumEmission:
                 "members": [{"id": "standard", "value": "STANDARD", "brief": "Standard."}],
             },
         }
-        node = _emit_id_entry("snowflake.warehouse.type", entry, "new")
+        node = emit_id_entry("snowflake.warehouse.type", entry, "new")
         assert isinstance(node["type"], dict)
         assert node["type"]["members"][0]["value"] == "STANDARD"
 
@@ -769,18 +769,18 @@ class TestNoDisplayName:
 
     def test_display_name_present_by_default(self):
         """display_name is emitted on attribute nodes when no_display_name=False (default)."""
-        node = _emit_id_entry("snowflake.test.field", self._BASE_ENTRY.copy(), "new")
+        node = emit_id_entry("snowflake.test.field", self._BASE_ENTRY.copy(), "new")
         assert "display_name" in node
 
     def test_display_name_absent_when_flag_set(self):
         """display_name is NOT emitted on attribute nodes when no_display_name=True."""
-        node = _emit_id_entry("snowflake.test.field", self._BASE_ENTRY.copy(), "new", no_display_name=True)
+        node = emit_id_entry("snowflake.test.field", self._BASE_ENTRY.copy(), "new", no_display_name=True)
         assert "display_name" not in node
 
     def test_display_name_absent_on_deprecated_node(self):
         """display_name is NOT emitted on deprecated attribute nodes when no_display_name=True."""
         entry = {**self._BASE_ENTRY, "__stability": "deprecated", "__otel_replacement": "snowflake.test.other"}
-        node = _emit_id_entry("snowflake.test.field", entry, "new", no_display_name=True)
+        node = emit_id_entry("snowflake.test.field", entry, "new", no_display_name=True)
         assert "display_name" not in node
         assert "deprecated" in node
 
@@ -793,7 +793,7 @@ class TestNoDisplayName:
                 "members": [{"id": "standard", "value": "STANDARD", "brief": "Standard.", "display_name": "Standard"}],
             },
         }
-        node = _emit_id_entry("snowflake.warehouse.type", entry, "new")
+        node = emit_id_entry("snowflake.warehouse.type", entry, "new")
         assert "display_name" in node["type"]["members"][0]
 
     def test_enum_member_display_name_absent_when_flag_set(self):
@@ -805,7 +805,7 @@ class TestNoDisplayName:
                 "members": [{"id": "standard", "value": "STANDARD", "brief": "Standard.", "display_name": "Standard"}],
             },
         }
-        node = _emit_id_entry("snowflake.warehouse.type", entry, "new", no_display_name=True)
+        node = emit_id_entry("snowflake.warehouse.type", entry, "new", no_display_name=True)
         assert "display_name" not in node["type"]["members"][0]
 
     def test_enum_member_without_display_name_unaffected(self):
@@ -817,7 +817,7 @@ class TestNoDisplayName:
                 "members": [{"id": "standard", "value": "STANDARD", "brief": "Standard."}],
             },
         }
-        node = _emit_id_entry("snowflake.warehouse.type", entry, "new", no_display_name=True)
+        node = emit_id_entry("snowflake.warehouse.type", entry, "new", no_display_name=True)
         assert "display_name" not in node["type"]["members"][0]
 
 
@@ -832,7 +832,7 @@ class TestMetricEmission:
     def test_metric_has_instrument_and_unit(self):
         """Metric entry emits instrument and unit."""
         entry = {"__semdict": "new", "__type": "gauge", "__unit": "{credits}", "__description": "Credits used.", "__example": "42.5"}
-        node = _emit_metric_entry("snowflake.warehouse.credits.used", entry)
+        node = emit_metric_entry("snowflake.warehouse.credits.used", entry)
         assert node["instrument"] == "gauge"
         assert node["unit"] == "{credits}"
         assert node["metric_name"] == "snowflake.warehouse.credits.used"
@@ -841,25 +841,25 @@ class TestMetricEmission:
     def test_metric_unit_from_unit_key(self):
         """Metric unit can come from 'unit' key (not just __unit)."""
         entry = {"__semdict": "new", "__type": "counter", "unit": "ms", "__description": "Time.", "__example": "100"}
-        node = _emit_metric_entry("test.time", entry)
+        node = emit_metric_entry("test.time", entry)
         assert node["unit"] == "ms"
 
     def test_counter_instrument(self):
         """__type: count maps to instrument: counter."""
         entry = {"__semdict": "new", "__type": "count", "__unit": "1", "__description": "Query count.", "__example": "100"}
-        node = _emit_metric_entry("test.count", entry)
+        node = emit_metric_entry("test.count", entry)
         assert node["instrument"] == "counter"
 
     def test_updowncounter_instrument(self):
         """__type: updowncounter maps correctly."""
         entry = {"__semdict": "new", "__type": "updowncounter", "__unit": "bytes", "__description": "Memory.", "__example": "1024"}
-        node = _emit_metric_entry("test.memory", entry)
+        node = emit_metric_entry("test.memory", entry)
         assert node["instrument"] == "updowncounter"
 
     def test_histogram_instrument(self):
         """__type: histogram maps correctly."""
         entry = {"__semdict": "new", "__type": "histogram", "__unit": "ms", "__description": "Latency dist.", "__example": "250"}
-        node = _emit_metric_entry("test.latency", entry)
+        node = emit_metric_entry("test.latency", entry)
         assert node["instrument"] == "histogram"
 
 
@@ -1411,11 +1411,11 @@ class TestSemanticExporterIntegration:
 ##endregion
 
 
-##region Unit tests — _merge_field_entries (A2: enum union dedup)
+##region Unit tests — merge_field_entries (A2: enum union dedup)
 
 
 class TestMergeFieldEntries:
-    """Verify _merge_field_entries implements the union enum merge strategy."""
+    """Verify merge_field_entries implements the union enum merge strategy."""
 
     def _make_meta(self, plugin: str, enum_def=None, extra=None) -> Dict[str, Any]:
         """Helper: build a minimal entry meta dict."""
@@ -1431,7 +1431,7 @@ class TestMergeFieldEntries:
         existing = self._make_meta("plugin_a")
         incoming_enum = {"allow_custom_values": True, "members": [{"id": "v1", "value": "V1", "brief": "Value one."}]}
         incoming = self._make_meta("plugin_b", enum_def=incoming_enum)
-        result = _merge_field_entries("test.field", existing, incoming)
+        result = merge_field_entries("test.field", existing, incoming)
         assert result["entry"].get("__enum") is not None, "result must have __enum after upgrade"
         assert result["plugin"] == "plugin_b", "plugin should be the incoming (enum-rich) one"
         assert result["entry"]["__enum"]["members"][0]["value"] == "V1"
@@ -1448,7 +1448,7 @@ class TestMergeFieldEntries:
         }
         existing = self._make_meta("plugin_a", enum_def=enum_a)
         incoming = self._make_meta("plugin_b", enum_def=enum_b)
-        result = _merge_field_entries("test.field", existing, incoming)
+        result = merge_field_entries("test.field", existing, incoming)
         merged_enum = result["entry"]["__enum"]
         values = [m["value"] for m in merged_enum["members"]]
         assert values.count("B") == 1, "duplicate value B must appear exactly once"
@@ -1460,7 +1460,7 @@ class TestMergeFieldEntries:
         """Neither has __enum → existing wins unchanged."""
         existing = self._make_meta("plugin_a")
         incoming = self._make_meta("plugin_b", extra={"__description": "Incoming description."})
-        result = _merge_field_entries("test.field", existing, incoming)
+        result = merge_field_entries("test.field", existing, incoming)
         assert result["plugin"] == "plugin_a", "first-seen plugin must win when no enum"
         assert result["entry"].get("__description") == "A field.", "existing description must be preserved"
 
@@ -1470,18 +1470,18 @@ class TestMergeFieldEntries:
         enum_b = {"allow_custom_values": False, "members": [{"id": "y", "value": "Y", "brief": "Y."}]}
         existing = self._make_meta("plugin_a", enum_def=enum_a)
         incoming = self._make_meta("plugin_b", enum_def=enum_b)
-        result = _merge_field_entries("test.field", existing, incoming)
+        result = merge_field_entries("test.field", existing, incoming)
         assert result["entry"]["__enum"]["allow_custom_values"] is False
 
 
 ##endregion
 
 
-##region Unit tests — _merge_into_ruamel (model envelope scalar propagation)
+##region Unit tests — merge_into_ruamel (model envelope scalar propagation)
 
 
 class TestMergeIntoRuamelModelEnvelope:
-    """Verify _merge_into_ruamel propagates 'model:' envelope scalar fields.
+    """Verify merge_into_ruamel propagates 'model:' envelope scalar fields.
 
     Regression coverage for a bug found while regenerating the SD repo output for
     PR #1964 fixes: already-committed 'model:' files (per-plugin log/event/span
@@ -1494,7 +1494,7 @@ class TestMergeIntoRuamelModelEnvelope:
 
     def _load(self, yaml_text: str):
         """Parse YAML text into a ruamel CommentedMap via the project's configured loader."""
-        ry = _make_ruamel_yaml()
+        ry = make_ruamel_yaml()
         return ry.load(yaml_text)
 
     def test_data_object_propagates_on_existing_model_file(self):
@@ -1513,14 +1513,14 @@ class TestMergeIntoRuamelModelEnvelope:
             "  data_object: events\n"
             "  groups: []\n"
         )
-        _merge_into_ruamel(existing, new)
+        merge_into_ruamel(existing, new)
         assert existing["model"]["data_object"] == "events"
 
     def test_title_and_brief_propagate_on_existing_model_file(self):
         """title/brief on the 'model:' envelope are also refreshed from new."""
         existing = self._load("model:\n  id: x\n  title: Old title\n  brief: Old brief.\n  groups: []\n")
         new = self._load("model:\n  id: x\n  title: New title\n  brief: New brief.\n  groups: []\n")
-        _merge_into_ruamel(existing, new)
+        merge_into_ruamel(existing, new)
         assert existing["model"]["title"] == "New title"
         assert existing["model"]["brief"] == "New brief."
 
@@ -1547,7 +1547,7 @@ class TestMergeIntoRuamelModelEnvelope:
             "        - ref: existing.field\n"
             "        - ref: new.field\n"
         )
-        _merge_into_ruamel(existing, new)
+        merge_into_ruamel(existing, new)
         refs = [a.get("ref") for a in existing["model"]["groups"][0]["attributes"]]
         assert refs == ["existing.field", "new.field"]
 
@@ -1558,7 +1558,7 @@ class TestMergeIntoRuamelModelEnvelope:
         """
         existing = self._load("groups:\n  - id: g1\n    attributes:\n      - ref: existing.field\n")
         new = self._load("groups:\n  - id: g1\n    attributes:\n      - ref: existing.field\n      - ref: new.field\n")
-        _merge_into_ruamel(existing, new)
+        merge_into_ruamel(existing, new)
         refs = [a.get("ref") for a in existing["groups"][0]["attributes"]]
         assert refs == ["existing.field", "new.field"]
 
@@ -1568,7 +1568,7 @@ class TestMergeIntoRuamelModelEnvelope:
         """
         existing = self._load("model_group:\n  id: snowflake.events\n  title: Old\n  brief: Old brief.\n")
         new = self._load("model_group:\n  id: snowflake.events\n  title: New\n  brief: New brief.\n")
-        _merge_into_ruamel(existing, new)
+        merge_into_ruamel(existing, new)
         assert existing["model_group"]["title"] == "New"
         assert existing["model_group"]["brief"] == "New brief."
 
@@ -1589,7 +1589,7 @@ class TestMergeIntoRuamelModelEnvelope:
             "  brief: Old brief.\n"
             "  parent_model_group_id: snowflake\n"
         )
-        _merge_into_ruamel(existing, new)
+        merge_into_ruamel(existing, new)
         assert existing["model_group"]["parent_model_group_id"] == "snowflake"
 
     def test_existing_group_title_and_brief_propagate_from_new(self):
@@ -1623,7 +1623,7 @@ class TestMergeIntoRuamelModelEnvelope:
             "      - id: dsoa.debug.span.events.added\n"
             "        type: long\n"
         )
-        _merge_into_ruamel(existing, new)
+        merge_into_ruamel(existing, new)
         assert existing["groups"][0]["title"] == "DSOA debug signal fields"
 
     def test_observed_timestamp_group_brief_propagates_on_existing_file(self):
@@ -1648,7 +1648,7 @@ class TestMergeIntoRuamelModelEnvelope:
             "      - id: observed_timestamp\n"
             "        type: long\n"
         )
-        _merge_into_ruamel(existing, new)
+        merge_into_ruamel(existing, new)
         assert existing["groups"][0]["brief"] == "Signal-level fields for observed timestamp telemetry."
 
     def test_shared_non_dsoa_owned_group_title_brief_not_clobbered(self):
@@ -1685,7 +1685,7 @@ class TestMergeIntoRuamelModelEnvelope:
             "      - id: authentication.type\n"
             "        type: string\n"
         )
-        _merge_into_ruamel(existing, new)
+        merge_into_ruamel(existing, new)
         assert existing["groups"][0]["title"] == "Authentication fields", "SD-owned group title must not be clobbered"
         assert existing["groups"][0]["brief"] == "Authentication type and method used to login to a Dynatrace system."
 
@@ -1733,7 +1733,7 @@ class TestDimPluginsOwnership:
                 if meta["section"] == "dimensions":
                     dim_plugins.setdefault(key, set()).add(plugin_name)
                 if key in all_entries:
-                    all_entries[key] = _merge_field_entries(key, all_entries[key], meta)
+                    all_entries[key] = merge_field_entries(key, all_entries[key], meta)
                 else:
                     all_entries[key] = meta
 
@@ -1953,30 +1953,30 @@ class TestEnumDescriptionInSemantics:
 
 
 class TestStabilityValidation:
-    """Verify _validate_entry rejects invalid __stability values and accepts valid ones."""
+    """Verify validate_entry rejects invalid __stability values and accepts valid ones."""
 
     def test_valid_stability_stable_passes(self):
         """__stability: stable is valid."""
         entry = {"__description": "D.", "__example": "E.", "__stability": "stable"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert errors == []
 
     def test_valid_stability_experimental_passes(self):
         """__stability: experimental is valid."""
         entry = {"__description": "D.", "__example": "E.", "__stability": "experimental"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert errors == []
 
     def test_valid_stability_deprecated_passes(self):
         """__stability: deprecated is valid (mutual-exclusion handled at emit time)."""
         entry = {"__description": "D.", "__example": "E.", "__stability": "deprecated"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert errors == []
 
     def test_invalid_stability_development_fails(self):
         """__stability: development is NOT a valid SD value — must produce an error."""
         entry = {"__description": "D.", "__example": "E.", "__stability": "development"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any(
             "__stability" in e and "development" in e for e in errors
         ), "Expected an error for __stability: development; got: " + str(errors)
@@ -1984,13 +1984,13 @@ class TestStabilityValidation:
     def test_invalid_stability_alpha_fails(self):
         """Arbitrary unknown stability value must produce an error."""
         entry = {"__description": "D.", "__example": "E.", "__stability": "alpha"}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__stability" in e for e in errors)
 
     def test_no_stability_passes(self):
         """Entries without __stability are valid (defaults to experimental at emit time)."""
         entry = {"__description": "D.", "__example": "E."}
-        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        errors = validate_entry("test.field", entry, "attributes", "test.yml")
         assert errors == []
 
     def test_valid_stability_constants(self):
@@ -2005,67 +2005,67 @@ class TestStabilityValidation:
 
 
 class TestStringArrayExampleCoercion:
-    """Verify _coerce_string_array_examples produces list-of-lists for SD string[] fields."""
+    """Verify coerce_string_array_examples produces list-of-lists for SD string[] fields."""
 
     def test_flat_list_wrapped_in_outer_list(self):
         """Flat list ['val1', 'val2'] → [['val1', 'val2']]."""
-        result = _coerce_string_array_examples("test.field", ["val1", "val2"])
+        result = coerce_string_array_examples("test.field", ["val1", "val2"])
         assert result == [["val1", "val2"]]
         assert isinstance(result[0], list)
 
     def test_list_of_lists_passthrough(self):
         """Already list-of-lists [['val1', 'val2']] → emitted as-is."""
-        result = _coerce_string_array_examples("test.field", [["val1", "val2"]])
+        result = coerce_string_array_examples("test.field", [["val1", "val2"]])
         assert result == [["val1", "val2"]]
 
     def test_scalar_json_array_string_wrapped(self):
         """Scalar string '["val1", "val2"]' parsed and wrapped → [['val1', 'val2']]."""
-        result = _coerce_string_array_examples("test.field", '["val1", "val2"]')
+        result = coerce_string_array_examples("test.field", '["val1", "val2"]')
         assert result == [["val1", "val2"]]
 
     def test_scalar_non_json_string_single_element(self):
         """Non-JSON scalar string → wrapped as single-element inner list [['val']]."""
-        result = _coerce_string_array_examples("test.field", "plain_value")
+        result = coerce_string_array_examples("test.field", "plain_value")
         assert result == [["plain_value"]]
 
     def test_scalar_bad_json_falls_back(self):
         """Scalar string starting with '[' but invalid JSON → single-element inner list."""
-        result = _coerce_string_array_examples("test.field", "[not valid json")
+        result = coerce_string_array_examples("test.field", "[not valid json")
         assert len(result) == 1
         assert isinstance(result[0], list)
 
     def test_emit_id_entry_string_array_flat_list(self):
-        """_emit_id_entry with string[] type and flat list example produces list-of-lists."""
+        """emit_id_entry with string[] type and flat list example produces list-of-lists."""
         entry = {
             "__semdict": "new",
             "__type": "string[]",
             "__description": "Array of resources.",
             "__example": ["database1", "warehouse1"],
         }
-        node = _emit_id_entry("snowflake.budget.resource", entry, "new")
+        node = emit_id_entry("snowflake.budget.resource", entry, "new")
         assert node["type"] == "string[]"
         assert node["examples"] == [["database1", "warehouse1"]], f"Expected [['database1', 'warehouse1']], got {node['examples']!r}"
 
     def test_emit_id_entry_string_array_scalar_json(self):
-        """_emit_id_entry with string[] type and JSON scalar example produces list-of-lists."""
+        """emit_id_entry with string[] type and JSON scalar example produces list-of-lists."""
         entry = {
             "__semdict": "new",
             "__type": "string[]",
             "__description": "Array of IDs.",
             "__example": '["0", "1"]',
         }
-        node = _emit_id_entry("test.ids", entry, "new")
+        node = emit_id_entry("test.ids", entry, "new")
         assert node["examples"] == [["0", "1"]], f"Expected [['0', '1']], got {node['examples']!r}"
 
     def test_emit_id_entry_string_array_already_list_of_lists(self):
-        """_emit_id_entry with string[] type and already list-of-lists example passes through."""
+        """emit_id_entry with string[] type and already list-of-lists example passes through."""
         entry = {
             "__semdict": "new",
             "__type": "string[]",
             "__description": "Array of roles.",
             "__example": [["ROLE_A", "ROLE_B"]],
         }
-        node = _emit_id_entry("test.roles", entry, "new")
+        node = emit_id_entry("test.roles", entry, "new")
         assert node["examples"] == [["ROLE_A", "ROLE_B"]]
 
 
@@ -2087,7 +2087,7 @@ class TestStringArrayExamplesInOutput:
         _, entries = exporter._parse_file("budgets", instruments_path)
         meta = entries.get("snowflake.budget.resource")
         assert meta is not None, "snowflake.budget.resource not found in entries"
-        node = _emit_id_entry("snowflake.budget.resource", meta["entry"], meta["semdict"])
+        node = emit_id_entry("snowflake.budget.resource", meta["entry"], meta["semdict"])
         examples = node.get("examples", [])
         assert len(examples) > 0, "examples must be non-empty"
         assert isinstance(
@@ -2103,7 +2103,7 @@ class TestStringArrayExamplesInOutput:
         _, entries = exporter._parse_file("users", instruments_path)
         meta = entries.get("snowflake.user.roles.direct.list")
         assert meta is not None, "snowflake.user.roles.direct.list not found in entries"
-        node = _emit_id_entry("snowflake.user.roles.direct.list", meta["entry"], meta["semdict"])
+        node = emit_id_entry("snowflake.user.roles.direct.list", meta["entry"], meta["semdict"])
         examples = node.get("examples", [])
         assert len(examples) > 0
         assert isinstance(
@@ -2119,7 +2119,7 @@ class TestStringArrayExamplesInOutput:
         _, entries = exporter._parse_file("dynamic_tables", instruments_path)
         meta = entries.get("snowflake.table.dynamic.graph.inputs")
         assert meta is not None, "snowflake.table.dynamic.graph.inputs not found in entries"
-        node = _emit_id_entry("snowflake.table.dynamic.graph.inputs", meta["entry"], meta["semdict"])
+        node = emit_id_entry("snowflake.table.dynamic.graph.inputs", meta["entry"], meta["semdict"])
         examples = node.get("examples", [])
         assert len(examples) > 0
         assert isinstance(
@@ -2134,7 +2134,7 @@ class TestStringArrayExamplesInOutput:
 
 
 class TestNumericExampleWithoutTypeWarning:
-    """Verify _validate_entry warns when a numeric example is used without __type."""
+    """Verify validate_entry warns when a numeric example is used without __type."""
 
     def test_numeric_int_example_without_type_emits_warning(self, caplog):
         """Bare int example with no __type should trigger a WARNING log."""
@@ -2142,7 +2142,7 @@ class TestNumericExampleWithoutTypeWarning:
 
         entry = {"__description": "A count.", "__example": 42}
         with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
-            errors = _validate_entry("test.count", entry, "attributes", "test.yml")
+            errors = validate_entry("test.count", entry, "attributes", "test.yml")
         assert errors == [], "numeric example without __type must not be a hard error"
         assert any(
             "numeric" in r.message.lower() or "__type" in r.message for r in caplog.records
@@ -2154,7 +2154,7 @@ class TestNumericExampleWithoutTypeWarning:
 
         entry = {"__description": "A percentage.", "__example": 85.0}
         with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
-            errors = _validate_entry("test.pct", entry, "attributes", "test.yml")
+            errors = validate_entry("test.pct", entry, "attributes", "test.yml")
         assert errors == [], "must not be a hard error"
         assert any("numeric" in r.message.lower() or "__type" in r.message for r in caplog.records)
 
@@ -2164,7 +2164,7 @@ class TestNumericExampleWithoutTypeWarning:
 
         entry = {"__description": "A count.", "__example": 42, "__type": "long"}
         with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
-            errors = _validate_entry("test.count", entry, "attributes", "test.yml")
+            errors = validate_entry("test.count", entry, "attributes", "test.yml")
         assert errors == []
         assert not any("numeric" in r.message.lower() for r in caplog.records), "No warning expected when __type is present"
 
@@ -2174,7 +2174,7 @@ class TestNumericExampleWithoutTypeWarning:
 
         entry = {"__description": "A flag.", "__example": True}
         with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
-            errors = _validate_entry("test.flag", entry, "attributes", "test.yml")
+            errors = validate_entry("test.flag", entry, "attributes", "test.yml")
         assert errors == []
         assert not any(
             "numeric" in r.message.lower() for r in caplog.records
@@ -2186,7 +2186,7 @@ class TestNumericExampleWithoutTypeWarning:
 
         entry = {"__description": "A name.", "__example": "hello"}
         with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
-            errors = _validate_entry("test.name", entry, "attributes", "test.yml")
+            errors = validate_entry("test.name", entry, "attributes", "test.yml")
         assert errors == []
         assert not any("numeric" in r.message.lower() for r in caplog.records)
 
@@ -2201,7 +2201,7 @@ class TestNumericExampleWithoutTypeWarning:
 
         entry = {"__description": "Credits used.", "__example": 15}
         with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
-            errors = _validate_entry("snowflake.credits.used", entry, "metrics", "test.yml")
+            errors = validate_entry("snowflake.credits.used", entry, "metrics", "test.yml")
         assert errors == [], "must not be a hard error for metrics"
         assert not any(
             "numeric" in r.message.lower() for r in caplog.records
@@ -2377,17 +2377,17 @@ class TestDqlQueryStringFormatting:
     extra blank line after every DQL pipe stage because the block literal's trailing
     newline is reproduced literally in the flow scalar.
 
-    Fix: _IndentedDumper overrides represent_str to use YAML block literal style (|)
+    Fix: IndentedDumper overrides represent_str to use YAML block literal style (|)
     for any string containing a newline.
     """
 
     def test_indented_dumper_uses_block_literal_for_multiline(self):
-        """_IndentedDumper.represent_str uses block-literal style for multi-line strings."""
+        """IndentedDumper.represent_str uses block-literal style for multi-line strings."""
         import io
 
         data = {"query_string": "fetch logs\n| filter db.system == 'snowflake'\n| limit 10\n"}
         stream = io.StringIO()
-        yaml.dump(data, stream, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True)
+        yaml.dump(data, stream, Dumper=IndentedDumper, default_flow_style=False, allow_unicode=True)
         output = stream.getvalue()
         # Block literal marker must be present
         assert "query_string: |" in output, f"Expected block literal style for multi-line string, got:\n{output}"
@@ -2401,7 +2401,7 @@ class TestDqlQueryStringFormatting:
         query = 'fetch logs\n| filter db.system == "snowflake"\n| sort timestamp desc\n| limit 100\n'
         data = {"dql_queries": [{"query_string": query, "description": "Test query.", "internal": False}]}
         stream = io.StringIO()
-        yaml.dump(data, stream, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True)
+        yaml.dump(data, stream, Dumper=IndentedDumper, default_flow_style=False, allow_unicode=True)
         output = stream.getvalue()
         # Two or more consecutive blank lines within the rendered YAML indicate the bug
         assert "\n\n\n" not in output, f"Generated YAML contains consecutive blank lines (extra blank line bug):\n{output}"
@@ -2412,7 +2412,7 @@ class TestDqlQueryStringFormatting:
 
         data = {"title": "Simple one-liner"}
         stream = io.StringIO()
-        yaml.dump(data, stream, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True)
+        yaml.dump(data, stream, Dumper=IndentedDumper, default_flow_style=False, allow_unicode=True)
         output = stream.getvalue()
         assert "title: Simple one-liner\n" in output, f"Single-line string should be plain scalar, got:\n{output}"
 
@@ -2910,7 +2910,7 @@ class TestBuildPerFieldDocStubs:
         """The DSOA resource group (group_id 'dsoa') keeps the full product name as its
         ## h2 heading — per PR #1964 reviewer feedback (Schoenberger): "write in line 1
         as it is [full name] and in the group then just [abbreviated] ### DSOA ...". Only
-        the YAML title: (rendered as the ### h3, see _GROUP_TITLE_OVERRIDES) is abbreviated.
+        the YAML title: (rendered as the ### h3, see GROUP_TITLE_OVERRIDES) is abbreviated.
         """
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa", "title": "DSOA resource fields", "is_resource": True}])
@@ -2942,7 +2942,7 @@ class TestBuildPerFieldDocStubs:
         doc/fields/snowflake.md has one shared '## Snowflake' heading, not one per subgroup).
 
         Only each group's own YAML title: (rendered as its own ### h3 by the SD generator,
-        see _GROUP_TITLE_OVERRIDES) is abbreviated per group — the shared ## h2 stub heading
+        see GROUP_TITLE_OVERRIDES) is abbreviated per group — the shared ## h2 stub heading
         intentionally stays the full name, per PR #1964 reviewer feedback.
         """
         exporter = self._make_exporter(tmp_path)
