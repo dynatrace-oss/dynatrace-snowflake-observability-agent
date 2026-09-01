@@ -1,4 +1,4 @@
-"""Unit and integration tests for src/build/export_semantics.py."""
+"""Unit and integration tests for src/build/semantic_exporter/."""
 
 #
 #
@@ -2222,7 +2222,7 @@ _EXPORT_SCRIPT: Path = REPO_ROOT / "scripts" / "dev" / "build_semantic_export.sh
 class TestBuildSemanticExportScriptOutput:
     """Assert that build_semantic_export.sh produces zero WARNING and ERROR lines.
 
-    This is a regression gate: any future change to ``export_semantics.py`` or the
+    This is a regression gate: any future change to ``src/build/semantic_exporter/`` or the
     ``instruments-def.yml`` files that introduces new schema validation errors or
     numeric-without-type warnings will be caught here before it reaches CI.
 
@@ -2254,7 +2254,7 @@ class TestBuildSemanticExportScriptOutput:
         """build_semantic_export.sh must produce zero WARNING lines.
 
         WARNING lines indicate missing ``__type`` annotations or other non-fatal
-        issues in ``instruments-def.yml`` or ``export_semantics.py``.
+        issues in ``instruments-def.yml`` or ``src/build/semantic_exporter/``.
         """
         _, output = script_output
         warning_lines = [line for line in output.splitlines() if line.startswith("WARNING")]
