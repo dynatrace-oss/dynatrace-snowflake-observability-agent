@@ -29,7 +29,7 @@ per model type they emit** (129 queries total), routed by a new `context:` field
   means the property had to be declared regardless.
 - **Removed** the top-level `dql_queries_span` property (the stopgap it superseded).
 
-### Exporter — `src/build/export_semantics.py`
+### Exporter — `src/build/semantic_exporter/`
 
 - Added `_dql_for_context(queries, target)`: filters a plugin's `dql_queries` to entries whose
   `context` includes `target`, and **strips the `context` key** from each returned dict so it
@@ -158,7 +158,7 @@ Plugins needing only `context:` tags (no new queries): `data_schemas`, `event_us
 ## Migration / back-compat
 
 Unreleased 1.0.0. `dql_queries_span:` was introduced on this branch, used by one plugin
-(`query_history`), and referenced only in `export_semantics.py`, the schema, that plugin's
+(`query_history`), and referenced only in `semantic_exporter`, the schema, that plugin's
 instruments-def, and a historical devlog. No released artifact, Snowflake object, or external
 consumer depends on it → **no upgrade script required**. Its removal is a pure source/generator
 change.

@@ -145,7 +145,7 @@ login_history, two in trust_center). Notes document the divergence from SD and p
 
 | File                                                               | Change                                                                                                                                |
 |--------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| `src/build/export_semantics.py`                                    | A1: `_RES_NS` IDs; A2: `_merge_field_entries()`; A3: `dim_plugins` tracking; A4: ref exclusion; B-bool: `_coerce_attribute_example()` |
+| `src/build/semantic_exporter/`                                    | A1: `_RES_NS` IDs; A2: `_merge_field_entries()`; A3: `dim_plugins` tracking; A4: ref exclusion; B-bool: `_coerce_attribute_example()` |
 | `test/core/test_export_semantics.py`                               | New tests for A1–A4, B-bool, A2 merge, A3 ownership                                                                                   |
 | `src/dtagent/plugins/resource_monitors.config/instruments-def.yml` | B-bool: 7 fields                                                                                                                      |
 | `src/dtagent/plugins/users.config/instruments-def.yml`             | B-bool: 10 fields; B-long: 9 epoch-ns fields                                                                                          |
