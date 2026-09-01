@@ -1,4 +1,4 @@
-"""Tests validating that export_semantics.py faithfully converts instruments-def to SD YAML.
+"""Tests validating that src/build/semantic_exporter/ faithfully converts instruments-def to SD YAML.
 
 These tests verify the fidelity of the export pipeline: every field, enum, brief,
 and example in ``instruments-def.yml`` must appear correctly in the generated output.
@@ -37,7 +37,7 @@ from typing import Any, Dict, List, Set
 
 import pytest
 
-from build.export_semantics import KNOWN_REFS
+from build.semantic_exporter import KNOWN_REFS
 from test.core._semdict_test_utils import load_all_generated_yaml, load_all_instruments_defs
 
 ##region Fixtures

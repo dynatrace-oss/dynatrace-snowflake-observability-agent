@@ -16,7 +16,7 @@ validating the output with the SD generator, and fixing common schema violations
 ## 1. Pre-flight — SD repo must be a real checkout, not a symlink
 
 > **Checked-in semconv schema:** `scripts/tools/semconv.schema.json` is the repo-local copy of
-> `semconv.schema.json` used for validation. Both `export_semantics.py` and
+> `semconv.schema.json` used for validation. Both `src/build/semantic_exporter/` and
 > `build_semantic_export.sh` default to this path. When starting development on a new DSOA
 > version, update this file to match the semconv version being targeted (e.g. copy from an
 > upstream otel-build-tool checkout or the SD generator tooling). The `--schema` flag on
@@ -95,7 +95,7 @@ Run the SD build tool in YAML-checks-only mode. Errors from this command are gro
 .context/semantic-dictionary/generator/generate.sh docker .context/semantic-dictionary --yaml-checks-only
 ```
 
-Fix all errors in `src/build/export_semantics.py` or `instruments-def.yml`, re-export, and
+Fix all errors in `src/build/semantic_exporter/` or `instruments-def.yml`, re-export, and
 re-validate until the command exits 0.
 
 ---
@@ -153,7 +153,7 @@ native types correctly:
 | `boolean`          | `bool`              | `true` / `false` |
 | `string` / `string[]` / any other | `str` | `"COMPUTE_WH"` |
 
-The `_coerce_attribute_example(value, field_type)` function in `src/build/export_semantics.py`
+The `coerce_attribute_example(value, field_type)` function in `src/build/semantic_exporter/field_emitters.py`
 implements this mapping. If the SD tool reports a type mismatch on an example, verify that:
 
 1. The `__type` annotation in `instruments-def.yml` is correct.

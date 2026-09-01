@@ -140,6 +140,6 @@ than double-quoted to avoid quoting complexity while staying lint-clean.
 - `>-` block scalar check: no embedded newlines in parsed brief strings
 - `.venv/bin/pytest test/plugins/test_{query_history,resource_monitors,warehouse_usage,data_volume,metering,users}.py`: 66 passed, 13 skipped
 - `.venv/bin/pytest test/core/test_export_semantics.py test/core/test_documentation.py test/core/test_config_structure.py`: 92 passed
-- `python src/build/export_semantics.py --verbose`: "✓ Export complete"
+- `python src/build/semantic_exporter/ --verbose`: "✓ Export complete"
 - `./scripts/dev/build.sh`: "Building Dynatrace Snowflake Observability Agent done"
 - `./scripts/dev/build_docs.sh`: completed successfully

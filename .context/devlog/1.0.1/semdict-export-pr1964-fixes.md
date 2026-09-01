@@ -3,7 +3,7 @@
 ## Summary
 
 Addressed five reviewer comments from Bitbucket PR #1964 (`DEUS/semantic-dictionary`) on the
-DSOA semantic-dictionary export (`src/build/export_semantics.py`). Also fixed a latent
+DSOA semantic-dictionary export (`src/build/semantic_exporter/`). Also fixed a latent
 merge-propagation bug discovered while regenerating the SD repo output for this change.
 
 ## Changes
@@ -227,7 +227,7 @@ envelope-less documents (unaffected), and the pre-existing `model_group:` envelo
 
 - `.venv/bin/pytest test/core/test_export_semantics.py` — 218 passed (mocked, `--skip-semdict-
   regen`); 20 passed (integration, `-m integration`).
-- `.venv/bin/flake8` / `.venv/bin/pylint` on `src/build/export_semantics.py` and
+- `.venv/bin/flake8` / `.venv/bin/pylint` on `src/build/semantic_exporter/` and
   `test/core/test_export_semantics.py` — no new findings; pylint score unchanged from baseline
   (9.97/10 — the module's pre-existing baseline issues, e.g. `too-many-lines`, are unrelated to
   this change and were confirmed present before these fixes too).
@@ -247,7 +247,7 @@ envelope-less documents (unaffected), and the pre-existing `model_group:` envelo
 ## Notes for reviewers
 
 - **Fixed:** the `--check` sanity-check flag on `build_semantic_export.sh` re-ran the
-  `export_semantics.py --sd-metadata` step internally, which rewrites doc/ files to their blank
+  `semantic_exporter --sd-metadata` step internally, which rewrites doc/ files to their blank
   stub form (bare `<!-- semconv id --><!-- end_semconv -->` markers) — necessary so the sanity
   checker has something to validate, but it silently discarded any previously-rendered content
   (attribute tables, DQL examples) from a prior `--generate-docs` run. Reproduced by running

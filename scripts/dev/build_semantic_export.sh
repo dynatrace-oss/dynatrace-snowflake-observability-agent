@@ -23,7 +23,7 @@
 #
 #
 # Orchestrates semantic dictionary YAML export for DSOA.
-# Calls export_semantics.py, validates output, and reports summary.
+# Calls semantic_exporter/__init__.py, validates output, and reports summary.
 #
 # Usage:
 #   ./scripts/dev/build_semantic_export.sh [--output-dir <dir>] [--clean] [--verbose]
@@ -52,7 +52,7 @@
 #                       Only used when --generate-docs or --check is passed.
 #                       Default: .context/semantic-dictionary relative to the project root.
 #   --no-display-name   Suppress the display_name property on all emitted attribute and
-#                       enum member nodes. Passed through to export_semantics.py.
+#                       enum member nodes. Passed through to semantic_exporter/__init__.py.
 #   --check             After export into the SD repo, run the SD generator's sanity checks
 #                       (F001–F043, incl. F025 "unused domain-specific groups") against the
 #                       SD repo source/ and doc/, scoped via --files-to-check to only the
@@ -72,7 +72,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-EXPORT_SCRIPT="${PROJECT_ROOT}/src/build/export_semantics.py"
+EXPORT_SCRIPT="${PROJECT_ROOT}/src/build/semantic_exporter/__init__.py"
 VENV_PYTHON="${PROJECT_ROOT}/.venv/bin/python"
 OUTPUT_DIR="${PROJECT_ROOT}/build/_semdict/source"
 SCHEMA_PATH="${PROJECT_ROOT}/scripts/tools/semconv.schema.json"
@@ -258,7 +258,7 @@ run_sanity_checks() {
     fi
 
     # --check is a read-only diagnostic: it must never leave the SD repo's doc/ tree in a
-    # worse state than it found it. Step 1 below re-runs export_semantics.py --sd-metadata,
+    # worse state than it found it. Step 1 below re-runs semantic_exporter/__init__.py --sd-metadata,
     # which writes blank doc/ stubs (bare <!-- semconv id --><!-- end_semconv --> markers) —
     # this is required so the sanity checker has something to validate, but it silently wipes
     # out any previously-rendered content (attribute tables, DQL examples) written by a prior
@@ -332,7 +332,7 @@ run_sanity_checks() {
     # files this export produces — not the thousands of pre-existing findings across every
     # other vendor namespace in the SD repo. The generator's --files-to-check expects the
     # container-internal /source/... paths (the SD repo source/ is mounted at /source).
-    # The globs mirror SD_OWNED_GROUP_PREFIXES in export_semantics.py.
+    # The globs mirror SD_OWNED_GROUP_PREFIXES in semantic_exporter/constants.py.
     local dsoa_files=()
     local f
     while IFS= read -r f; do
@@ -437,7 +437,7 @@ main() {
     mkdir -p "${OUTPUT_DIR}"
 
     # Run export
-    log_info "Running export_semantics.py..."
+    log_info "Running semantic_exporter/__init__.py..."
     pushd "${PROJECT_ROOT}" > /dev/null
     if ! PYTHONPATH="${PROJECT_ROOT}/src" "${VENV_PYTHON}" "${EXPORT_SCRIPT}" \
         --output "${OUTPUT_DIR}" \

@@ -15,7 +15,7 @@ recognized `dt.meta.unit` vocabulary changes. Dynatrace engineers: use the inter
 `dsoa-units-sync` skill to regenerate it.
 
 After regenerating, review the printed UCUM-vs-Semantic-Dictionary divergences and
-update `UNIT_MAP` in `src/build/export_semantics.py` if a new divergence needs an
+update `UNIT_MAP` in `src/build/semantic_exporter/` if a new divergence needs an
 explicit translation for the Semantic Dictionary export.
 
 ## Note

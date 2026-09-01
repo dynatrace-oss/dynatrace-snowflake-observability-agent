@@ -12,7 +12,7 @@
 
 ### Root cause
 
-`_build_event_model_yaml()` in `src/build/export_semantics.py` hardcoded
+`_build_event_model_yaml()` in `src/build/semantic_exporter/` hardcoded
 `"data_object": "bizevents"` for all event models.
 
 Timestamp-based lifecycle events (e.g. `snowflake.grant.created_on`,
@@ -120,7 +120,7 @@ Added `TestDqlQueryStringFormatting` class with five tests:
 
 | File | Change |
 |------|--------|
-| `src/build/export_semantics.py` | Added `represent_str()` to `_IndentedDumper`; changed `data_object` from `"bizevents"` to `"event"`; updated brief text |
+| `src/build/semantic_exporter/` | Added `represent_str()` to `_IndentedDumper`; changed `data_object` from `"bizevents"` to `"event"`; updated brief text |
 | `test/core/test_export_semantics.py` | Updated existing test + added 8 new tests; imported `_IndentedDumper` |
 | `build/_semdict/source/model/dsoa/dsoa.events.*.yaml` | Regenerated: `data_object: event`, clean DQL blocks |
 | `docs/CHANGELOG.md` | Added Fixed section under `[Unreleased / 1.0.0]` |

@@ -6,7 +6,7 @@ Closed out the remaining lightweight tasks from the implementation plan
 (Tasks 1, 2, 3, 4, 5, 8, 9, 10, 12) to finalize the DSOA -> Semantic Dictionary export
 for handover to the Information Architect. Tasks 6, 7, and 11 (grouping restructure,
 per-model-type DQL, widened test enforcement) are deliberately deferred to a future
-session — they require heavier `export_semantics.py` refactors.
+session — they require heavier `semantic_exporter` refactors.
 
 ## Changes
 
@@ -26,7 +26,7 @@ decision on whether F015/F017 apply to `model_group:` containers.
 
 ### Task 2 (G2) — Duplicated backward-compat sentence
 
-**Problem:** `_emit_id_entry()` in `src/build/export_semantics.py` appended the
+**Problem:** `_emit_id_entry()` in `src/build/semantic_exporter/` appended the
 "DSOA continues to emit it for backward compatibility." boilerplate a second time
 whenever `__semdict_note` already explained the backward-compat rationale (e.g.
 `deployment.environment` in `src/dtagent.conf/instruments-def.yml`), producing a
@@ -125,7 +125,7 @@ stale-string test fix.
 
 | File                                                               | Change                                                                                          |
 |--------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| `src/build/export_semantics.py`                                    | Task 2: guard against duplicated backward-compat note; Task 3: events model-group brief wording |
+| `src/build/semantic_exporter/`                                    | Task 2: guard against duplicated backward-compat note; Task 3: events model-group brief wording |
 | `src/dtagent/plugins/active_queries.config/instruments-def.yml`    | Task 1: dql_queries                                                                             |
 | `src/dtagent/plugins/cold_tables.config/instruments-def.yml`       | Task 1: dql_queries                                                                             |
 | `src/dtagent/plugins/data_schemas.config/instruments-def.yml`      | Task 1: dql_queries                                                                             |

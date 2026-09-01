@@ -70,7 +70,7 @@ usage (e.g. "Always 'snowflake' for all DSOA telemetry."). This was an outstandi
 
 - Added `__interface_note` annotation to all 10 resource dimensions/attributes in
   `src/dtagent.conf/instruments-def.yml`.
-- Updated `_build_interfaces_yaml(all_entries=None)` in `export_semantics.py`: added
+- Updated `_build_interfaces_yaml(all_entries=None)` in `semantic_exporter`: added
   `_ref_entry()` inner function that looks up `__interface_note` from `all_entries` and adds it
   as `note:` on the ref dict if present. The method signature is backward-compatible (`all_entries`
   defaults to `None`; bare `{"ref": key}` is emitted when no note is found).
@@ -113,7 +113,7 @@ usage (e.g. "Always 'snowflake' for all DSOA telemetry."). This was an outstandi
 **Fixes applied:**
 
 - 7 instruments-def files updated (32 fields total).
-- `ATTR_TYPE_MAP` in `export_semantics.py` extended with `string[]`, `long[]`, `array`, `record`,
+- `ATTR_TYPE_MAP` in `semantic_exporter` extended with `string[]`, `long[]`, `array`, `record`,
   `record[]`.
 - Existing `TestTimestampTypeAnnotations::test_iso8601_timestamp_fields_have_type_annotation`
   updated: now requires `__type: string` (not just any annotation; `timestamp` is explicitly wrong).
@@ -159,7 +159,7 @@ present in dashboards and workflows.
 - Added `dql_queries:` top-level key to 10 plugin `instruments-def.yml` files (query_history,
   warehouse_usage, login_history, metering, users, event_log, tasks, resource_monitors, shares,
   budgets). Each has 3-5 queries covering: log fetch, metric timeseries, self-monitoring bizevents.
-- `export_semantics.py`: reads `dql_queries:` from raw YAML in parse loop (stored in
+- `semantic_exporter`: reads `dql_queries:` from raw YAML in parse loop (stored in
   `plugin_dql_queries` dict). All 4 model builders (`_build_log_model_yaml`, `_build_span_model_yaml`,
   `_build_event_model_yaml`, `_build_metric_model_yaml`) emit `dql_queries:` in model envelope when
   present.
@@ -195,7 +195,7 @@ All 148 semdict-related tests pass. Full core suite: 278 passed, 2 skipped, 1 pr
 
 - 12 plugins (numeric example unquoting).
 
-**export_semantics.py**: ATTR_TYPE_MAP extended; `_build_interfaces_yaml` accepts `all_entries`;
+**semantic_exporter**: ATTR_TYPE_MAP extended; `_build_interfaces_yaml` accepts `all_entries`;
 `plugin_dql_queries` collection; 4 model builders emit `dql_queries`.
 
 **update_docs.py**: `_generate_semantics_tables` adds Note/Stability/SD Status columns;

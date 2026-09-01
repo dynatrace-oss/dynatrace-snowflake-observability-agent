@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-The initial implementation of `export_semantics.py` produced structurally incorrect output.
+The initial implementation of `semantic_exporter` produced structurally incorrect output.
 Research of actual SD source files revealed fundamental errors:
 
 1. All fields were emitted into a single flat `snowflake_global.yaml` file, not split by
@@ -116,7 +116,7 @@ This is pre-existing debt. A follow-up should annotate all metrics with explicit
 
 | File                                                               | Change                                           |
 |--------------------------------------------------------------------|--------------------------------------------------|
-| `src/build/export_semantics.py`                                    | REWRITTEN — 938 lines, pylint 10.00/10           |
+| `src/build/semantic_exporter/`                                    | REWRITTEN — 938 lines, pylint 10.00/10           |
 | `test/core/test_export_semantics.py`                               | REWRITTEN — 83 tests                             |
 | `test/test_data/instruments-def-mock.yml`                          | EXTENDED — __field_type,__enum, event_timestamps |
 | `src/dtagent/plugins/warehouse_usage.config/instruments-def.yml`   | `__field_type` + `__enum` annotations            |

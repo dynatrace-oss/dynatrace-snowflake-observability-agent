@@ -20,7 +20,7 @@ the generated Semantic Dictionary YAML, regardless of whether its content relate
 
 | File                                                            | Change                                                                                                                 |
 |-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| `src/build/export_semantics.py`                                 | Renamed 8 occurrences: `__otel_note` → `__semdict_note`; updated validation error message and docstring                |
+| `src/build/semantic_exporter/`                                 | Renamed 8 occurrences: `__otel_note` → `__semdict_note`; updated validation error message and docstring                |
 | `test/core/test_export_semantics.py`                            | Updated 8 test references: fixture keys, docstrings, assertions                                                        |
 | `test/test_data/instruments-def-mock.yml`                       | Renamed 3 fixture keys                                                                                                 |
 | `src/dtagent.conf/instruments-def.yml`                          | Renamed 3 occurrences (core dimensions: `db.system`, `deployment.environment`, `observed_timestamp`)                   |
@@ -49,10 +49,10 @@ name in the error message changed from `__otel_note` to `__semdict_note` to matc
 - `test/core/test_export_semantics.py`: **84/84 passed**
 - Core suite (excluding pre-existing `test_data_retention` build-artifact failure): **209 passed, 3 skipped**
 - `make lint`: **all green** (pylint 10.00/10, black, flake8, yamllint, markdownlint, bom validation)
-- `export_semantics.py --verbose` smoke test: **✓ Export complete**, 59 files, 304 fields, no errors
+- `semantic_exporter --verbose` smoke test: **✓ Export complete**, 59 files, 304 fields, no errors
 
 ## No backward-compatible concerns
 
-`__otel_note` was an internal schema annotation key consumed only by `export_semantics.py`.
+`__otel_note` was an internal schema annotation key consumed only by `semantic_exporter`.
 It is not exposed in any deployed artifact, Snowflake procedure, or runtime telemetry payload.
 No migration, upgrade script, or CHANGELOG entry is needed.
