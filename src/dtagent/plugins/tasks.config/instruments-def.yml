@@ -124,11 +124,13 @@ attributes:
     __description: The end time of the task.
   snowflake.task.error_integration:
     __type: string
-    displayName: Snowflake task error integration
+    displayName: Snowflake task error notification integration service
     __context_names:
       - task_versions
     __example: error_integration123
-    __description: The error integration for the task.
+    __description:
+      Name of the notification integration used to access Amazon Simple Notification Service (SNS), Google Pub/Sub, or Microsoft Azure Event
+      Grid to relay error notifications for the task.
   snowflake.task.graph.root_id:
     __type: string
     displayName: Snowflake task graph root ID
@@ -155,12 +157,12 @@ attributes:
     __description: The unique identifier for the task.
   snowflake.task.instance_id:
     __type: long
-    displayName: Snowflake task instance ID
+    displayName: Snowflake internal instance ID
     __stability: stable
     __context_names:
       - serverless_tasks
     __example: 987654321
-    __description: The unique identifier for the task instance.
+    __description: Internal/system-generated identifier for the instance which the object belongs to.
   snowflake.task.last_committed_on:
     __type: long
     displayName: Snowflake task last committed time
@@ -223,11 +225,13 @@ attributes:
     __description: The unique identifier for the task run.
   snowflake.task.run.return_value:
     __type: string
-    displayName: Snowflake task run return value
+    displayName: Snowflake predecessor task return value
     __context_names:
       - task_history
     __example: "0"
-    __description: The return value of the task run.
+    __description:
+      Value set for the predecessor task in a task graph. The return value is explicitly set by calling the SYSTEM$SET_RETURN_VALUE function
+      by the predecessor task.
   snowflake.task.run.scheduled_time:
     __type: long
     displayName: Snowflake task run scheduled time
