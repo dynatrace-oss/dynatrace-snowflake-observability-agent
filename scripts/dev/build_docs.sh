@@ -70,4 +70,7 @@ else
     echo "prettier not found, skipping formatting"
 fi
 
+echo "Building semantic dictionary export..."
+bash scripts/dev/build_semantic_export.sh || { echo "Semantic export failed" >&2; exit 1; }
+
 echo "Dynatrace-Snowflake-Observability-Agent-$VERSION.pdf file successfully created"

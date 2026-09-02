@@ -17,187 +17,272 @@
 
 dimensions:
   db.user:
+    __type: string
+    __stability: stable
     __example: admin
     __context_names:
       - users
     __description: Snowflake user who issued the query.
 attributes:
   snowflake.user.bypass_mfa_until:
-    __example: "2024-11-06T00:00:00Z"
+    __type: long
+    __example: 1620213179885000000
     __context_names:
       - users
-    __description: The time until which the user can bypass MFA.
+    __description: The time until which the user can bypass MFA. Epoch nanoseconds timestamp.
   snowflake.user.comment:
+    __type: string
     __example: New user account
     __context_names:
       - users
     __description: Any comments associated with the user.
   snowflake.user.default.namespace:
+    __type: string
+    __stability: stable
     __example: PUBLIC
     __context_names:
       - users
     __description: The default namespace for the user.
   snowflake.user.default.role:
+    __type: string
+    __stability: stable
     __example: SYSADMIN
     __context_names:
       - users
     __description: The default role for the user.
   snowflake.user.default.secondary_role:
+    __type: string
+    __stability: stable
     __example: SECURITYADMIN
     __context_names:
       - users
     __description: The default secondary role for the user.
   snowflake.user.default.warehouse:
+    __type: string
+    __stability: stable
     __example: COMPUTE_WH
     __context_names:
       - users
     __description: The default warehouse for the user.
   snowflake.user.display_name:
+    __type: string
     __example: John Doe
     __context_names:
       - users
     __description: The display name of the user.
   snowflake.user.email:
+    __type: string
     __example: jdoe@example.com
     __context_names:
       - users
     __description: The email address of the user.
   snowflake.user.expires_at:
-    __example: "1620213179885000000"
+    __type: long
+    __example: 1620213179885000000
     __context_names:
       - users
     __description: The expiration date of the user account.
   snowflake.user.ext_authn.duo:
-    __example: "true"
+    __stability: stable
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if Duo authentication is enabled for the user.
   snowflake.user.ext_authn.uid:
+    __type: string
+    __stability: stable
     __example: ext123
     __context_names:
       - users
     __description: The external authentication UID for the user.
   snowflake.user.has_mfa:
-    __example: "true"
+    __stability: stable
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if the user is enrolled for multi-factor authentication.
   snowflake.user.has_password:
-    __example: "true"
+    __stability: stable
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if the user has a password set.
   snowflake.user.has_pat:
-    __example: "true"
+    __stability: stable
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if a programmatic access token has been generated for the user.
   snowflake.user.has_rsa:
-    __example: "true"
+    __stability: stable
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if RSA public key authentication is configured for the user.
   snowflake.user.has_workload_identity:
-    __example: "true"
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if workload identity federation is configured for the user.
   snowflake.user.id:
-    __example: "12345"
+    __type: long
+    __example: 12345
     __context_names:
       - users
     __description: The unique identifier for the user.
   snowflake.user.is_disabled:
-    __example: "false"
+    __stability: stable
+    __type: boolean
+    __example: false
     __context_names:
       - users
     __description: Indicates if the user account is disabled.
   snowflake.user.is_locked:
-    __example: "false"
+    __stability: stable
+    __type: boolean
+    __example: false
     __context_names:
       - users
     __description: Indicates if the user account is locked by Snowflake.
   snowflake.user.is_from_organization:
-    __example: "true"
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if the user was imported from a global organization.
   snowflake.user.locked_until_time:
-    __example: "1615479617866000000"
+    __type: long
+    __example: 1615479617866000000
     __context_names:
       - users
     __description: The time until which the user account is locked.
   snowflake.user.must_change_password:
-    __example: "true"
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if the user must change their password.
   snowflake.user.name.login:
+    __type: string
     __example: jdoe
     __context_names:
       - users
     __description: The login name of the user.
   snowflake.user.name.first:
+    __type: string
+    __stability: stable
     __example: John
     __context_names:
       - users
     __description: The first name of the user.
   snowflake.user.name.last:
+    __type: string
+    __stability: stable
     __example: Doe
     __context_names:
       - users
     __description: The last name of the user.
   snowflake.user.owner:
+    __type: string
+    __stability: stable
     __example: ACCOUNTADMIN
     __context_names:
       - users
     __description: The role that owns the user account.
   snowflake.user.type:
+    __type: string
+    __stability: stable
     __example: LEGACY_SERVICE
     __context_names:
       - users
     __description: Specifies the type of user
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: person
+          value: PERSON
+          brief: Human interactive user.
+        - id: service
+          value: SERVICE
+          brief: >-
+            Non-interactive integration user; cannot authenticate via password or SAML, cannot enroll in MFA. Recommended for all automated
+            service accounts.
+        - id: legacy_service
+          value: LEGACY_SERVICE
+          brief: >-
+            Non-interactive integration user that, unlike SERVICE, still permits password and SAML authentication. Deprecated — migrate to
+            SERVICE type.
+        - id: snowflake_service
+          value: SNOWFLAKE_SERVICE
+          brief: >-
+            System-managed user automatically created for each Snowpark Container Services (SPCS) service; cannot be created or converted by
+            administrators.
   snowflake.user.privilege.name:
+    __type: string
+    __stability: stable
     __example: "CREATE SERVICE:SCHEMA"
     __context_names:
       - users_all_privileges
     __description:
       Name of the privilege and type of object this privilege granted on to the user or role. Composed as `privilege:granted_on_object`.
   snowflake.user.privilege.grants_on:
-    __example: ["TRUST_CENTER_ADMIN", "COMPUTE_WH"]
+    __type: string[]
+    __semdict_note: "Array of privilege grant target names stored as string[] in Grail."
+    __example:
+      - ["TRUST_CENTER_ADMIN", "COMPUTE_WH"]
     __context_names:
       - users_all_privileges
     __description:
       List of all objects of given type on which given privilege was given; both object type and privilege are reported as
       `snowflake.user.privilege.name`
   snowflake.user.privilege.granted_by:
-    __example: ["ACCOUNTADMIN"]
+    __type: string[]
+    __semdict_note: "Array of grantor role names stored as string[] in Grail."
+    __example:
+      - ["ACCOUNTADMIN"]
     __context_names:
       - users_all_privileges
     __description: Array of all roles which granted grants to a user for a privilege.
   snowflake.user.roles.all:
+    __type: string
     __example: "SNOWFLAKE_FINANCE,MONITORING"
     __context_names:
       - users_all_roles
     __description: Comma separated list of all roles granted to a user.
   snowflake.user.roles.granted_by:
-    __example: ["DEMIGOD", "SECURITYADMIN", "ACCOUNTADMIN"]
+    __type: string[]
+    __semdict_note: "Array of grantor names for role assignments stored as string[] in Grail."
+    __example:
+      - ["DEMIGOD", "SECURITYADMIN", "ACCOUNTADMIN"]
     __context_names:
       - users_all_roles
       - users_direct_roles
     __description: Array of admin roles that were used to grant current list of user roles.
   snowflake.user.roles.direct.list:
-    __example: ["DEVOPS_ROLE", "SYSADMIN", "ACCOUNTADMIN"]
+    __stability: stable
+    __type: string[]
+    __semdict_note: "Array of directly assigned role names stored as string[] in Grail."
+    __example:
+      - ["DEVOPS_ROLE", "SYSADMIN", "ACCOUNTADMIN"]
     __context_names:
       - users_direct_roles
     __description: List of all direct roles granted to user.
   snowflake.user.roles.direct.removed:
+    __type: string
+    __stability: stable
     __example: "ACCOUNTADMIN"
     __context_names:
       - users_removed_direct_roles
     __description: Name of the role that was revoked from user.
 event_timestamps:
   snowflake.event.trigger:
+    __type: string
     __example: "snowflake.user.last_success_login"
     __context_names:
       - users
@@ -209,38 +294,109 @@ event_timestamps:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.user.privilege.last_altered:
-    __example: "1732181350954000000"
+    __type: long
+    __example: 1732181350954000000
     __context_names:
       - users_all_privileges
     __description: The timestamp of the last alteration to the user's privileges.
   snowflake.user.roles.last_altered:
-    __example: "1718260900411000000"
+    __type: long
+    __example: 1718260900411000000
     __context_names:
       - users_all_roles
       - users_direct_roles
     __description: The timestamp of the last alteration to the roles granted to the user.
   snowflake.user.created_on:
-    __example: "1651830381846000000"
+    __type: long
+    __example: 1651830381846000000
     __context_names:
       - users
     __description: The timestamp of the user account creation.
   snowflake.user.deleted_on:
-    __example: "1615219846384000000"
+    __type: long
+    __example: 1615219846384000000
     __context_names:
       - users
     __description: The timestamp of the user account deletion.
   snowflake.user.last_success_login:
-    __example: "1732181350954000000"
+    __stability: stable
+    __type: long
+    __example: 1732181350954000000
     __context_names:
       - users
     __description: The timestamp of the last successful login by the user.
   snowflake.user.password_last_set_time:
-    __example: "1615219848053000000"
+    __type: long
+    __example: 1615219848053000000
     __context_names:
       - users
     __description: The timestamp of the last password change for the user.
   snowflake.user.roles.direct.removed_on:
-    __example: "1718260900411000000"
+    __type: long
+    __example: 1718260900411000000
     __context_names:
       - users_removed_direct_roles
     __description: The timestamp of the last removal of a direct role from the user.
+dql_queries:
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA users plugin log entries from Grail.
+    description_copilot: Search for all users plugin logs from the Snowflake observability agent.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | filter snowflake.user.is_disabled == "true"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch log entries for disabled Snowflake users from the users plugin.
+    description_copilot: Search for disabled Snowflake user records in the users plugin logs.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | filter snowflake.user.has_mfa == "false"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch log entries for Snowflake users without MFA enabled.
+    description_copilot: Search for Snowflake users that do not have MFA configured.
+    context:
+      - logs
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | sort timestamp desc
+      | limit 20
+    description: Fetch recent DSOA users lifecycle events.
+    description_copilot: Search for recent Snowflake users lifecycle events from the users plugin.
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the most recent DSOA users lifecycle events (creation, deletion and role-change anchors).
+    description_copilot: Search for Snowflake user lifecycle events from the users plugin.
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | summarize { events = count() }, by: { snowflake.event.type }
+      | sort events desc
+    description: Count DSOA users lifecycle events grouped by event type.
+    description_copilot: Break down Snowflake user lifecycle events by their event type.
+    context:
+      - events

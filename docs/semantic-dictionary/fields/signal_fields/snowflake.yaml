@@ -1,0 +1,2071 @@
+groups:
+  - id: snowflake.account
+    type: attribute_group
+    title: Snowflake account signal fields
+    brief: Signal-level fields for Snowflake account telemetry.
+    attributes:
+      - id: snowflake.account.locator
+        display_name: 'Snowflake Account Locator'
+        type: string
+        stability: experimental
+        brief: The account locator identifier for the Snowflake account.
+        examples: [ 'ABC12345' ]
+      - id: snowflake.account.name
+        display_name: 'Snowflake Account Name'
+        type: string
+        stability: stable
+        brief: The name of the Snowflake account within the organization.
+        examples: [ 'MYORG-ACCOUNT1' ]
+      - id: snowflake.account.region
+        display_name: 'Snowflake Account Region'
+        type: string
+        stability: stable
+        brief: The cloud region of the Snowflake account performing the data transfer.
+        examples: [ 'US_EAST_1' ]
+  - id: snowflake.budget
+    type: attribute_group
+    title: Snowflake budget signal fields
+    brief: Signal-level fields for Snowflake budget telemetry.
+    attributes:
+      - id: snowflake.budget.created_on
+        display_name: 'Snowflake Budget Created On'
+        type: long
+        stability: stable
+        brief: The timestamp when the budget was created.
+        examples: [ 1732981199999000000 ]
+      - id: snowflake.budget.full_name
+        display_name: 'Snowflake Budget Full Name'
+        type: string
+        stability: experimental
+        brief: Fully-qualified name of the budget (DATABASE.SCHEMA.NAME).
+        examples: [ 'ANALYTICS_DB.BUDGETS.MONTHLY_BUDGET' ]
+      - id: snowflake.budget.name
+        display_name: 'Snowflake Budget Name'
+        type: string
+        stability: stable
+        brief: Name of the budget.
+        examples: [ 'monthly_budget' ]
+      - id: snowflake.budget.owner.name
+        display_name: 'Snowflake Budget Owner Name'
+        type: string
+        stability: stable
+        brief: The owner of the budget, typically the user or role responsible for managing the budget.
+        examples: [ 'budget_admin' ]
+      - id: snowflake.budget.owner.role_type
+        display_name: 'Snowflake Budget Owner Role Type'
+        type: string
+        stability: experimental
+        brief: 'The principal type of the budget owner: ROLE or APPLICATION.'
+        examples: [ 'ROLE' ]
+      - id: snowflake.budget.resource
+        display_name: 'Snowflake Budget Resource'
+        type: string[]
+        stability: stable
+        brief: The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors.
+        examples:
+          - ['DATABASE1', 'WAREHOUSE1']
+        note: Array of resource names (databases, warehouses) in this budget group, stored as string[] in Grail.
+  - id: snowflake.cluster
+    type: attribute_group
+    title: Snowflake cluster signal fields
+    brief: Signal-level fields for Snowflake cluster telemetry.
+    attributes:
+      - id: snowflake.cluster_number
+        display_name: 'Snowflake Cluster Number'
+        type: long
+        stability: experimental
+        brief: The cluster number associated with the query.
+        examples: [ 1 ]
+  - id: snowflake.copy
+    type: attribute_group
+    title: Snowflake copy signal fields
+    brief: Signal-level fields for Snowflake copy telemetry.
+    attributes:
+      - id: snowflake.copy.errors.limit
+        display_name: 'Snowflake Copy Errors Limit'
+        type: long
+        stability: experimental
+        brief: Error limit for the COPY.
+        examples: [ 1 ]
+      - id: snowflake.copy.file_name
+        display_name: 'Snowflake Copy File Name'
+        type: string
+        stability: experimental
+        brief: Source file name.
+        examples: [ 'data/file_20250312.csv.gz' ]
+      - id: snowflake.copy.first_commit_time
+        display_name: 'Snowflake Copy First Commit Time'
+        type: long
+        stability: experimental
+        brief: When the first chunk of the file was committed.
+        examples: [ 1741772160000000000 ]
+      - id: snowflake.copy.first_error.character_position
+        display_name: 'Snowflake Copy First Error Character Position'
+        type: long
+        stability: experimental
+        brief: Character position of first error.
+        examples: [ 128 ]
+      - id: snowflake.copy.first_error.column_name
+        display_name: 'Snowflake Copy First Error Column Name'
+        type: string
+        stability: experimental
+        brief: Column name causing the first error.
+        examples: [ 'AMOUNT' ]
+      - id: snowflake.copy.first_error.line_number
+        display_name: 'Snowflake Copy First Error Line Number'
+        type: long
+        stability: experimental
+        brief: Line number of first error.
+        examples: [ 42 ]
+      - id: snowflake.copy.first_error.message
+        display_name: 'Snowflake Copy First Error Message'
+        type: string
+        stability: experimental
+        brief: First error message for failed loads.
+        examples: [ 'Number of columns in file (3) does not match that of the corresponding table (4)' ]
+      - id: snowflake.copy.pipe.received_time
+        display_name: 'Snowflake Copy Pipe Received Time'
+        type: long
+        stability: experimental
+        brief: When file was received by Snowpipe (view-only).
+        examples: [ 1741772100000000000 ]
+      - id: snowflake.copy.stage_location
+        display_name: 'Snowflake Copy Stage Location'
+        type: string
+        stability: experimental
+        brief: Stage location (ACCOUNT_USAGE view-only).
+        examples: [ 's3://my-bucket/data/' ]
+      - id: snowflake.copy.status
+        display_name: 'Snowflake Copy Status'
+        type:
+          allow_custom_values: true
+          members:
+            - id: loaded
+              value: "LOADED"
+              brief: File loaded successfully.
+            - id: load_failed
+              value: "LOAD_FAILED"
+              brief: File load failed with errors.
+            - id: partially_loaded
+              value: "PARTIALLY_LOADED"
+              brief: File partially loaded; some rows failed.
+        stability: experimental
+        brief: Load status of the COPY INTO operation.
+        examples: [ 'LOADED' ]
+  - id: snowflake.cost_attribution
+    type: attribute_group
+    title: Snowflake cost attribution signal fields
+    brief: Signal-level fields for Snowflake cost attribution telemetry.
+    attributes:
+      - id: snowflake.cost_attribution.period_end
+        display_name: 'Snowflake Cost Attribution Period End'
+        type: long
+        stability: experimental
+        brief: End of the cost attribution summary window.
+        examples: [ 1730844667000000000 ]
+      - id: snowflake.cost_attribution.period_start
+        display_name: 'Snowflake Cost Attribution Period Start'
+        type: long
+        stability: experimental
+        brief: Start of the cost attribution summary window.
+        examples: [ 1730841067000000000 ]
+  - id: snowflake.database
+    type: attribute_group
+    title: Snowflake database signal fields
+    brief: Signal-level fields for Snowflake database telemetry.
+    attributes:
+      - id: snowflake.database.id
+        display_name: 'Snowflake Database ID'
+        type: long
+        stability: stable
+        brief: The unique identifier of the database involved in the query.
+        examples: [ 123456 ]
+        note: ACCOUNT_USAGE.DATABASES supplies related fields (name, owner, owner_role_type, type, is_transient, lifecycle, retention_time, comment) but these should be populated by a future inventory plugin, not query_history (≈180-min latency + cost). In query_history, snowflake.database.id stays a foreign key only.
+  - id: snowflake.entity
+    type: attribute_group
+    title: Snowflake entity signal fields
+    brief: Signal-level fields for Snowflake entity telemetry.
+    attributes:
+      - id: snowflake.entity.details
+        display_name: 'Snowflake Entity Details'
+        type: string
+        stability: stable
+        brief: Additional details about the entity involved in the event.
+        examples: [ 'Contains user data' ]
+      - id: snowflake.entity.id
+        display_name: 'Snowflake Entity ID'
+        type: string
+        stability: experimental
+        brief: The unique identifier for the entity involved in the event.
+        examples: [ 'entity123' ]
+      - id: snowflake.entity.name
+        display_name: 'Snowflake Entity Name'
+        type: string
+        stability: stable
+        brief: The name of the entity involved in the event.
+        examples: [ 'User Table' ]
+      - id: snowflake.entity.type
+        display_name: 'Snowflake Entity Type'
+        type: string
+        stability: experimental
+        brief: The type of entity involved in the event, such as a table, view, or user.
+        examples: [ 'table' ]
+  - id: snowflake.error
+    type: attribute_group
+    title: Snowflake error signal fields
+    brief: Signal-level fields for Snowflake error telemetry.
+    attributes:
+      - id: snowflake.error.code
+        display_name: 'Snowflake Error Code'
+        type: string
+        stability: stable
+        brief: The error code if the query failed.
+        examples: [ '1001' ]
+      - id: snowflake.error.message
+        display_name: 'Snowflake Error Message'
+        type: string
+        stability: stable
+        brief: The error message if the query failed.
+        examples: [ 'Syntax error in SQL statement' ]
+  - id: snowflake.event
+    type: attribute_group
+    title: Snowflake event signal fields
+    brief: Signal-level fields for Snowflake event telemetry.
+    attributes:
+      - id: snowflake.event.type
+        display_name: 'Snowflake Event Type'
+        type: string
+        stability: experimental
+        brief: Type of (timestamp based) event
+        examples: [ 'snowflake.table.update' ]
+  - id: snowflake.grant
+    type: attribute_group
+    title: Snowflake grant signal fields
+    brief: Signal-level fields for Snowflake grant telemetry.
+    attributes:
+      - id: snowflake.grant.by
+        display_name: 'Snowflake Grant By'
+        type: string
+        stability: stable
+        brief: Shows the name of the account which made the grant.
+        examples: [ 'ACCOUNTADMIN' ]
+      - id: snowflake.grant.created_on
+        display_name: 'Snowflake Grant Created On'
+        type: long
+        stability: stable
+        brief: The timestamp when the grant was created. Epoch nanoseconds timestamp.
+        examples: [ 1639051180946000000 ]
+      - id: snowflake.grant.grantee
+        display_name: 'Snowflake Grant Grantee'
+        type: string
+        stability: stable
+        brief: Shows the grantee account name.
+        examples: [ 'PARTNER_ACCOUNT' ]
+      - id: snowflake.grant.name
+        display_name: 'Snowflake Grant Name'
+        type: string
+        stability: stable
+        brief: Name of the grant to a share.
+        examples: [ 'READ_ACCESS' ]
+      - id: snowflake.grant.on
+        display_name: 'Snowflake Grant On'
+        type: string
+        stability: stable
+        brief: Shows on what type of object the grant was made.
+        examples: [ 'DATABASE' ]
+      - id: snowflake.grant.option
+        display_name: 'Snowflake Grant Option'
+        type: boolean
+        stability: experimental
+        brief: Indicates if grant option is available.
+        examples: [ false ]
+      - id: snowflake.grant.privilege
+        display_name: 'Snowflake Grant Privilege'
+        type: string
+        stability: stable
+        brief: Shows the type of privilege granted.
+        examples: [ 'USAGE' ]
+      - id: snowflake.grant.to
+        display_name: 'Snowflake Grant To'
+        type: string
+        stability: experimental
+        brief: Shows to what the grant was made.
+        examples: [ 'SHARE' ]
+  - id: snowflake.object
+    type: attribute_group
+    title: Snowflake object signal fields
+    brief: Signal-level fields for Snowflake object telemetry.
+    attributes:
+      - id: snowflake.object.ddl.modified
+        display_name: 'Snowflake Object DDL Modified'
+        type: string
+        stability: experimental
+        brief: A JSON array that specifies the objects that were associated with a write operation in the query.
+        examples: [ '{ "DTAGENT_DB.APP.TMP_RECENT_QUERIES": { "objectColumns": "HISTOGRAM_METRICS, COUNTER_METRICS, START_TIME, STATUS_CODE, SESSION_ID, QUERY_ID, DIMENSIONS, END_TIME, NAME, ATTRIBUTES, PARENT_QUERY_ID", "objectDomain": "Table" } }' ]
+        note: Serialized JSON object stored as string in Grail. Contains modified DDL object details. Parse with parseJson() in DQL.
+      - id: snowflake.object.ddl.operation
+        display_name: 'Snowflake Object DDL Operation'
+        type:
+          allow_custom_values: true
+          members:
+            - id: create
+              value: "CREATE"
+              brief: Creates a new database object; when used as CREATE OR REPLACE, atomically drops and recreates.
+            - id: alter
+              value: "ALTER"
+              brief: Modifies the properties or definition of an existing database object without recreating it.
+            - id: drop
+              value: "DROP"
+              brief: Removes a database object; for tables, data enters Fail-safe and can be recovered via UNDROP within the retention period.
+            - id: undrop
+              value: "UNDROP"
+              brief: Restores a previously dropped table, schema, or database from Fail-safe within the Time Travel retention window.
+            - id: replace
+              value: "REPLACE"
+              brief: Equivalent to CREATE OR REPLACE; atomically drops and recreates the object, resetting its definition.
+        stability: stable
+        brief: |-
+          DDL operation type (`CREATE`, `ALTER`, `DROP`, `UNDROP`, `REPLACE`). Populated only
+          when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`.
+          Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for
+          warehouse change detection.
+        examples: [ 'ALTER' ]
+      - id: snowflake.object.ddl.properties
+        display_name: 'Snowflake Object DDL Properties'
+        type: string
+        stability: stable
+        brief: |-
+          A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column.
+          There are two types of properties: atomic and compound.
+        examples: ['{"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}}']
+        note: Stored as a serialized JSON string, not plain text.
+      - id: snowflake.object.id
+        display_name: 'Snowflake Object ID'
+        type: long
+        stability: stable
+        brief: An identifier for the object, which is unique within a given account and domain.
+        examples: [ 747545 ]
+      - id: snowflake.object.name
+        display_name: 'Snowflake Object Name'
+        type: string
+        stability: stable
+        brief: The fully qualified name of the object defined or modified by the DDL operation.
+        examples: [ 'DTAGENT_DB.APP.TMP_RECENT_QUERIES' ]
+      - id: snowflake.object.type
+        display_name: 'Snowflake Object Type'
+        type:
+          allow_custom_values: true
+          members:
+            - id: table
+              value: "Table"
+              brief: A base, temporary, or external table object that stores or references tabular data, as reported in ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.
+            - id: view
+              value: "View"
+              brief: A standard or secure view object whose definition is stored as a query and evaluated at access time.
+            - id: schema
+              value: "Schema"
+              brief: A namespace container within a database used to group tables, views, and other objects.
+            - id: database
+              value: "Database"
+              brief: The top-level namespace container in Snowflake; groups schemas and all their child objects.
+            - id: procedure
+              value: "Procedure"
+              brief: A callable stored procedure object encapsulating SQL or Snowpark logic that can be invoked via CALL.
+        stability: stable
+        brief: |-
+          Type of object modified by the DDL operation captured for this query, as recorded by
+          Snowflake in `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.objectDomain` (e.g. `Table`,
+          `View`, `Schema`, `Database`). Populated only when
+          `plugins.query_history.track_ddl_changes=true` and Snowflake recorded a structured
+          DDL payload for the query. Does not apply to warehouse or resource-monitor DDL —
+          use `db.operation.name` for warehouse change detection.
+        examples: [ 'Table' ]
+  - id: snowflake.org
+    type: attribute_group
+    title: Snowflake organization signal fields
+    brief: Signal-level fields for Snowflake organization telemetry.
+    attributes:
+      - id: snowflake.org.billing.contract_number
+        display_name: 'Snowflake Organization Billing Contract Number'
+        type: string
+        stability: experimental
+        brief: The contract number associated with the Snowflake billing balance.
+        examples: [ 'CONTRACT-001' ]
+      - id: snowflake.org.billing.currency
+        display_name: 'Snowflake Organization Billing Currency'
+        type: string
+        stability: experimental
+        brief: The currency in which billing usage amounts are denominated.
+        examples: [ 'USD' ]
+      - id: snowflake.org.name
+        display_name: 'Snowflake Organization Name'
+        type: string
+        stability: stable
+        brief: The name of the Snowflake organization.
+        examples: [ 'MYORG' ]
+  - id: snowflake.pipe
+    type: attribute_group
+    title: Snowflake pipe signal fields
+    brief: Signal-level fields for Snowflake pipe telemetry.
+    attributes:
+      - id: snowflake.pipe.catalog
+        display_name: 'Snowflake Pipe Catalog'
+        type: string
+        stability: experimental
+        brief: Database containing the pipe.
+        examples: [ 'MY_DB' ]
+      - id: snowflake.pipe.created_on
+        display_name: 'Snowflake Pipe Created On'
+        type: long
+        stability: stable
+        brief: Pipe creation event.
+        examples: [ 1736936200000000000 ]
+      - id: snowflake.pipe.definition
+        display_name: 'Snowflake Pipe Definition'
+        type: string
+        stability: experimental
+        brief: The pipe's COPY statement.
+        examples: [ 'COPY INTO MY_DB.MY_SCHEMA.TARGET_TABLE FROM @MY_DB.MY_SCHEMA.MY_STAGE' ]
+      - id: snowflake.pipe.execution_state
+        display_name: 'Snowflake Pipe Execution State'
+        type: string
+        stability: stable
+        brief: Raw execution state from SYSTEM$PIPE_STATUS.
+        examples: [ 'RUNNING' ]
+      - id: snowflake.pipe.full_name
+        display_name: 'Snowflake Pipe Full Name'
+        type: string
+        stability: experimental
+        brief: Fully qualified pipe name (database.schema.pipe).
+        examples: [ 'MY_DB.MY_SCHEMA.MY_PIPE' ]
+      - id: snowflake.pipe.id
+        display_name: 'Snowflake Pipe ID'
+        type: string
+        stability: experimental
+        brief: Unique pipe UUID (from PIPE_USAGE_HISTORY).
+        examples: [ 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' ]
+      - id: snowflake.pipe.invalid_reason
+        display_name: 'Snowflake Pipe Invalid Reason'
+        type: string
+        stability: experimental
+        brief: Reason the pipe is in an invalid state.
+        examples: [ 'Pipe paused by user' ]
+      - id: snowflake.pipe.last_ingested_timestamp
+        display_name: 'Snowflake Pipe Last Ingested Timestamp'
+        type: string
+        stability: experimental
+        brief: Most recent file ingestion timestamp.
+        examples: [ '2025-03-12 08:58:41.695 Z' ]
+      - id: snowflake.pipe.last_received_message_timestamp
+        display_name: 'Snowflake Pipe Last Received Message Timestamp'
+        type: string
+        stability: experimental
+        brief: Most recent event notification timestamp.
+        examples: [ '2025-03-12 08:57:30.000 Z' ]
+      - id: snowflake.pipe.name
+        display_name: 'Snowflake Pipe Name'
+        type: string
+        stability: stable
+        brief: Short pipe name.
+        examples: [ 'MY_PIPE' ]
+      - id: snowflake.pipe.notification_channel
+        display_name: 'Snowflake Pipe Notification Channel'
+        type: string
+        stability: experimental
+        brief: Cloud notification channel URL.
+        examples: [ 'arn:aws:sqs:us-east-1:123456789012:sf-snowpipe-AIDAEXAMPLE-pipeId' ]
+      - id: snowflake.pipe.oldest_file_timestamp
+        display_name: 'Snowflake Pipe Oldest File Timestamp'
+        type: string
+        stability: experimental
+        brief: Timestamp of oldest pending file.
+        examples: [ '2025-03-12 08:50:00.000 Z' ]
+      - id: snowflake.pipe.owner
+        display_name: 'Snowflake Pipe Owner'
+        type: string
+        stability: experimental
+        brief: Role owning the pipe.
+        examples: [ 'LOADER_ROLE' ]
+      - id: snowflake.pipe.schema
+        display_name: 'Snowflake Pipe Schema'
+        type: string
+        stability: experimental
+        brief: Schema containing the pipe.
+        examples: [ 'MY_SCHEMA' ]
+      - id: snowflake.pipe.status
+        display_name: 'Snowflake Pipe Status'
+        type: string
+        stability: stable
+        brief: |-
+          Pipe execution state as original string:
+          RUNNING, PAUSED, STOPPED_*, STALLED_*.
+        examples: [ 'RUNNING' ]
+      - id: snowflake.pipe.usage.start_time
+        display_name: 'Snowflake Pipe Usage Start Time'
+        type: string
+        stability: experimental
+        brief: Start of the usage aggregation window.
+        examples: [ '2025-03-12 08:00:00.000 Z' ]
+  - id: snowflake.query
+    type: attribute_group
+    title: Snowflake query signal fields
+    brief: Signal-level fields for Snowflake query telemetry.
+    attributes:
+      - id: snowflake.query.accel_est.estimated_query_times
+        display_name: 'Snowflake Query Accel Est Estimated Query Times'
+        type: string
+        stability: stable
+        brief: Object that contains the estimated query execution time in seconds for different query acceleration scale factors. If the status for the query is not eligible for query acceleration, this object is empty.
+        examples: [ '{ "scaleFactor1": 10, "scaleFactor2": 5 }' ]
+        note: Serialized JSON object stored as string in Grail. Contains estimated query execution times per scale factor. Parse with parseJson() in DQL.
+      - id: snowflake.query.accel_est.status
+        display_name: 'Snowflake Query Accel Est Status'
+        type:
+          allow_custom_values: true
+          members:
+            - id: eligible
+              value: "eligible"
+              brief: Query is eligible for query acceleration.
+            - id: ineligible
+              value: "ineligible"
+              brief: Query is not eligible for query acceleration.
+            - id: accelerated
+              value: "accelerated"
+              brief: Query was accelerated by the service.
+            - id: invalid
+              value: "invalid"
+              brief: Query acceleration status could not be determined.
+        stability: stable
+        brief: Indicates whether the query is eligible to benefit from the query acceleration service.
+        examples: [ 'eligible' ]
+      - id: snowflake.query.accel_est.upper_limit_scale_factor
+        display_name: 'Snowflake Query Accel Est Upper Limit Scale Factor'
+        type: long
+        stability: stable
+        brief: Number of the highest query acceleration scale factor in the estimatedQueryTimes object. If the status for the query is not eligible for query acceleration, this field is set to 0.
+        examples: [ 2 ]
+      - id: snowflake.query.data_transfer.inbound.cloud
+        display_name: 'Snowflake Query Data Transfer Inbound Cloud'
+        type: string
+        stability: stable
+        brief: The cloud provider from which data was transferred inbound.
+        examples: [ 'AWS' ]
+      - id: snowflake.query.data_transfer.inbound.region
+        display_name: 'Snowflake Query Data Transfer Inbound Region'
+        type: string
+        stability: stable
+        brief: The region from which data was transferred inbound.
+        examples: [ 'us-west-2' ]
+      - id: snowflake.query.data_transfer.outbound.cloud
+        display_name: 'Snowflake Query Data Transfer Outbound Cloud'
+        type: string
+        stability: stable
+        brief: The cloud provider to which data was transferred outbound.
+        examples: [ 'AWS' ]
+      - id: snowflake.query.data_transfer.outbound.region
+        display_name: 'Snowflake Query Data Transfer Outbound Region'
+        type: string
+        stability: stable
+        brief: The region to which data was transferred outbound.
+        examples: [ 'us-west-2' ]
+      - id: snowflake.query.execution_status
+        display_name: 'Snowflake Query Execution Status'
+        type:
+          allow_custom_values: true
+          members:
+            - id: success
+              value: "SUCCESS"
+              brief: Query completed without errors; result is available in the result cache.
+            - id: fail
+              value: "FAIL"
+              brief: Query failed due to a user-actionable error (e.g. syntax error, insufficient privileges).
+            - id: failed_with_error
+              value: "FAILED_WITH_ERROR"
+              brief: Query failed due to an internal Snowflake error unrelated to user input; retrying the statement may succeed.
+            - id: incident
+              value: "INCIDENT"
+              brief: Query was aborted or interrupted by a Snowflake platform incident; not caused by user error or warehouse load.
+            - id: queued
+              value: "QUEUED"
+              brief: Query is waiting in the warehouse queue due to concurrency limits or cluster provisioning.
+            - id: resuming_warehouse
+              value: "RESUMING_WAREHOUSE"
+              brief: Query is waiting for the warehouse to resume from a suspended state before execution can begin.
+            - id: running
+              value: "RUNNING"
+              brief: Query is actively executing on the warehouse compute resources.
+        stability: stable
+        brief: The execution status of the query.
+        examples: [ 'SUCCESS' ]
+      - id: snowflake.query.hash
+        display_name: 'Snowflake Query Hash'
+        type: string
+        stability: stable
+        brief: The hash value of the query text.
+        examples: [ 'hash_abcdef' ]
+      - id: snowflake.query.hash_version
+        display_name: 'Snowflake Query Hash Version'
+        type: long
+        stability: experimental
+        brief: The version of the query hash logic.
+        examples: [ 1 ]
+      - id: snowflake.query.id
+        display_name: 'Snowflake Query ID'
+        type: string
+        stability: stable
+        brief: The unique identifier for the query.
+        examples: [ 'b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5' ]
+      - id: snowflake.query.is_client_generated
+        display_name: 'Snowflake Query Is Client Generated'
+        type: boolean
+        stability: stable
+        brief: Indicates if the statement was generated by the client.
+        examples: [ true ]
+      - id: snowflake.query.parametrized_hash
+        display_name: 'Snowflake Query Parametrized Hash'
+        type: string
+        stability: stable
+        brief: The hash value of the parameterized query text.
+        examples: [ 'param_hash_abcdef' ]
+      - id: snowflake.query.parametrized_hash_version
+        display_name: 'Snowflake Query Parametrized Hash Version'
+        type: long
+        stability: experimental
+        brief: The version of the parameterized query hash logic.
+        examples: [ 1 ]
+      - id: snowflake.query.parent_id
+        display_name: 'Snowflake Query Parent ID'
+        type: string
+        stability: stable
+        brief: The query ID of the parent job or NULL if the job does not have a parent.
+        examples: [ '01b2fd01-0604-6864-0040-e003029abda2' ]
+      - id: snowflake.query.retry_cause
+        display_name: 'Snowflake Query Retry Cause'
+        type: string
+        stability: stable
+        brief: The cause for retrying the query, if applicable.
+        examples: [ 'Network issue' ]
+      - id: snowflake.query.root_id
+        display_name: 'Snowflake Query Root ID'
+        type: string
+        stability: experimental
+        brief: The query ID of the top most job in the chain or NULL if the job does not have a parent.
+        examples: [ '01b2fd00-0604-6864-0040-e003029abd82' ]
+      - id: snowflake.query.step.id
+        display_name: 'Snowflake Query Step ID'
+        type: long
+        stability: experimental
+        brief: Identifier of the step in the query execution plan. operator_id values are unique within a step, not across the full query.
+        examples: [ 1 ]
+      - id: snowflake.query.step.operator.attributes
+        display_name: 'Snowflake Query Step Operator Attributes'
+        type: string
+        stability: experimental
+        brief: Information about the operator, depending on the operator type.
+        examples: [ '{ "equality_join_condition": "(T4.C = T1.C)",   "join_type": "INNER" }' ]
+        note: Serialized JSON object stored as string in Grail. Contains query operator specific attributes (e.g. join conditions). Parse with parseJson() in DQL.
+      - id: snowflake.query.step.operator.id
+        display_name: 'Snowflake Query Step Operator ID'
+        type: long
+        stability: experimental
+        brief: The operator's identifier, unique within a step. Values start at 0.
+        examples: [ 0 ]
+      - id: snowflake.query.step.operator.parent_ids
+        display_name: 'Snowflake Query Step Operator Parent Ids'
+        type: string[]
+        stability: experimental
+        brief: Identifiers of the parent operators for this operator, or NULL if this is the final operator in the query plan.
+        examples:
+          - ['0', '1']
+        note: Array of parent operator IDs stored as string[] in Grail. Values are numeric strings.
+      - id: snowflake.query.step.operator.stats
+        display_name: 'Snowflake Query Step Operator Stats'
+        type: string
+        stability: experimental
+        brief: Statistics about the operator (e.g., the number of output rows from the operator).
+        examples: [ '{ "input_rows": 64, "output_rows": 64 }' ]
+        note: Serialized JSON object stored as string in Grail. Contains query operator execution statistics (e.g. input_rows, output_rows). Parse with parseJson() in DQL.
+      - id: snowflake.query.step.operator.time_breakdown
+        display_name: 'Snowflake Query Step Operator Time Breakdown'
+        type: string
+        stability: experimental
+        brief: |-
+          The breakdown of the execution time of the operator:
+
+          - **overall_percentage**: The percentage of the total query time spent by this operator,
+          - **initialization**: Time spent setting up query processing,
+          - **processing**: Time spent processing the data by the CPU,
+          - **synchronization**: Time spent synchronizing activities between participating processes,
+          - **local_disk_io**: Time during which processing was blocked while waiting for local disk access,
+          - **remote_disk_io**: Time during which processing was blocked while waiting for remote disk access,
+          - **network_communication**: Time during which processing was waiting for network data transfer.
+        examples: [ '{ "overall_percentage": 50.0,"initialization": 0.5,"processing": 4.0,"synchronization": 0.5,"local_disk_io": 0.2,"remote_disk_io": 0.1,"network_communication": 0.2 }' ]
+        note: Serialized JSON object stored as string in Grail. Contains query operator time breakdown (e.g. overall_percentage). Parse with parseJson() in DQL.
+      - id: snowflake.query.step.operator.type
+        display_name: 'Snowflake Query Step Operator Type'
+        type: string
+        stability: experimental
+        brief: The type of query operator (e.g., TableScan or Filter).
+        examples: [ 'TableScan' ]
+      - id: snowflake.query.tag
+        display_name: 'Snowflake Query Tag'
+        type: string
+        stability: stable
+        brief: The tag associated with the query, if any.
+        examples: [ 'daily_report' ]
+      - id: snowflake.query.transaction_id
+        display_name: 'Snowflake Query Transaction ID'
+        type: long
+        stability: stable
+        brief: The transaction ID associated with the query.
+        examples: [ 7890123456 ]
+      - id: snowflake.query.with_operator_stats
+        display_name: 'Snowflake Query With Operator Stats'
+        type: boolean
+        stability: experimental
+        brief: Indicates if the query was executed with operator-level statistics enabled.
+        examples: [ true ]
+  - id: snowflake.release
+    type: attribute_group
+    title: Snowflake release signal fields
+    brief: Signal-level fields for Snowflake release telemetry.
+    attributes:
+      - id: snowflake.release_version
+        display_name: 'Snowflake Release Version'
+        type: string
+        stability: experimental
+        brief: The release version of Snowflake at the time of query execution.
+        examples: [ '5.0' ]
+  - id: snowflake.resource_monitor
+    type: attribute_group
+    title: Snowflake Resource Monitor signal fields
+    brief: Signal-level fields for Snowflake Resource Monitor telemetry.
+    attributes:
+      - id: snowflake.resource_monitor.created_on
+        display_name: 'Snowflake Resource Monitor Created On'
+        type: long
+        stability: experimental
+        brief: The timestamp when the resource monitor was created.
+        examples: [ 1728991696789000000 ]
+      - id: snowflake.resource_monitor.end_time
+        display_name: 'Snowflake Resource Monitor End Time'
+        type: long
+        stability: experimental
+        brief: The timestamp when the resource monitor ended.
+        examples: [ 1732981199999000000 ]
+      - id: snowflake.resource_monitor.is_active
+        display_name: 'Snowflake Resource Monitor Is Active'
+        type: boolean
+        stability: stable
+        brief: Indicates if the resource monitor is active.
+        examples: [ true ]
+      - id: snowflake.resource_monitor.name
+        display_name: 'Snowflake Resource Monitor Name'
+        type: string
+        stability: stable
+        brief: The name of the resource monitor.
+        examples: [ 'RM_MONITOR' ]
+      - id: snowflake.resource_monitor.start_time
+        display_name: 'Snowflake Resource Monitor Start Time'
+        type: long
+        stability: experimental
+        brief: The timestamp when the resource monitor started.
+        examples: [ 1730419200000000000 ]
+      - id: snowflake.resource_monitor.threshold.direction
+        display_name: 'Snowflake Resource Monitor Threshold Direction'
+        type:
+          allow_custom_values: false
+          members:
+            - id: up
+              value: "up"
+              brief: Quota is increasing into or remaining within a band.
+            - id: down
+              value: "down"
+              brief: Consumption drops back below a previously active band.
+        stability: experimental
+        brief: 'Direction of the threshold crossing: ``up`` when quota is increasing into or remaining within a band; ``down`` when the consumption drops back below a previously active band.'
+        examples: [ 'up' ]
+      - id: snowflake.resource_monitor.threshold.level
+        display_name: 'Snowflake Resource Monitor Threshold Level'
+        type:
+          allow_custom_values: false
+          members:
+            - id: info
+              value: "info"
+              brief: Quota consumption is below 80%.
+            - id: warn
+              value: "warn"
+              brief: Quota consumption is in the 80% (inclusive) to 90% (exclusive) range.
+            - id: critical
+              value: "critical"
+              brief: Quota consumption is in the 90% (inclusive) to 100% (exclusive) range.
+            - id: exhausted
+              value: "exhausted"
+              brief: Quota consumption is at or above 100%.
+        stability: experimental
+        brief: 'Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)), ``critical`` ([90–100%)), or ``exhausted`` (>=100%).'
+        examples: [ 'warn' ]
+      - id: snowflake.resource_monitor.threshold.value
+        display_name: 'Snowflake Resource Monitor Threshold Value'
+        type: double
+        stability: experimental
+        brief: 'Alert band the resource monitor''s credit usage fell into when the event was emitted: one of ``info``, ``warn``, ``critical``, or ``exhausted`` (increasing severity). The percentage boundaries for each band are configurable via ``plugins.resource_monitors.credits_quota_thresholds`` (default ``[50, 80, 90, 100]``); the specific crossed percentage is reported in ``snowflake.resource_monitor.threshold.value``. The configured threshold percentage at which this crossing event was triggered (e.g., 80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures live consumption at emit time.'
+        examples: [ 80.0 ]
+      - id: snowflake.resource_monitor.warehouses
+        display_name: 'Snowflake Resource Monitor Warehouses'
+        type: string[]
+        stability: experimental
+        brief: The names of the warehouses monitored.
+        examples:
+          - ['COMPUTE_WH']
+  - id: snowflake.role
+    type: attribute_group
+    title: Snowflake role signal fields
+    brief: Signal-level fields for Snowflake role telemetry.
+    attributes:
+      - id: snowflake.role.name
+        display_name: 'Snowflake Role Name'
+        type: string
+        stability: stable
+        brief: The role that was active in the session at the time of the query.
+        examples: [ 'analyst_role' ]
+      - id: snowflake.role.type
+        display_name: 'Snowflake Role Type'
+        type: string
+        stability: stable
+        brief: The type of role used to execute the query.
+        examples: [ 'PRIMARY' ]
+  - id: snowflake.schema
+    type: attribute_group
+    title: Snowflake schema signal fields
+    brief: Signal-level fields for Snowflake schema telemetry.
+    attributes:
+      - id: snowflake.schema.id
+        display_name: 'Snowflake Schema ID'
+        type: long
+        stability: experimental
+        brief: The unique identifier of the schema involved in the query.
+        examples: [ 78901 ]
+      - id: snowflake.schema.name
+        display_name: 'Snowflake Schema Name'
+        type: string
+        stability: stable
+        brief: The name of the schema in which the query was executed.
+        examples: [ 'public' ]
+  - id: snowflake.secondary
+    type: attribute_group
+    title: Snowflake secondary signal fields
+    brief: Signal-level fields for Snowflake secondary telemetry.
+    attributes:
+      - id: snowflake.secondary_role_stats
+        display_name: 'Snowflake Secondary Role Stats'
+        type: string
+        stability: experimental
+        brief: Statistics related to secondary roles used during the query execution.
+        examples: [ 'role_stat1' ]
+  - id: snowflake.service
+    type: attribute_group
+    title: Snowflake service signal fields
+    brief: Signal-level fields for Snowflake service telemetry.
+    attributes:
+      - id: snowflake.service.entity_id
+        display_name: 'Snowflake Service Entity ID'
+        type: long
+        stability: experimental
+        brief: Unique Snowflake identifier of the service entity.
+        examples: [ 12345 ]
+      - id: snowflake.service.name
+        display_name: 'Snowflake Service Name'
+        type: string
+        stability: stable
+        brief: Name of the Snowflake service entity that consumed credits.
+        examples: [ 'MY_PIPE' ]
+      - id: snowflake.service.type
+        display_name: 'Snowflake Service Type'
+        type:
+          allow_custom_values: true
+          members:
+            - id: auto_clustering
+              value: "AUTO_CLUSTERING"
+              brief: Credits consumed by the background service that continuously re-clusters micro-partitions of tables with an active clustering key.
+            - id: pipe
+              value: "PIPE"
+              brief: Credits consumed by Snowpipe for continuous micro-batch ingestion of staged files into Snowflake tables via serverless compute.
+            - id: serverless_task
+              value: "SERVERLESS_TASK"
+              brief: Credits consumed by tasks that run on Snowflake-managed serverless compute rather than a user-provisioned warehouse.
+            - id: telemetry_data_ingest
+              value: "TELEMETRY_DATA_INGEST"
+              brief: Credits consumed for ingesting OpenTelemetry-compatible logs, traces, and metrics into a Snowflake event table.
+            - id: warehouse_metering
+              value: "WAREHOUSE_METERING"
+              brief: Virtual warehouse compute credits.
+            - id: cloud_services
+              value: "CLOUD_SERVICES"
+              brief: Cloud services layer credits.
+            - id: replication
+              value: "REPLICATION"
+              brief: Credits consumed to replicate databases, schemas, or failover groups across regions or cloud providers for disaster recovery or data proximity.
+            - id: materialized_view
+              value: "MATERIALIZED_VIEW"
+              brief: Credits consumed by the background service that keeps materialized view results up to date as underlying table data changes.
+            - id: search_optimization
+              value: "SEARCH_OPTIMIZATION"
+              brief: Credits consumed to build and maintain the search access path that accelerates selective point-lookup and substring-search queries.
+            - id: query_acceleration
+              value: "QUERY_ACCELERATION"
+              brief: Credits consumed when the Query Acceleration Service offloads eligible query portions to auto-provisioned serverless compute to reduce per-query latency.
+            - id: storage
+              value: "STORAGE"
+              brief: Credits billed for bytes stored in Snowflake databases, internal stages, Time Travel history, and Fail-safe retention.
+        stability: stable
+        brief: Snowflake service type that consumed credits (e.g. AUTO_CLUSTERING, PIPE, SERVERLESS_TASK, TELEMETRY_DATA_INGEST).
+        examples: [ 'AUTO_CLUSTERING' ]
+  - id: snowflake.session
+    type: attribute_group
+    title: Snowflake session signal fields
+    brief: Signal-level fields for Snowflake session telemetry.
+    attributes:
+      - id: snowflake.session.closed_reason
+        display_name: 'Snowflake Session Closed Reason'
+        type: string
+        stability: experimental
+        brief: The reason the session was closed.
+        examples: [ 'USER_LOGOUT' ]
+      - id: snowflake.session.id
+        display_name: 'Snowflake Session ID'
+        type: string
+        stability: experimental
+        brief: The unique identifier for the session in which the query was executed.
+        examples: [ '123456789' ]
+        note: 'OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only; no global ref available. Emitting as new id: pending global semdict registration.'
+      - id: snowflake.session.start
+        display_name: 'Snowflake Session Start'
+        type: long
+        stability: experimental
+        brief: The start time of the session.
+        examples: [ 1633046400000000000 ]
+  - id: snowflake.share
+    type: attribute_group
+    title: Snowflake share signal fields
+    brief: Signal-level fields for Snowflake share telemetry.
+    attributes:
+      - id: snowflake.share.created_on
+        display_name: 'Snowflake Share Created On'
+        type: long
+        stability: stable
+        brief: The timestamp when the share was created. Epoch nanoseconds timestamp.
+        examples: [ 1639051180714000000 ]
+      - id: snowflake.share.has_details_reported
+        display_name: 'Snowflake Share Has Details Reported'
+        type: boolean
+        stability: experimental
+        brief: Indicates whether or not details on this share should be reported.
+        examples: [ false ]
+      - id: snowflake.share.is_secure_objects_only
+        display_name: 'Snowflake Share Is Secure Objects Only'
+        type: boolean
+        stability: stable
+        brief: Indicates if the share is only for secure objects.
+        examples: [ true ]
+      - id: snowflake.share.kind
+        display_name: 'Snowflake Share Kind'
+        type: string
+        stability: stable
+        brief: Indicates the type of share.
+        examples: [ 'OUTBOUND' ]
+      - id: snowflake.share.listing_global_name
+        display_name: 'Snowflake Share Listing Global Name'
+        type: string
+        stability: experimental
+        brief: Global name of the share listing.
+        examples: [ 'GLOBAL_SHARE_NAME' ]
+      - id: snowflake.share.name
+        display_name: 'Snowflake Share Name'
+        type: string
+        stability: stable
+        brief: Name of the share.
+        examples: [ 'SAMPLE_DATA' ]
+      - id: snowflake.share.owner
+        display_name: 'Snowflake Share Owner'
+        type: string
+        stability: stable
+        brief: Shows the account owning the share.
+        examples: [ 'ACCOUNTADMIN' ]
+      - id: snowflake.share.shared_from
+        display_name: 'Snowflake Share Shared From'
+        type: string
+        stability: experimental
+        brief: Shows the owner account of the share.
+        examples: [ 'SNOWFLAKE' ]
+      - id: snowflake.share.shared_to
+        display_name: 'Snowflake Share Shared To'
+        type: string
+        stability: experimental
+        brief: Shows the account the share was made to.
+        examples: [ 'PARTNER_ACCOUNT' ]
+      - id: snowflake.share.status
+        display_name: 'Snowflake Share Status'
+        type: string
+        stability: stable
+        brief: Indicates the availability status of the share. Set to UNAVAILABLE when the shared database is no longer accessible.
+        examples: [ 'UNAVAILABLE' ]
+  - id: snowflake.status
+    type: attribute_group
+    title: Snowflake status signal fields
+    brief: Signal-level fields for Snowflake status telemetry.
+    attributes:
+      - id: snowflake.status.code
+        display_name: 'Snowflake Status Code'
+        type:
+          allow_custom_values: false
+          members:
+            - id: ok
+              value: "OK"
+              brief: The operation completed successfully.
+            - id: error
+              value: "ERROR"
+              brief: The operation failed.
+        stability: experimental
+        brief: The status of the login attempt, indicating success (OK) or failure (ERROR).
+        examples: [ 'OK' ]
+      - id: snowflake.status.message
+        display_name: 'Snowflake Status Message'
+        type: string
+        stability: experimental
+        brief: A human-readable message providing additional detail about the operation status.
+        examples: [ 'Login successful' ]
+  - id: snowflake.table
+    type: attribute_group
+    title: Snowflake table signal fields
+    brief: Signal-level fields for Snowflake table telemetry.
+    attributes:
+      - id: snowflake.table.clustering_key
+        display_name: 'Snowflake Table Clustering Key'
+        type: string
+        stability: experimental
+        brief: Clustering key for the table.
+        examples: [ 'DATE' ]
+      - id: snowflake.table.cold_status
+        display_name: 'Snowflake Table Cold Status'
+        type:
+          allow_custom_values: true
+          members:
+            - id: cold
+              value: "cold"
+              brief: Table data has not been recently accessed (beyond the cold threshold).
+            - id: warm
+              value: "warm"
+              brief: Table data has been recently accessed within the cold threshold period.
+        stability: stable
+        brief: Table temperature classification based on access recency.
+        examples: [ 'cold' ]
+      - id: snowflake.table.comment
+        display_name: 'Snowflake Table Comment'
+        type: string
+        stability: experimental
+        brief: Comment for this table.
+        examples: [ 'The tables defined in this database that are accessible to the current user''s role.' ]
+      - id: snowflake.table.created_on
+        display_name: 'Snowflake Table Created On'
+        type: long
+        stability: experimental
+        brief: The timestamp when the table was created. Epoch nanoseconds timestamp.
+        examples: [ 1649940827875000000 ]
+      - id: snowflake.table.ddl
+        display_name: 'Snowflake Table DDL'
+        type: long
+        stability: experimental
+        brief: The timestamp of the last DDL operation performed on the table or view, including CREATE, ALTER, DROP, or UNDROP.
+        examples: [ 1730458800000000000 ]
+      - id: snowflake.table.dynamic.lag.target.type
+        display_name: 'Snowflake Table Dynamic Lag Target Type'
+        type: string
+        stability: experimental
+        brief: The type of target lag.
+        examples: [ 'USER_DEFINED' ]
+      - id: snowflake.table.dynamic.latest.code
+        display_name: 'Snowflake Table Dynamic Latest Code'
+        type: string
+        stability: experimental
+        brief: Code representing the current state of the refresh. If the LAST_COMPLETED_REFRESH_STATE is FAILED, this column shows the error code associated with the failure.
+        examples: [ 'SUCCESS' ]
+      - id: snowflake.table.dynamic.latest.data_timestamp
+        display_name: 'Snowflake Table Dynamic Latest Data Timestamp'
+        type: string
+        stability: experimental
+        brief: Data timestamp of the last successful refresh.
+        examples: [ '2024-11-22 12:55:29.695 Z' ]
+        note: ISO 8601 timestamp string stored as string in Grail.
+      - id: snowflake.table.dynamic.latest.dependency.data_timestamp
+        display_name: 'Snowflake Table Dynamic Latest Dependency Data Timestamp'
+        type: string
+        stability: experimental
+        brief: Data timestamp of the latest dependency to become available.
+        examples: [ '2024-11-25 06:09:53.695 Z' ]
+        note: ISO 8601 timestamp string stored as string in Grail.
+      - id: snowflake.table.dynamic.latest.dependency.name
+        display_name: 'Snowflake Table Dynamic Latest Dependency Name'
+        type: string
+        stability: experimental
+        brief: Qualified name of the latest dependency to become available.
+        examples: [ 'DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE' ]
+      - id: snowflake.table.dynamic.latest.message
+        display_name: 'Snowflake Table Dynamic Latest Message'
+        type: string
+        stability: experimental
+        brief: Description of the current state of the refresh. If the LAST_COMPLETED_REFRESH_STATE is FAILED, this column shows the error message associated with the failure.
+        examples: [ 'Refresh completed successfully' ]
+      - id: snowflake.table.dynamic.latest.state
+        display_name: 'Snowflake Table Dynamic Latest State'
+        type:
+          allow_custom_values: true
+          members:
+            - id: succeeded
+              value: "SUCCEEDED"
+              brief: Refresh completed successfully.
+            - id: failed
+              value: "FAILED"
+              brief: Refresh failed during execution.
+            - id: upstream_failed
+              value: "UPSTREAM_FAILED"
+              brief: Refresh not performed due to an upstream failed refresh.
+            - id: cancelled
+              value: "CANCELLED"
+              brief: Refresh was canceled before execution.
+            - id: suspended
+              value: "SUSPENDED"
+              brief: Dynamic table scheduling is suspended.
+        stability: experimental
+        brief: Status of the last terminated refresh for the dynamic table.
+        examples: [ 'SUCCEEDED' ]
+      - id: snowflake.table.dynamic.refresh.action
+        display_name: 'Snowflake Table Dynamic Refresh Action'
+        type:
+          allow_custom_values: true
+          members:
+            - id: no_data
+              value: "NO_DATA"
+              brief: No new data in base tables.
+            - id: reinitialize
+              value: "REINITIALIZE"
+              brief: Base table changed or source table of cloned dynamic table was refreshed.
+            - id: full
+              value: "FULL"
+              brief: Full refresh performed.
+            - id: incremental
+              value: "INCREMENTAL"
+              brief: Normal incremental refresh.
+        stability: stable
+        brief: Describes the type of refresh action performed.
+        examples: [ 'NO_DATA' ]
+      - id: snowflake.table.dynamic.refresh.code
+        display_name: 'Snowflake Table Dynamic Refresh Code'
+        type: string
+        stability: stable
+        brief: Code representing the current state of the refresh.
+        examples: [ 'SUCCESS' ]
+      - id: snowflake.table.dynamic.refresh.completion_target
+        display_name: 'Snowflake Table Dynamic Refresh Completion Target'
+        type: long
+        stability: experimental
+        brief: Time by which this refresh should complete to keep lag under the TARGET_LAG parameter for the dynamic table.
+        examples: [ 1732515005695000000 ]
+      - id: snowflake.table.dynamic.refresh.data_timestamp
+        display_name: 'Snowflake Table Dynamic Refresh Data Timestamp'
+        type: long
+        stability: experimental
+        brief: Transactional timestamp when the refresh was evaluated.
+        examples: [ 1732514993695000000 ]
+      - id: snowflake.table.dynamic.refresh.end
+        display_name: 'Snowflake Table Dynamic Refresh End'
+        type: long
+        stability: experimental
+        brief: Time when the refresh completed.
+        examples: [ 1732514995308000000 ]
+      - id: snowflake.table.dynamic.refresh.message
+        display_name: 'Snowflake Table Dynamic Refresh Message'
+        type: string
+        stability: stable
+        brief: Description of the current state of the refresh.
+        examples: [ 'Refresh completed successfully' ]
+      - id: snowflake.table.dynamic.refresh.start
+        display_name: 'Snowflake Table Dynamic Refresh Start'
+        type: long
+        stability: experimental
+        brief: Time when the refresh job started.
+        examples: [ 1732514994978000000 ]
+      - id: snowflake.table.dynamic.refresh.state
+        display_name: 'Snowflake Table Dynamic Refresh State'
+        type:
+          allow_custom_values: true
+          members:
+            - id: scheduled
+              value: "SCHEDULED"
+              brief: Refresh scheduled but not yet executed.
+            - id: executing
+              value: "EXECUTING"
+              brief: Refresh in progress.
+            - id: succeeded
+              value: "SUCCEEDED"
+              brief: Refresh completed successfully.
+            - id: failed
+              value: "FAILED"
+              brief: Refresh failed during execution.
+            - id: cancelled
+              value: "CANCELLED"
+              brief: Refresh was canceled before execution.
+            - id: upstream_failed
+              value: "UPSTREAM_FAILED"
+              brief: Refresh not performed due to an upstream failed refresh.
+        stability: stable
+        brief: Status of the refresh for the dynamic table.
+        examples: [ 'SUCCEEDED' ]
+      - id: snowflake.table.dynamic.refresh.trigger
+        display_name: 'Snowflake Table Dynamic Refresh Trigger'
+        type:
+          allow_custom_values: true
+          members:
+            - id: scheduled
+              value: "SCHEDULED"
+              brief: Normal background refresh to meet target lag or downstream target lag.
+            - id: manual
+              value: "MANUAL"
+              brief: User or task triggered refresh via ALTER DYNAMIC TABLE REFRESH.
+            - id: creation
+              value: "CREATION"
+              brief: Refresh performed during creation DDL statement.
+        stability: stable
+        brief: Describes the trigger for the refresh.
+        examples: [ 'SCHEDULED' ]
+      - id: snowflake.table.dynamic.scheduling.reason.code
+        display_name: 'Snowflake Table Dynamic Scheduling Reason Code'
+        type: string
+        stability: experimental
+        brief: Optional reason code if the state is not ACTIVE.
+        examples: [ 'MAINTENANCE' ]
+      - id: snowflake.table.dynamic.scheduling.reason.message
+        display_name: 'Snowflake Table Dynamic Scheduling Reason Message'
+        type: string
+        stability: experimental
+        brief: Text description of the reason the dynamic table is not active. Only applies if the state is not active.
+        examples: [ 'Scheduled maintenance' ]
+      - id: snowflake.table.dynamic.scheduling.resumed_on
+        display_name: 'Snowflake Table Dynamic Scheduling Resumed On'
+        type: string
+        stability: stable
+        brief: The timestamp when the dynamic table was last resumed, if ACTIVE.
+        examples: [ '2024-11-25 08:09:53.695 Z' ]
+        note: ISO 8601 timestamp string stored as string in Grail.
+      - id: snowflake.table.dynamic.scheduling.state
+        display_name: 'Snowflake Table Dynamic Scheduling State'
+        type: string
+        stability: stable
+        brief: Scheduling state of the dynamic table.
+        examples: [ 'ACTIVE' ]
+      - id: snowflake.table.dynamic.scheduling.suspended_on
+        display_name: 'Snowflake Table Dynamic Scheduling Suspended On'
+        type: string
+        stability: experimental
+        brief: The timestamp when the dynamic table was suspended.
+        examples: [ '2024-11-25 06:09:53.695 Z' ]
+        note: ISO 8601 timestamp string stored as string in Grail.
+      - id: snowflake.table.full_name
+        display_name: 'Snowflake Table Full Name'
+        type: string
+        stability: stable
+        brief: Fully qualified table name (catalog.schema.table).
+        examples: [ 'ANALYTICS_DB.PUBLIC.ORDERS' ]
+      - id: snowflake.table.is_auto_clustering_on
+        display_name: 'Snowflake Table Is Auto Clustering On'
+        type: boolean
+        stability: experimental
+        brief: Indicates whether automatic clustering is enabled for the table.
+        examples: [ true ]
+      - id: snowflake.table.is_dynamic
+        display_name: 'Snowflake Table Is Dynamic'
+        type: boolean
+        stability: experimental
+        brief: Indicates whether the table is a dynamic table.
+        examples: [ false ]
+      - id: snowflake.table.is_hybrid
+        display_name: 'Snowflake Table Is Hybrid'
+        type: boolean
+        stability: experimental
+        brief: Indicates whether this is a hybrid table.
+        examples: [ false ]
+      - id: snowflake.table.is_iceberg
+        display_name: 'Snowflake Table Is Iceberg'
+        type: boolean
+        stability: experimental
+        brief: Indicates whether the table is an Iceberg table.
+        examples: [ false ]
+      - id: snowflake.table.is_temporary
+        display_name: 'Snowflake Table Is Temporary'
+        type: boolean
+        stability: experimental
+        brief: Indicates whether this is a temporary table.
+        examples: [ false ]
+      - id: snowflake.table.is_transient
+        display_name: 'Snowflake Table Is Transient'
+        type: boolean
+        stability: experimental
+        brief: Indicates whether this is a transient table.
+        examples: [ false ]
+      - id: snowflake.table.last_accessed_at
+        display_name: 'Snowflake Table Last Accessed At'
+        type: string
+        stability: experimental
+        brief: ISO 8601 timestamp of the most recent query that accessed this table.
+        examples: [ '2026-01-15T10:30:00Z' ]
+      - id: snowflake.table.last_ddl_by
+        display_name: 'Snowflake Table Last DDL By'
+        type: string
+        stability: experimental
+        brief: The current username for the user who executed the last DDL operation.
+        examples: [ 'DBA_USER' ]
+      - id: snowflake.table.owner
+        display_name: 'Snowflake Table Owner'
+        type: string
+        stability: experimental
+        brief: Name of the role that owns the table.
+        examples: [ 'ACCOUNTADMIN' ]
+      - id: snowflake.table.retention_time
+        display_name: 'Snowflake Table Retention Time'
+        type: long
+        stability: experimental
+        brief: Number of days that historical data is retained for Time Travel.
+        examples: [ 5 ]
+      - id: snowflake.table.type
+        display_name: 'Snowflake Table Type'
+        type:
+          allow_custom_values: true
+          members:
+            - id: base_table
+              value: "BASE TABLE"
+              brief: Full permanent table stored in Snowflake micro-partitions; supports all DML, Time Travel, and Fail-safe.
+            - id: temporary_table
+              value: "TEMPORARY TABLE"
+              brief: Temporary table (session-scoped).
+            - id: external_table
+              value: "EXTERNAL TABLE"
+              brief: Schema overlay over data files in an external cloud storage stage; data is never loaded into Snowflake and is read-only.
+            - id: view
+              value: "VIEW"
+              brief: Non-materialized virtual table defined by a stored query; the underlying SQL is re-executed on every access with no physical storage.
+            - id: materialized_view
+              value: "MATERIALIZED VIEW"
+              brief: Pre-computed query result stored as a physical table and transparently refreshed by Snowflake's background maintenance service; consumes MATERIALIZED_VIEW credits.
+        stability: stable
+        brief: 'The type of the table. Possible values: BASE TABLE, TEMPORARY TABLE, EXTERNAL TABLE.'
+        examples: [ 'BASE TABLE' ]
+      - id: snowflake.table.update
+        display_name: 'Snowflake Table Update'
+        type: long
+        stability: stable
+        brief: The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation.
+        examples: [ 1731256700000000000 ]
+  - id: snowflake.table.dynamic.graph
+    type: attribute_group
+    title: Snowflake table dynamic graph signal fields
+    brief: Signal-level fields for Snowflake table dynamic graph telemetry.
+    attributes:
+      - id: snowflake.table.dynamic.graph.alter_trigger
+        display_name: 'Snowflake Table Dynamic Graph Alter Trigger'
+        type: string[]
+        stability: experimental
+        brief: 'Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY function. Possible values: NONE (backwards-compatible), CREATE_DYNAMIC_TABLE, ALTER_TARGET_LAG, SUSPEND, RESUME, REPLICATION_REFRESH, ALTER_WAREHOUSE.'
+        examples:
+          - ['CREATE_DYNAMIC_TABLE']
+        note: Array of DDL operation names stored as string[] in Grail (e.g. CREATE_DYNAMIC_TABLE).
+      - id: snowflake.table.dynamic.graph.inputs
+        display_name: 'Snowflake Table Dynamic Graph Inputs'
+        type: string[]
+        stability: experimental
+        brief: Each OBJECT represents a table, view, or dynamic table that serves as the input to this dynamic table.
+        examples:
+          - ['{"kind": "TABLE", "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE"}', '{"kind": "TABLE", "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_SKILL"}']
+        note: Array of input table references stored as string[] in Grail. Each element is a JSON-serialized object with kind and name fields.
+      - id: snowflake.table.dynamic.graph.valid_from
+        display_name: 'Snowflake Table Dynamic Graph Valid From'
+        type: long
+        stability: experimental
+        brief: The timestamp after which the description of the dynamic table is valid.
+        examples: [ 1732135627448000000 ]
+      - id: snowflake.table.dynamic.graph.valid_to
+        display_name: 'Snowflake Table Dynamic Graph Valid To'
+        type: long
+        stability: experimental
+        brief: If present, the description of the dynamic table is valid up to this time. If null, the description is still accurate.
+        examples: [ 1733011200000000000 ]
+  - id: snowflake.task
+    type: attribute_group
+    title: Snowflake task signal fields
+    brief: Signal-level fields for Snowflake task telemetry.
+    attributes:
+      - id: snowflake.task.condition
+        display_name: 'Snowflake Task Condition'
+        type: string
+        stability: experimental
+        brief: The condition text of the task.
+        examples: [ 'status = ''SUCCESS''' ]
+      - id: snowflake.task.config.allow_overlap
+        display_name: 'Snowflake Task Config Allow Overlap'
+        type: boolean
+        stability: experimental
+        brief: Indicates if overlapping execution is allowed.
+        examples: [ true ]
+      - id: snowflake.task.config.id
+        display_name: 'Snowflake Task Config ID'
+        type: string
+        stability: experimental
+        brief: The configuration of the task.
+        examples: [ 'config123' ]
+      - id: snowflake.task.end_time
+        display_name: 'Snowflake Task End Time'
+        type: long
+        stability: experimental
+        brief: The end time of the task.
+        examples: [ 1633046700000000000 ]
+      - id: snowflake.task.error_integration
+        display_name: 'Snowflake Task Error Integration'
+        type: string
+        stability: experimental
+        brief: The error integration for the task.
+        examples: [ 'error_integration123' ]
+      - id: snowflake.task.graph.root_id
+        display_name: 'Snowflake Task Graph Root ID'
+        type: string
+        stability: experimental
+        brief: The root ID of the task graph.
+        examples: [ 'root123' ]
+      - id: snowflake.task.graph.version
+        display_name: 'Snowflake Task Graph Version'
+        type: long
+        stability: experimental
+        brief: The version of the task graph.
+        examples: [ 1 ]
+      - id: snowflake.task.graph.version.created_on
+        display_name: 'Snowflake Task Graph Version Created On'
+        type: long
+        stability: stable
+        brief: The timestamp when the task graph version was created.
+        examples: [ 1633046400000000000 ]
+      - id: snowflake.task.id
+        display_name: 'Snowflake Task ID'
+        type: long
+        stability: experimental
+        brief: The unique identifier for the task.
+        examples: [ 123456789 ]
+      - id: snowflake.task.instance_id
+        display_name: 'Snowflake Task Instance ID'
+        type: long
+        stability: stable
+        brief: The unique identifier for the task instance.
+        examples: [ 987654321 ]
+      - id: snowflake.task.is_internal
+        display_name: 'Snowflake Task Is Internal'
+        type: boolean
+        stability: stable
+        brief: Whether the task is an internal DSOA scheduler task (measurement or finalizer).
+        examples: [ false ]
+      - id: snowflake.task.last_committed_on
+        display_name: 'Snowflake Task Last Committed On'
+        type: long
+        stability: experimental
+        brief: The last committed time of the task.
+        examples: [ 1633046400000000000 ]
+      - id: snowflake.task.last_suspended_on
+        display_name: 'Snowflake Task Last Suspended On'
+        type: long
+        stability: experimental
+        brief: The last suspended time of the task.
+        examples: [ 1633046700000000000 ]
+      - id: snowflake.task.name
+        display_name: 'Snowflake Task Name'
+        type: string
+        stability: stable
+        brief: The name of the task.
+        examples: [ 'daily_backup_task' ]
+      - id: snowflake.task.owner
+        display_name: 'Snowflake Task Owner'
+        type: string
+        stability: experimental
+        brief: The owner of the task.
+        examples: [ 'admin' ]
+      - id: snowflake.task.predecessors
+        display_name: 'Snowflake Task Predecessors'
+        type: string[]
+        stability: experimental
+        brief: The predecessors of the task.
+        examples:
+          - ['taskA', 'taskB']
+      - id: snowflake.task.run.attempt
+        display_name: 'Snowflake Task Run Attempt'
+        type: long
+        stability: stable
+        brief: The attempt number of the task run.
+        examples: [ 1 ]
+      - id: snowflake.task.run.completed_time
+        display_name: 'Snowflake Task Run Completed Time'
+        type: long
+        stability: stable
+        brief: The completed time of the task run.
+        examples: [ 1742824007586000000 ]
+      - id: snowflake.task.run.group_id
+        display_name: 'Snowflake Task Run Group ID'
+        type: string
+        stability: experimental
+        brief: The group ID of the task run.
+        examples: [ 'group123' ]
+      - id: snowflake.task.run.id
+        display_name: 'Snowflake Task Run ID'
+        type: long
+        stability: experimental
+        brief: The unique identifier for the task run.
+        examples: [ 123456 ]
+      - id: snowflake.task.run.return_value
+        display_name: 'Snowflake Task Run Return Value'
+        type: string
+        stability: experimental
+        brief: The return value of the task run.
+        examples: [ '0' ]
+      - id: snowflake.task.run.scheduled_from
+        display_name: 'Snowflake Task Run Scheduled From'
+        type: string
+        stability: stable
+        brief: The source from which the task was scheduled.
+        examples: [ 'CRON' ]
+      - id: snowflake.task.run.scheduled_time
+        display_name: 'Snowflake Task Run Scheduled Time'
+        type: long
+        stability: stable
+        brief: The scheduled time of the task run.
+        examples: [ 1742821828016000000 ]
+      - id: snowflake.task.run.state
+        display_name: 'Snowflake Task Run State'
+        type: string
+        stability: stable
+        brief: The state of the task run.
+        examples: [ 'RUNNING' ]
+      - id: snowflake.task.schedule
+        display_name: 'Snowflake Task Schedule'
+        type: string
+        stability: experimental
+        brief: The schedule of the task.
+        examples: [ '0 0 * * *' ]
+      - id: snowflake.task.start_time
+        display_name: 'Snowflake Task Start Time'
+        type: long
+        stability: experimental
+        brief: The start time of the task.
+        examples: [ 1633046400000000000 ]
+  - id: snowflake.trust_center
+    type: attribute_group
+    title: Snowflake Trust Center signal fields
+    brief: Signal-level fields for Snowflake Trust Center telemetry.
+    attributes:
+      - id: snowflake.trust_center.scanner.description
+        display_name: 'Snowflake Trust Center Scanner Description'
+        type: string
+        stability: experimental
+        brief: A short description of the scanner used in the Trust Center.
+        examples: [ 'Ensure monitoring and alerting exist for password sign-in without MFA' ]
+      - id: snowflake.trust_center.scanner.id
+        display_name: 'Snowflake Trust Center Scanner ID'
+        type: string
+        stability: stable
+        brief: The unique identifier for the scanner used in the Trust Center.
+        examples: [ 'scanner123' ]
+      - id: snowflake.trust_center.scanner.name
+        display_name: 'Snowflake Trust Center Scanner Name'
+        type: string
+        stability: experimental
+        brief: The name of the scanner used in the Trust Center.
+        examples: [ '2.4' ]
+      - id: snowflake.trust_center.scanner.package.id
+        display_name: 'Snowflake Trust Center Scanner Package ID'
+        type: string
+        stability: experimental
+        brief: The unique identifier for the scanner package used in the Trust Center.
+        examples: [ 'package123' ]
+      - id: snowflake.trust_center.scanner.package.name
+        display_name: 'Snowflake Trust Center Scanner Package Name'
+        type: string
+        stability: experimental
+        brief: The name of the scanner package used in the Trust Center.
+        examples: [ 'CIS Package' ]
+      - id: snowflake.trust_center.scanner.type
+        display_name: 'Snowflake Trust Center Scanner Type'
+        type: string
+        stability: stable
+        brief: The type of scanner used in the Trust Center, such as 'CIS Benchmarks' or 'Threat Intelligence'.
+        examples: [ 'CIS Benchmarks' ]
+  - id: snowflake.user
+    type: attribute_group
+    title: Snowflake user signal fields
+    brief: Signal-level fields for Snowflake user telemetry.
+    attributes:
+      - id: snowflake.user.bypass_mfa_until
+        display_name: 'Snowflake User Bypass Mfa Until'
+        type: long
+        stability: experimental
+        brief: The time until which the user can bypass MFA. Epoch nanoseconds timestamp.
+        examples: [ 1620213179885000000 ]
+      - id: snowflake.user.comment
+        display_name: 'Snowflake User Comment'
+        type: string
+        stability: experimental
+        brief: Any comments associated with the user.
+        examples: [ 'New user account' ]
+      - id: snowflake.user.created_on
+        display_name: 'Snowflake User Created On'
+        type: long
+        stability: experimental
+        brief: The timestamp of the user account creation.
+        examples: [ 1651830381846000000 ]
+      - id: snowflake.user.default.namespace
+        display_name: 'Snowflake User Default Namespace'
+        type: string
+        stability: stable
+        brief: The default namespace for the user.
+        examples: [ 'PUBLIC' ]
+      - id: snowflake.user.default.role
+        display_name: 'Snowflake User Default Role'
+        type: string
+        stability: stable
+        brief: The default role for the user.
+        examples: [ 'SYSADMIN' ]
+      - id: snowflake.user.default.secondary_role
+        display_name: 'Snowflake User Default Secondary Role'
+        type: string
+        stability: stable
+        brief: The default secondary role for the user.
+        examples: [ 'SECURITYADMIN' ]
+      - id: snowflake.user.default.warehouse
+        display_name: 'Snowflake User Default Warehouse'
+        type: string
+        stability: stable
+        brief: The default warehouse for the user.
+        examples: [ 'COMPUTE_WH' ]
+      - id: snowflake.user.deleted_on
+        display_name: 'Snowflake User Deleted On'
+        type: long
+        stability: experimental
+        brief: The timestamp of the user account deletion.
+        examples: [ 1615219846384000000 ]
+      - id: snowflake.user.display_name
+        display_name: 'Snowflake User Display Name'
+        type: string
+        stability: experimental
+        brief: The display name of the user.
+        examples: [ 'John Doe' ]
+      - id: snowflake.user.email
+        display_name: 'Snowflake User Email'
+        type: string
+        stability: experimental
+        brief: The email address of the user.
+        examples: [ 'jdoe@example.com' ]
+      - id: snowflake.user.expires_at
+        display_name: 'Snowflake User Expires At'
+        type: long
+        stability: experimental
+        brief: The expiration date of the user account.
+        examples: [ 1620213179885000000 ]
+      - id: snowflake.user.ext_authn.duo
+        display_name: 'Snowflake User Ext Authn Duo'
+        type: boolean
+        stability: stable
+        brief: Indicates if Duo authentication is enabled for the user.
+        examples: [ true ]
+      - id: snowflake.user.ext_authn.uid
+        display_name: 'Snowflake User Ext Authn Uid'
+        type: string
+        stability: stable
+        brief: The external authentication UID for the user.
+        examples: [ 'ext123' ]
+      - id: snowflake.user.has_mfa
+        display_name: 'Snowflake User Has Mfa'
+        type: boolean
+        stability: stable
+        brief: Indicates if the user is enrolled for multi-factor authentication.
+        examples: [ true ]
+      - id: snowflake.user.has_password
+        display_name: 'Snowflake User Has Password'
+        type: boolean
+        stability: stable
+        brief: Indicates if the user has a password set.
+        examples: [ true ]
+      - id: snowflake.user.has_pat
+        display_name: 'Snowflake User Has Pat'
+        type: boolean
+        stability: stable
+        brief: Indicates if a programmatic access token has been generated for the user.
+        examples: [ true ]
+      - id: snowflake.user.has_rsa
+        display_name: 'Snowflake User Has Rsa'
+        type: boolean
+        stability: stable
+        brief: Indicates if RSA public key authentication is configured for the user.
+        examples: [ true ]
+      - id: snowflake.user.has_workload_identity
+        display_name: 'Snowflake User Has Workload Identity'
+        type: boolean
+        stability: experimental
+        brief: Indicates if workload identity federation is configured for the user.
+        examples: [ true ]
+      - id: snowflake.user.id
+        display_name: 'Snowflake User ID'
+        type: long
+        stability: experimental
+        brief: The unique identifier for the user.
+        examples: [ 12345 ]
+      - id: snowflake.user.is_disabled
+        display_name: 'Snowflake User Is Disabled'
+        type: boolean
+        stability: stable
+        brief: Indicates if the user account is disabled.
+        examples: [ false ]
+      - id: snowflake.user.is_from_organization
+        display_name: 'Snowflake User Is From Organization'
+        type: boolean
+        stability: experimental
+        brief: Indicates if the user was imported from a global organization.
+        examples: [ true ]
+      - id: snowflake.user.is_locked
+        display_name: 'Snowflake User Is Locked'
+        type: boolean
+        stability: stable
+        brief: Indicates if the user account is locked by Snowflake.
+        examples: [ false ]
+      - id: snowflake.user.last_success_login
+        display_name: 'Snowflake User Last Success Login'
+        type: long
+        stability: stable
+        brief: The timestamp of the last successful login by the user.
+        examples: [ 1732181350954000000 ]
+      - id: snowflake.user.locked_until_time
+        display_name: 'Snowflake User Locked Until Time'
+        type: long
+        stability: experimental
+        brief: The time until which the user account is locked.
+        examples: [ 1615479617866000000 ]
+      - id: snowflake.user.must_change_password
+        display_name: 'Snowflake User Must Change Password'
+        type: boolean
+        stability: experimental
+        brief: Indicates if the user must change their password.
+        examples: [ true ]
+      - id: snowflake.user.name.first
+        display_name: 'Snowflake User Name First'
+        type: string
+        stability: stable
+        brief: The first name of the user.
+        examples: [ 'John' ]
+      - id: snowflake.user.name.last
+        display_name: 'Snowflake User Name Last'
+        type: string
+        stability: stable
+        brief: The last name of the user.
+        examples: [ 'Doe' ]
+      - id: snowflake.user.name.login
+        display_name: 'Snowflake User Name Login'
+        type: string
+        stability: experimental
+        brief: The login name of the user.
+        examples: [ 'jdoe' ]
+      - id: snowflake.user.owner
+        display_name: 'Snowflake User Owner'
+        type: string
+        stability: stable
+        brief: The role that owns the user account.
+        examples: [ 'ACCOUNTADMIN' ]
+      - id: snowflake.user.password_last_set_time
+        display_name: 'Snowflake User Password Last Set Time'
+        type: long
+        stability: experimental
+        brief: The timestamp of the last password change for the user.
+        examples: [ 1615219848053000000 ]
+      - id: snowflake.user.privilege.granted_by
+        display_name: 'Snowflake User Privilege Granted By'
+        type: string[]
+        stability: experimental
+        brief: Array of all roles which granted grants to a user for a privilege.
+        examples:
+          - ['ACCOUNTADMIN']
+        note: Array of grantor role names stored as string[] in Grail.
+      - id: snowflake.user.privilege.grants_on
+        display_name: 'Snowflake User Privilege Grants On'
+        type: string[]
+        stability: experimental
+        brief: List of all objects of given type on which given privilege was given; both object type and privilege are reported as `snowflake.user.privilege.name`
+        examples:
+          - ['TRUST_CENTER_ADMIN', 'COMPUTE_WH']
+        note: Array of privilege grant target names stored as string[] in Grail.
+      - id: snowflake.user.privilege.last_altered
+        display_name: 'Snowflake User Privilege Last Altered'
+        type: long
+        stability: experimental
+        brief: The timestamp of the last alteration to the user's privileges.
+        examples: [ 1732181350954000000 ]
+      - id: snowflake.user.privilege.name
+        display_name: 'Snowflake User Privilege Name'
+        type: string
+        stability: stable
+        brief: Name of the privilege and type of object this privilege granted on to the user or role. Composed as `privilege:granted_on_object`.
+        examples: [ 'CREATE SERVICE:SCHEMA' ]
+      - id: snowflake.user.roles.all
+        display_name: 'Snowflake User Roles All'
+        type: string
+        stability: experimental
+        brief: Comma separated list of all roles granted to a user.
+        examples: [ 'SNOWFLAKE_FINANCE,MONITORING' ]
+      - id: snowflake.user.roles.direct.list
+        display_name: 'Snowflake User Roles Direct List'
+        type: string[]
+        stability: stable
+        brief: List of all direct roles granted to user.
+        examples:
+          - ['DEVOPS_ROLE', 'SYSADMIN', 'ACCOUNTADMIN']
+        note: Array of directly assigned role names stored as string[] in Grail.
+      - id: snowflake.user.roles.direct.removed
+        display_name: 'Snowflake User Roles Direct Removed'
+        type: string
+        stability: stable
+        brief: Name of the role that was revoked from user.
+        examples: [ 'ACCOUNTADMIN' ]
+      - id: snowflake.user.roles.direct.removed_on
+        display_name: 'Snowflake User Roles Direct Removed On'
+        type: long
+        stability: experimental
+        brief: The timestamp of the last removal of a direct role from the user.
+        examples: [ 1718260900411000000 ]
+      - id: snowflake.user.roles.granted_by
+        display_name: 'Snowflake User Roles Granted By'
+        type: string[]
+        stability: experimental
+        brief: Array of admin roles that were used to grant current list of user roles.
+        examples:
+          - ['DEMIGOD', 'SECURITYADMIN', 'ACCOUNTADMIN']
+        note: Array of grantor names for role assignments stored as string[] in Grail.
+      - id: snowflake.user.roles.last_altered
+        display_name: 'Snowflake User Roles Last Altered'
+        type: long
+        stability: experimental
+        brief: The timestamp of the last alteration to the roles granted to the user.
+        examples: [ 1718260900411000000 ]
+      - id: snowflake.user.type
+        display_name: 'Snowflake User Type'
+        type:
+          allow_custom_values: true
+          members:
+            - id: person
+              value: "PERSON"
+              brief: Human interactive user.
+            - id: service
+              value: "SERVICE"
+              brief: Non-interactive integration user; cannot authenticate via password or SAML, cannot enroll in MFA. Recommended for all automated service accounts.
+            - id: legacy_service
+              value: "LEGACY_SERVICE"
+              brief: Non-interactive integration user that, unlike SERVICE, still permits password and SAML authentication. Deprecated — migrate to SERVICE type.
+            - id: snowflake_service
+              value: "SNOWFLAKE_SERVICE"
+              brief: System-managed user automatically created for each Snowpark Container Services (SPCS) service; cannot be created or converted by administrators.
+        stability: stable
+        brief: 'The type of user who executed the query. Possible values: PERSON (human interactive user), SERVICE (programmatic service user), LEGACY_SERVICE (legacy service account), SNOWFLAKE_SERVICE (Snowpark Container Services). Useful for splitting workloads by human vs. automated traffic.'
+        examples: [ 'PERSON' ]
+  - id: snowflake.warehouse
+    type: attribute_group
+    title: Snowflake warehouse signal fields
+    brief: Signal-level fields for Snowflake warehouse telemetry.
+    attributes:
+      - id: snowflake.warehouse.cluster.number
+        display_name: 'Snowflake Warehouse Cluster Number'
+        type: long
+        stability: stable
+        brief: The cluster number of the warehouse used.
+        examples: [ 1 ]
+      - id: snowflake.warehouse.created_on
+        display_name: 'Snowflake Warehouse Created On'
+        type: string
+        stability: experimental
+        brief: The timestamp when the warehouse was created.
+        examples: [ '2024-09-01 08:00:00.000' ]
+        note: ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based operations.
+      - id: snowflake.warehouse.event.name
+        display_name: 'Snowflake Warehouse Event Name'
+        type:
+          allow_custom_values: true
+          members:
+            - id: alter_warehouse
+              value: "ALTER_WAREHOUSE"
+              brief: A warehouse property was modified via ALTER WAREHOUSE (e.g. size, auto-suspend timeout, comment).
+            - id: create_warehouse
+              value: "CREATE_WAREHOUSE"
+              brief: A new virtual warehouse was created.
+            - id: drop_warehouse
+              value: "DROP_WAREHOUSE"
+              brief: A virtual warehouse was dropped and its compute resources released.
+            - id: resume_cluster
+              value: "RESUME_CLUSTER"
+              brief: An individual cluster within a multi-cluster warehouse was resumed to meet increased demand.
+            - id: resume_warehouse
+              value: "RESUME_WAREHOUSE"
+              brief: The warehouse transitioned from SUSPENDED to STARTED, reprovisioning compute resources.
+            - id: suspend_cluster
+              value: "SUSPEND_CLUSTER"
+              brief: An individual cluster within a multi-cluster warehouse was suspended due to reduced demand.
+            - id: suspend_warehouse
+              value: "SUSPEND_WAREHOUSE"
+              brief: The warehouse transitioned from STARTED to SUSPENDED, deallocating all compute resources.
+            - id: warehouse_consistent
+              value: "WAREHOUSE_CONSISTENT"
+              brief: All pending state changes for the warehouse have settled; emitted as the final event in a multi-step operation sequence.
+        stability: stable
+        brief: The name of the event.
+        examples: [ 'WAREHOUSE_START' ]
+      - id: snowflake.warehouse.event.reason
+        display_name: 'Snowflake Warehouse Event Reason'
+        type:
+          allow_custom_values: true
+          members:
+            - id: resource_monitor_suspend
+              value: "RESOURCE_MONITOR_SUSPEND"
+              brief: Warehouse was suspended because a resource monitor reached its SUSPEND or SUSPEND_IMMEDIATE threshold.
+            - id: warehouse_autoresume
+              value: "WAREHOUSE_AUTORESUME"
+              brief: Warehouse resumed automatically because AUTO_RESUME is enabled and a SQL statement was submitted while suspended.
+            - id: warehouse_autosuspend
+              value: "WAREHOUSE_AUTOSUSPEND"
+              brief: Warehouse suspended automatically after the configured AUTO_SUSPEND inactivity period elapsed.
+            - id: warehouse_resume
+              value: "WAREHOUSE_RESUME"
+              brief: Warehouse was resumed explicitly via ALTER WAREHOUSE RESUME or a user-initiated action.
+            - id: warehouse_suspend
+              value: "WAREHOUSE_SUSPEND"
+              brief: Warehouse was suspended explicitly via ALTER WAREHOUSE SUSPEND or a user-initiated action.
+        stability: experimental
+        brief: The reason for the event.
+        examples: [ 'USER_REQUEST' ]
+      - id: snowflake.warehouse.event.state
+        display_name: 'Snowflake Warehouse Event State'
+        type:
+          allow_custom_values: true
+          members:
+            - id: started
+              value: "STARTED"
+              brief: The warehouse operation has been initiated and is in progress; a COMPLETED or further STARTED event will follow.
+            - id: completed
+              value: "COMPLETED"
+              brief: The warehouse operation completed atomically with no further pending state changes.
+        stability: stable
+        brief: The state of the event, such as STARTED or COMPLETED.
+        examples: [ 'STARTED' ]
+      - id: snowflake.warehouse.event.trigger
+        display_name: 'Snowflake Warehouse Event Trigger'
+        type: string
+        stability: experimental
+        brief: The event that triggered the "warehouse is not monitored" notification.
+        examples: [ 'snowflake.warehouse.created_on' ]
+      - id: snowflake.warehouse.id
+        display_name: 'Snowflake Warehouse ID'
+        type: long
+        stability: experimental
+        brief: The unique identifier of the warehouse used.
+        examples: [ 12345 ]
+      - id: snowflake.warehouse.is_current
+        display_name: 'Snowflake Warehouse Is Current'
+        type: boolean
+        stability: experimental
+        brief: Indicates if the warehouse is the current warehouse.
+        examples: [ true ]
+      - id: snowflake.warehouse.is_default
+        display_name: 'Snowflake Warehouse Is Default'
+        type: boolean
+        stability: experimental
+        brief: Indicates if the warehouse is the default warehouse.
+        examples: [ true ]
+      - id: snowflake.warehouse.is_unmonitored
+        display_name: 'Snowflake Warehouse Is Unmonitored'
+        type: boolean
+        stability: stable
+        brief: Indicates if the warehouse is NOT monitored by a resource monitor.
+        examples: [ true ]
+      - id: snowflake.warehouse.name
+        display_name: 'Snowflake Warehouse Name'
+        type: string
+        stability: stable
+        brief: The name of the warehouse used to execute the query.
+        examples: [ 'compute_wh' ]
+      - id: snowflake.warehouse.owner.role_type
+        display_name: 'Snowflake Warehouse Owner Role Type'
+        type: string
+        stability: experimental
+        brief: 'The principal type of the warehouse owner: ROLE or APPLICATION.'
+        examples: [ 'ROLE' ]
+      - id: snowflake.warehouse.resumed_on
+        display_name: 'Snowflake Warehouse Resumed On'
+        type: string
+        stability: stable
+        brief: The timestamp when the warehouse was last resumed.
+        examples: [ '2024-11-15 09:00:00.000' ]
+        note: ISO 8601 timestamp string stored as string in Grail.
+      - id: snowflake.warehouse.size
+        display_name: 'Snowflake Warehouse Size'
+        type:
+          allow_custom_values: true
+          members:
+            - id: x_small
+              value: "X-SMALL"
+              brief: Smallest warehouse size; 1 credit/hour. Default size when creating a warehouse via SQL or Snowsight.
+            - id: small
+              value: "SMALL"
+              brief: 2 credits/hour; double the compute resources of X-Small.
+            - id: medium
+              value: "MEDIUM"
+              brief: 4 credits/hour; suited for moderate-complexity queries and concurrent workloads.
+            - id: large
+              value: "LARGE"
+              brief: 8 credits/hour; provides substantially more compute resources per cluster for complex queries.
+            - id: x_large
+              value: "X-LARGE"
+              brief: 16 credits/hour; suitable for large-scale ETL and analytics.
+            - id: x2_large
+              value: "2X-LARGE"
+              brief: 32 credits/hour; credit consumption doubles at each step from X-Large.
+            - id: x3_large
+              value: "3X-LARGE"
+              brief: 64 credits/hour.
+            - id: x4_large
+              value: "4X-LARGE"
+              brief: 128 credits/hour.
+            - id: x5_large
+              value: "5X-LARGE"
+              brief: 256 credits/hour; generally available on AWS and Azure.
+            - id: x6_large
+              value: "6X-LARGE"
+              brief: 512 credits/hour; largest available size, generally available on AWS and Azure.
+        stability: stable
+        brief: The size of the warehouse used.
+        examples: [ 'X-SMALL' ]
+      - id: snowflake.warehouse.type
+        display_name: 'Snowflake Warehouse Type'
+        type:
+          allow_custom_values: true
+          members:
+            - id: standard
+              value: "STANDARD"
+              brief: Standard multi-cluster warehouse.
+            - id: snowpark_optimized
+              value: "SNOWPARK_OPTIMIZED"
+              brief: Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and CPU architecture options; recommended for ML training and memory-intensive UDFs and stored procedures.
+        stability: stable
+        brief: The type of warehouse used.
+        examples: [ 'STANDARD' ]
+      - id: snowflake.warehouse.updated_on
+        display_name: 'Snowflake Warehouse Updated On'
+        type: string
+        stability: experimental
+        brief: The timestamp when the warehouse was last updated.
+        examples: [ '2024-11-10 14:30:00.000' ]
+        note: ISO 8601 timestamp string stored as string in Grail.

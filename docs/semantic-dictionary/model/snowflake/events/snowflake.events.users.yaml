@@ -1,0 +1,45 @@
+model:
+  id: snowflake.events.users
+  title: Snowflake users lifecycle events
+  brief: Timestamp-based state-change events emitted by the DSOA users plugin via the OpenPipeline Events API.
+  model_group_id: snowflake.events
+  data_object: events
+  interfaces: [ i.dsoa_resource ]
+  dql_queries:
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "users"
+        | sort timestamp desc
+        | limit 20
+      description: Fetch recent DSOA users lifecycle events.
+      description_copilot: Search for recent Snowflake users lifecycle events from the users plugin.
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "users"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch the most recent DSOA users lifecycle events (creation, deletion and role-change anchors).
+      description_copilot: Search for Snowflake user lifecycle events from the users plugin.
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "users"
+        | summarize { events = count() }, by: { snowflake.event.type }
+        | sort events desc
+      description: Count DSOA users lifecycle events grouped by event type.
+      description_copilot: Break down Snowflake user lifecycle events by their event type.
+  groups:
+    - id: snowflake.events.users.fields
+      type: attribute_group
+      title: Users event fields
+      attributes:
+        - ref: snowflake.event.type
+        - ref: snowflake.user.created_on
+        - ref: snowflake.user.deleted_on
+        - ref: snowflake.user.last_success_login
+        - ref: snowflake.user.password_last_set_time
+        - ref: snowflake.user.privilege.last_altered
+        - ref: snowflake.user.roles.direct.removed_on
+        - ref: snowflake.user.roles.last_altered

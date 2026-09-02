@@ -16,39 +16,116 @@
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent
 dimensions:
   db.system:
+    __semdict: ref
+    __stability: stable
+    __interface_note: "Always 'snowflake' for all DSOA telemetry."
+    __semdict_note: >-
+      Defined in the Dynatrace Semantic Dictionary as a global field (db group). DSOA references it via the i.dsoa_resource interface. The
+      value for Snowflake is always 'snowflake'. NOTE: OTel semconv renamed db.system to db.system.name (stable since v1.30). DSOA continues
+      to emit db.system for backward compatibility; migration to db.system.name planned for a future release.
     __description: "The database management system (DBMS) product being used. It is always 'snowflake'"
     __example: "snowflake"
+    __type: string
   deployment.environment:
+    __semdict: deprecated-alias
+    __stability: deprecated
+    __otel_replacement: deployment.environment.name
+    __interface_note:
+      "User-configured deployment environment label, e.g. 'PROD', 'STG', or 'DEV'. Set via 'core.snowflake.deployment_environment'."
+    __semdict_note: >-
+      OTel Semantic Conventions v1.26 renamed `deployment.environment` to `deployment.environment.name` (stable). DSOA continues to emit
+      `deployment.environment` for backward compatibility with existing Dynatrace configurations; migration to `deployment.environment.name`
+      is deferred pending adoption analysis.
     __description: >-
-      Deprecated alias for deployment.environment.name. The deployment environment,
-      e.g., production, staging, or development. Will be removed in release 1.3.0.
+      Deprecated alias for deployment.environment.name. The deployment environment, e.g., production, staging, or development. Will be
+      removed in release 1.3.0.
     __example: "PROD"
-    __deprecated: "Use deployment.environment.name instead."
+    __type: string
   deployment.environment.name:
+    __stability: stable
+    __semdict: otel-only
+    __semdict_note: >-
+      OTel Semantic Conventions stable canonical name (since v1.26). DSOA co-emits this alongside the deprecated `deployment.environment`
+      during the migration window. Operators should migrate DQL queries to filter by this key.
+    __interface_note: >-
+      User-configured deployment environment label (OTel-stable canonical key), e.g. 'PROD', 'STG', or 'DEV'. Set via
+      'core.snowflake.deployment_environment'. Prefer this key over the deprecated deployment.environment alias.
     __description: >-
-      The deployment environment name (OTel semconv canonical field), e.g., production,
-      staging, or development. Emitted alongside deployment.environment during the deprecation window.
+      The deployment environment name (OTel semconv canonical field), e.g., production, staging, or development. Emitted alongside
+      deployment.environment during the deprecation window.
     __example: "PROD"
+    __type: string
   deployment.environment.tag:
+    __stability: stable
+    __semdict: new
+    __interface_note: "Optional user-defined tag for grouping Snowflake accounts in multitenancy mode, set via 'core.tag'."
     __description: "Optional tag for the deployment environment in multitenancy mode"
     __example: "SA080"
+    __type: string
   host.name:
-    __description: "The name of the host."
-    __example: "mysnowflake.us-east-1.snowflakecomputing.com"
+    __semdict: ref
+    __interface_note: "The Snowflake account hostname (e.g. 'xy12345.snowflakecomputing.com'), from 'core.snowflake.host_name'."
+    __description: >-
+      Name of the host. On Unix systems, it may contain what the hostname command returns, or the fully qualified hostname, or another name
+      specified by the user. In DSOA, this is always the fully qualified Snowflake account hostname ending in '.snowflakecomputing.com'.
+      Resolved in order: explicit 'core.snowflake.host_name' config → derived from account_name → auto-detected via
+      CURRENT_ORGANIZATION_NAME()||'-'||CURRENT_ACCOUNT_NAME(). Also used as event.provider in DSOA self-monitoring bizevents.
+    __example: "myorg-myaccount.snowflakecomputing.com"
+    __type: string
   service.name:
-    __description: "The name of the service."
-    __example: "mysnowflake.us-east-1"
+    __semdict: ref
+    __interface_note: "Always the Snowflake account identifier without '.snowflakecomputing.com' suffix (e.g. 'myorg-myaccount')."
+    __description: >-
+      Logical name of the service. MUST be the same for all instances of horizontally scaled services. In DSOA, this is always the Snowflake
+      account identifier without the '.snowflakecomputing.com' suffix — either 'orgname-accountname' (new-style) or 'accountlocator.region'
+      (legacy). Derived from the same resolution chain as host.name; functionally equivalent to host.name minus the domain suffix. Operators
+      cannot set an arbitrary service name — this is always the Snowflake account identity.
+    __example: "myorg-myaccount"
+    __type: string
   telemetry.exporter.name:
-    __description: "The name of the telemetry exporter. It is always 'dynatrace.snowagent'"
+    __semdict: ref
+    __interface_note: "Always 'dynatrace.snowagent' — identifies DSOA as the telemetry exporter."
+    __semdict_note: >-
+      Dynatrace-proprietary field; no equivalent exists in OpenTelemetry Semantic Conventions. This field identifies DSOA as the specific
+      Dynatrace agent responsible for the telemetry.
+    __description: >-
+      The name of the telemetry exporter. In DSOA, this is a hard-coded compile-time constant; operators cannot change this value. Always
+      'dynatrace.snowagent'. Used by Dynatrace ingestion for routing and attribution. Distinct from the HTTP User-Agent header
+      (dsoa/<version>) sent by DSOA in OTLP requests.
     __example: "dynatrace.snowagent"
+    __type: string
   telemetry.exporter.version:
-    __description: "The version of the telemetry exporter."
-    __example: "0.8.0.17308403933"
+    __semdict: ref
+    __interface_note: "The installed DSOA agent version in '<major>.<minor>.<patch>.<build>' format."
+    __semdict_note: >-
+      Dynatrace-proprietary field; no equivalent exists in OpenTelemetry Semantic Conventions. This field carries the full DSOA build
+      identity including CI pipeline run number.
+    __description: >-
+      The version of the telemetry exporter. In DSOA, this is always the build version of DSOA in four-part format:
+      '<major>.<minor>.<patch>.<ci-build-number>'. The build number is a CI pipeline run number baked in at compile time; it is '0' in
+      unbuilt/development deployments. Compile-time immutable — operators cannot configure this value.
+    __example: "1.0.0.1234567890"
+    __type: string
   dsoa.run.context:
+    __stability: stable
+    __semdict: new
+    __interface_note: "Identifies the specific sub-context within the plugin (e.g. 'query_history', 'users_all_roles')."
     __description:
-      "The name of the Dynatrace Snowflake Observability Agent plugin (or part of plugin) used to produce the telemetry (logs, traces,
-      metrics, or events)."
-    __example: "query_history"
+      "The name of the Dynatrace Snowflake Observability Agent context (part of plugin) used to produce the telemetry (logs, traces,
+      metrics, or events). In case of multiple contexts within the same plugin, this helps differentiate between them. If plugin delivers
+      only one context, this field will have the same value as the plugin name."
+    __example: "users_all_roles"
+    __type: string
+  dsoa.run.plugin:
+    __stability: stable
+    __semdict: new
+    __field_type: resource
+    __interface_note: "The DSOA plugin that produced this telemetry (e.g. 'query_history', 'warehouse_usage')."
+    __description:
+      "The name of the DSOA plugin that produced this telemetry. Use to filter all telemetry from a specific plugin (e.g., 'query_history',
+      'warehouse_usage'). Distinct from dsoa.run.context, which may represent a sub-context within a plugin."
+    __example: "users"
+    __type: string
 #  * Attribute definitions
 #  * KEY                  - will be matched against ATTRIBUTES object with measurements prepared for sending
 #  * VALUE[description]   - description of the attributes -
@@ -57,42 +134,89 @@ dimensions:
 attributes:
   anomaly.detector:
     __semdict: new
+    __type: string
     __description: >-
-      Identifies the DSOA workflow or plugin that detected the anomaly. Values follow the
-      ``dsoa.<workflow_name>`` convention (e.g., ``dsoa.data_volume_anomaly``) except for
-      the failed-login detector which uses ``dsoa.failed_login_detection``.
+      Identifies the DSOA workflow or plugin that detected the anomaly. Values follow the ``dsoa.<workflow_name>`` convention (e.g.,
+      ``dsoa.data_volume_anomaly``) except for the failed-login detector which uses ``dsoa.failed_login_detection``.
     __example: "dsoa.data_volume_anomaly"
   anomaly.direction:
     __semdict: new
+    __type: string
     __description: >-
-      Direction of the anomaly relative to the Davis AI baseline: ``above`` when the metric
-      exceeded the upper bound, ``below`` when it dropped under the lower bound.
+      Direction of the anomaly relative to the Davis AI baseline: ``above`` when the metric exceeded the upper bound, ``below`` when it
+      dropped under the lower bound.
     __example: "above"
+    __enum:
+      allow_custom_values: false
+      members:
+        - id: above
+          value: above
+          brief: Metric value exceeded the expected upper threshold.
+        - id: below
+          value: below
+          brief: Metric value dropped below the expected lower threshold.
   anomaly.subject:
     __semdict: new
+    __type: string
     __description: >-
-      High-level category classifying the anomaly subject within its detector. Specific
-      values are defined per workflow (e.g., ``login`` / ``session`` / ``query_count`` /
-      ``data_scan`` for security-anomaly-detection; ``unavailable`` / ``disappeared`` /
-      ``volume_drop`` for shares-broken-detection).
+      High-level category classifying the anomaly subject within its detector. Specific values are defined per workflow (e.g., ``login`` /
+      ``session`` / ``query_count`` / ``data_scan`` for security-anomaly-detection; ``unavailable`` / ``disappeared`` / ``volume_drop`` for
+      shares-broken-detection).
     __example: "login"
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: login
+          value: login
+          brief: Anomaly in login attempt counts (security-anomaly-detection workflow).
+        - id: session
+          value: session
+          brief: Anomaly in active session counts (security-anomaly-detection workflow).
+        - id: query_count
+          value: query_count
+          brief: Anomaly in query execution counts (security-anomaly-detection workflow).
+        - id: data_scan
+          value: data_scan
+          brief: Anomaly in data volume scanned (security-anomaly-detection workflow).
+        - id: volume_drop
+          value: volume_drop
+          brief: Detected drop in data rows for a share (shares-broken-detection workflow).
+        - id: unavailable
+          value: unavailable
+          brief: Share object no longer accessible (shares-broken-detection workflow).
+        - id: disappeared
+          value: disappeared
+          brief: Share object no longer present in the account (shares-broken-detection workflow).
   metric.key:
     __semdict: ref
+    __type: string
     __description: >-
-      The Dynatrace metric selector key for the metric that triggered the anomaly event.
-      References an existing metric in the Dynatrace Semantic Dictionary.
+      The Dynatrace metric selector key for the metric that triggered the anomaly event. References an existing metric in the Dynatrace
+      Semantic Dictionary.
     __example: "snowflake.credits.quota.used_pct"
   dsoa.run.id:
+    __stability: stable
+    __semdict: new
+    __interface_note: "Unique identifier for a single DSOA agent execution run. Changes on every invocation."
     __description:
       "Unique ID of each execution of the Dynatrace Snowflake Observability Agent plugin. It can be used to differentiate between telemetry
       produced between two executions, e.g., to calculate the change in the system."
     __example: "4aa7c76c-e98c-4b8b-a5b3-a8a721bbde2d"
+    __type: string
   snowflake.event.type:
+    __semdict: new
     __description: "Type of (timestamp based) event"
     __example: "snowflake.table.update"
+    __type: string
   observed_timestamp:
+    __stability: stable
+    __type: long
+    __semdict: new
+    __semdict_note: >-
+      In OTel Log Data Model, observed_timestamp is a structural field (not an attribute key). Dynatrace normalizes this into the attribute
+      bag for query consistency.
     __description: "The timestamp (in epoch nanoseconds) when the event was observed."
-    __example: "1741768500000000000"
+    __example: 1741768500000000000
 
 #  * Metric definitions
 #  * KEY                  - will be matched against METRICS object with measurements prepared for sending
@@ -101,7 +225,9 @@ attributes:
 #  * VALUE[unit]          - the unit of the metric
 metrics:
   dsoa.agent.memory.peak_rss:
+    __semdict: new
     __description: "Peak resident set size (RSS) of the agent process in megabytes, sampled after each plugin context run."
-    __example: "42.5"
-    unit: MB
+    __example: 42.5
+    __type: double
+    unit: MiBy
     displayName: Agent Peak Memory (RSS)

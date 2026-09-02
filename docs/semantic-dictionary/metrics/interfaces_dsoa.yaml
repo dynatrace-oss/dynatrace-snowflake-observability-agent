@@ -1,0 +1,28 @@
+groups:
+  - id: i.dsoa_resource
+    type: interface
+    title: DSOA resource fields
+    brief: Fields present on all DSOA telemetry records. Synced with config.py RESOURCE_ATTRIBUTES.
+    attributes:
+      - ref: db.system
+        note: Always 'snowflake' for all DSOA telemetry.
+      - ref: deployment.environment
+        note: User-configured deployment environment label, e.g. 'PROD', 'STG', or 'DEV'. Set via 'core.snowflake.deployment_environment'.
+      - ref: deployment.environment.name
+        note: User-configured deployment environment label (OTel-stable canonical key), e.g. 'PROD', 'STG', or 'DEV'. Set via 'core.snowflake.deployment_environment'. Prefer this key over the deprecated deployment.environment alias.
+      - ref: deployment.environment.tag
+        note: Optional user-defined tag for grouping Snowflake accounts in multitenancy mode, set via 'core.tag'.
+      - ref: dsoa.run.context
+        note: Identifies the specific sub-context within the plugin (e.g. 'query_history', 'users_all_roles').
+      - ref: dsoa.run.id
+        note: Unique identifier for a single DSOA agent execution run. Changes on every invocation.
+      - ref: dsoa.run.plugin
+        note: The DSOA plugin that produced this telemetry (e.g. 'query_history', 'warehouse_usage').
+      - ref: host.name
+        note: The Snowflake account hostname (e.g. 'xy12345.snowflakecomputing.com'), from 'core.snowflake.host_name'.
+      - ref: service.name
+        note: Always the Snowflake account identifier without '.snowflakecomputing.com' suffix (e.g. 'myorg-myaccount').
+      - ref: telemetry.exporter.name
+        note: Always 'dynatrace.snowagent' — identifies DSOA as the telemetry exporter.
+      - ref: telemetry.exporter.version
+        note: The installed DSOA agent version in '<major>.<minor>.<patch>.<build>' format.

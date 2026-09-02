@@ -1,0 +1,42 @@
+model:
+  id: snowflake.metrics.event_log
+  title: Snowflake event log metrics
+  brief: Metrics collected by the DSOA event_log plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: snowflake.metrics
+  data_object: metric
+  interfaces: [ i.dsoa_resource, i.snowflake_warehouse, i.snowflake_database ]
+  dql_queries:
+    - query_string: >
+        timeseries mem = avg(process.memory.usage), by: { snowflake.warehouse.name, deployment.environment.name }
+      description: Plot average process memory usage captured from the Snowflake event table over time.
+      description_copilot: Timeseries of Snowflake process memory usage from the event log.
+    - query_string: >
+        timeseries cpu = avg(process.cpu.utilization), by: { snowflake.warehouse.name, deployment.environment.name }
+      description: Plot average process CPU utilization captured from the Snowflake event table over time.
+      description_copilot: Timeseries of Snowflake process CPU utilization from the event log.
+    - query_string: |
+        timeseries { mem = avg(process.memory.usage), cpu = avg(process.cpu.utilization) },
+          by: { snowflake.warehouse.name, deployment.environment.name }
+      description: Compare process memory usage and CPU utilization per warehouse from the Snowflake event table.
+      description_copilot: Timeseries comparing Snowflake process memory and CPU from the event log.
+  groups:
+    - id: process.cpu.utilization
+      type: metric
+      metric_name: process.cpu.utilization
+      instrument: gauge
+      brief: The percentage of CPU utilization by the process.
+      title: Process CPU Utilization
+      unit: '%'
+      attributes:
+        - ref: snowflake.query.id
+        - ref: snowflake.role.name
+    - id: process.memory.usage
+      type: metric
+      metric_name: process.memory.usage
+      instrument: gauge
+      brief: The total memory usage by the process in bytes.
+      title: Process Memory Usage
+      unit: By
+      attributes:
+        - ref: snowflake.query.id
+        - ref: snowflake.role.name

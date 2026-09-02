@@ -1,0 +1,160 @@
+model:
+  id: snowflake.metrics.table_health
+  title: Snowflake table health metrics
+  brief: Metrics collected by the DSOA table_health plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: snowflake.metrics
+  data_object: metric
+  interfaces: [ i.dsoa_resource, i.snowflake_database ]
+  dql_queries:
+    - query_string: >
+        timeseries val = avg(snowflake.table.active_bytes), by: { db.collection.name, deployment.environment.name }
+      description: Plot active storage bytes per table over time.
+      description_copilot: Timeseries of Snowflake table active storage size.
+    - query_string: >
+        timeseries val = avg(snowflake.table.clustering.depth), by: { db.collection.name, deployment.environment.name }
+      description: Plot average clustering depth per table over time.
+      description_copilot: Timeseries of Snowflake table clustering depth.
+    - query_string: >
+        timeseries val = avg(snowflake.table.growth_pct), by: { db.collection.name, deployment.environment.name }
+      description: Plot table size growth percentage between snapshots over time.
+      description_copilot: Timeseries of Snowflake table growth percentage.
+  groups:
+    - id: snowflake.table.active_bytes
+      type: metric
+      metric_name: snowflake.table.active_bytes
+      instrument: gauge
+      brief: Number of bytes of active data in the table.
+      title: Active Bytes
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.clustering.constant_partition_ratio
+      type: metric
+      metric_name: snowflake.table.clustering.constant_partition_ratio
+      instrument: gauge
+      brief: |-
+        Fraction of micro-partitions that are constant (fully within a single clustering
+        key range). Higher values indicate better clustering quality.
+      title: Constant Partition Ratio
+      unit: ratio
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.clustering_key
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.clustering.degraded
+      type: metric
+      metric_name: snowflake.table.clustering.degraded
+      instrument: gauge
+      brief: |-
+        Flag indicating whether clustering has degraded beyond the configured threshold
+        (plugins.table_health.clustering_degradation_threshold).
+        1 = degraded, 0 = healthy or no clustering data available.
+      title: Clustering Degraded
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.clustering.depth
+      type: metric
+      metric_name: snowflake.table.clustering.depth
+      instrument: gauge
+      brief: |-
+        Average clustering depth of the table. Lower values indicate better clustering.
+        A value of 1.0 means all micro-partitions are perfectly clustered.
+      title: Clustering Depth
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.clustering_key
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.clustering.depth_change
+      type: metric
+      metric_name: snowflake.table.clustering.depth_change
+      instrument: gauge
+      brief: |-
+        Change in average clustering depth between the two most recent snapshots.
+        Positive values indicate degradation; negative values indicate improvement.
+      title: Clustering Depth Change
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.clustering.overlap
+      type: metric
+      metric_name: snowflake.table.clustering.overlap
+      instrument: gauge
+      brief: |-
+        Average overlap depth of the table. Lower values indicate less overlap between
+        micro-partitions and better clustering efficiency.
+      title: Clustering Overlap
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.clustering_key
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.clustering.total_partitions
+      type: metric
+      metric_name: snowflake.table.clustering.total_partitions
+      instrument: gauge
+      brief: Total number of micro-partitions in the table.
+      title: Total Partitions
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.clustering_key
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.failsafe_bytes
+      type: metric
+      metric_name: snowflake.table.failsafe_bytes
+      instrument: gauge
+      brief: Number of bytes of data in the table that is maintained for Failsafe.
+      title: Failsafe Bytes
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.growth_bytes
+      type: metric
+      metric_name: snowflake.table.growth_bytes
+      instrument: gauge
+      brief: |-
+        Change in active bytes between the two most recent snapshots.
+        Positive values indicate growth; negative values indicate shrinkage.
+      title: Table Growth (Bytes)
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.growth_pct
+      type: metric
+      metric_name: snowflake.table.growth_pct
+      instrument: gauge
+      brief: |-
+        Percentage change in active bytes between the two most recent snapshots.
+        Null when the previous snapshot had zero bytes.
+      title: Table Growth (%)
+      unit: '%'
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.retained_for_clone_bytes
+      type: metric
+      metric_name: snowflake.table.retained_for_clone_bytes
+      instrument: gauge
+      brief: Number of bytes of data in the table that is retained for cloning.
+      title: Retained for Clone Bytes
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.time_travel_bytes
+      type: metric
+      metric_name: snowflake.table.time_travel_bytes
+      instrument: gauge
+      brief: Number of bytes of data in the table that is maintained for Time Travel.
+      title: Time Travel Bytes
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name

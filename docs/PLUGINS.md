@@ -99,7 +99,7 @@ Additionally, you can decide to monitor details for queries only with selected e
 fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.context == "active_queries"
-| filter deployment.environment == "YOUR_ENV"
+| filter deployment.environment.name == "YOUR_ENV"
 | sort timestamp asc
 | summarize {
   timestamp = takeFirst(timestamp),
@@ -330,16 +330,14 @@ fetch logs
 ```dql
 timeseries avg(snowflake.table.access.count),
   by: {db.namespace, db.collection.name, snowflake.table.cold_status}
-| filter db.system == "snowflake"
 ```
 
 #### Metrics — days since last access
 
 ```dql
 timeseries avg(snowflake.table.days_since_last_access),
-  by: {db.namespace, db.collection.name}
-| filter db.system == "snowflake"
-| filter snowflake.table.days_since_last_access > 90
+  by: {db.namespace, db.collection.name, snowflake.table.cold_status}
+| filter snowflake.table.cold_status == "cold"
 ```
 
 #### Self-monitoring — plugin performance
@@ -1323,7 +1321,7 @@ plugins:
     max_entries: 0
     max_lookback_minutes: 120
     cache_ttl_hours: 4
-    obfuscation_mode: "off"
+    obfuscation_mode: "none"
     track_ddl_changes: false
     include_warehouses: []
     exclude_warehouses:
@@ -1387,10 +1385,10 @@ The plugin supports signal protection to prevent overload on high-volume Snowfla
 
 - `plugins.query_history.obfuscation_mode`: Controls query text obfuscation before data is sent to Dynatrace. Applies to `db.query.text` on
   spans and `snowflake.error.message` on failed queries. Valid values:
-  - `off` (default) — no obfuscation, full query text is forwarded unchanged.
+  - `none` (default) — no obfuscation, full query text is forwarded unchanged.
   - `literals` — replaces single-quoted string literals and standalone numeric literals with `?`. SQL structure and identifiers are
     preserved.
-  - `full` — replaces the entire query text (and error message) with `[OBFUSCATED]`. Invalid values fall back to `off`.
+  - `full` — replaces the entire query text (and error message) with `[OBFUSCATED]`. Invalid values fall back to `none`.
 
 ### Query History bill of materials
 

@@ -15,80 +15,143 @@
 #  *
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - login_history plugin
 attributes:
+  event.description:
+    __semdict: ref
+    __is_defined_at_runtime: true
+    __context_names:
+      - login_history
+    __description: Human-readable description of the login event, providing additional context about the outcome.
+    __example: "Failed login attempt for user JOHN.DOE from 192.168.1.100."
+    __type: string
   authentication.factor.first:
+    __stability: stable
     __context_names:
       - login_history
-    __example: password123
+    __example: PASSWORD
     __description: The first factor used for authentication, typically a password.
+    __type: string
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: id_token
+          value: ID_TOKEN
+          brief: Authenticated using a Snowflake ID token.
+        - id: oauth_access_token
+          value: OAUTH_ACCESS_TOKEN
+          brief: Authenticated using an OAuth access token.
+        - id: password
+          value: PASSWORD
+          brief: Authenticated using a username/password combination.
+        - id: programmatic_access_token
+          value: PROGRAMMATIC_ACCESS_TOKEN
+          brief: Authenticated using a programmatic access token (PAT).
+        - id: saml2_assertion
+          value: SAML2_ASSERTION
+          brief: Authenticated using a SAML2 assertion (federated SSO).
   authentication.factor.second:
+    __stability: stable
     __context_names:
       - login_history
-    __example: MFA_TOKEN_ABC123
-    __description:
-      The second factor used for authentication, such as an MFA token,
-      or NULL if not applicable.
+    __example: TOTP
+    __description: >-
+      The second factor used for authentication, such as an MFA token. Omitted when only a single factor was used.
+    __type: string
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: totp
+          value: TOTP
+          brief: Time-based one-time password (MFA token).
   authentication.type:
+    __semdict: ref
+    __semdict_note: >-
+      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE). DSOA also emits PASSWORD for Snowflake password auth;
+      this is flagged as an open enum extension request.
     __context_names:
       - sessions
     __example: PASSWORD
+    __type: string
     __description: The type of authentication used for the session.
   client.application.id:
+    __stability: stable
+    __semdict: new
     __context_names:
       - sessions
-    __example: app123
+    __example: SnowflakeJDBCDriver
+    __type: string
     __description: The ID of the client application used for the session.
   client.application.version:
+    __semdict: new
     __context_names:
       - sessions
     __example: 1.0.0
+    __type: string
     __description: The version of the client application used for the session.
   client.build_id:
+    __semdict: new
     __context_names:
       - sessions
     __example: build123
+    __type: string
     __description: The build ID of the client application.
   client.environment:
+    __stability: stable
+    __semdict: new
     __context_names:
       - sessions
     __example: PRODUCTION
+    __type: string
     __description: The environment of the client application.
   client.version:
     __context_names:
       - login_history
       - sessions
     __example: 1.0.0
+    __type: string
     __description: The version of the client software used to connect to Snowflake.
   db.snowflake.connection:
     __context_names:
       - login_history
     __example: connection_1
-    __description: The name of the connection used by the client, or NULL if the
-      client is not using a connection URL.
+    __type: string
+    __description: The name of the connection used by the client, or NULL if the client is not using a connection URL.
   snowflake.error.code:
+    __type: string
+    __semdict: new
+    __semdict_note: >-
+      In DSOA, used exclusively for Snowflake login failures as a string error code (e.g. "390100"). Diverges from the Dynatrace SD
+      error.code field (type: long, iOS/mobile numeric codes) — semantics and type are incompatible.
     __context_names:
       - login_history
-    __example: ERR001
-    __description:
-      The error code associated with the login attempt, if it was not
-      successful.
+    __example: "390100"
+
+    __description: A code identifying the type of error that occurred.
   event.id:
+    __semdict: ref
     __context_names:
       - login_history
       - sessions
-    __example: "123456789"
-    __description: A unique identifier for the login attempt or the login event
-      associated with the session.
+    __example: 13825839647097210
+    __type: long
+    __description: A unique identifier for the login attempt or the login event associated with the session.
   event.related_id:
+    __type: long
+    __semdict: new
+    __stability: experimental
     __context_names:
       - login_history
-    __example: "987654321"
+    __example: 987654321
     __description: An identifier for a related event, if applicable.
   snowflake.session.id:
+    __type: string
+    __semdict: new
+    __stability: experimental
     __context_names:
       - sessions
-    __example: session123
+    __example: "1234567890"
     __description: The unique identifier for the session.
   snowflake.session.closed_reason:
+    __type: string
     __context_names:
       - sessions
     __example: USER_LOGOUT
@@ -96,69 +159,145 @@ attributes:
   snowflake.session.start:
     __context_names:
       - sessions
-    __example: "1633046400000000000"
+    __type: long
+    __example: 1633046400000000000
     __description: The start time of the session.
   snowflake.status.code:
+    __semdict: new
     __context_names:
       - login_history
     __example: OK
-    __description:
-      The status of the login attempt, indicating success (OK) or failure
-      (ERROR).
+    __description: The status of the login attempt, indicating success (OK) or failure (ERROR).
+    __type: string
+    __enum:
+      allow_custom_values: false
+      members:
+        - id: ok
+          value: OK
+          brief: The operation completed successfully.
+        - id: error
+          value: ERROR
+          brief: The operation failed.
   snowflake.status.message:
+    __type: string
+    __semdict: new
     __context_names:
       - login_history
     __example: Login successful
-    __description:
-      A message providing additional details about the status of the
-      login attempt.
+    __description: A human-readable message providing additional detail about the operation status.
 dimensions:
   client.ip:
+    __semdict: ref
     __context_names:
       - login_history
+    __semdict_note: >-
+      OTel semconv uses client.address (stable). DSOA emits client.ip to match Snowflake LOGIN_HISTORY.CLIENT_IP column naming. The name is
+      intentionally preserved to make the column origin self-evident.
     __example: 192.168.1.1
+    __type: string
     __description: The IP address of the client that initiated the event.
   client.type:
+    __stability: stable
     __context_names:
       - login_history
     __example: JDBC_DRIVER
-    __description:
-      The type of client used to connect to Snowflake, such as JDBC_DRIVER
-      or ODBC_DRIVER.
+    __type: string
+    __description: The type of client used to connect to Snowflake, such as JDBC_DRIVER or ODBC_DRIVER.
   db.user:
+    __stability: stable
     __context_names:
       - login_history
       - sessions
     __example: john_doe
+    __type: string
     __description: The user who performed the event in the database.
   event.name:
+    __semdict: ref
     __context_names:
       - login_history
     __example: LOGIN
+    __type: string
     __description: |
       The type of event that occurred, such as:
       - LOGIN,
       - LOGOUT.
 metrics:
   snowflake.login.attempts.failed:
+    __type: long
     __context_names:
       - openpipeline
     __description: Number of failed Snowflake login attempts within the collection window.
-    __example: "42"
+    __example: 42
     displayName: Snowflake Login Attempts Failed
-    unit: "1"
+    unit: count
   snowflake.login.attempts.successful:
+    __type: long
     __context_names:
       - openpipeline
     __description: Number of successful Snowflake login attempts within the collection window.
-    __example: "1234"
+    __example: 1234
     displayName: Snowflake Login Attempts Successful
-    unit: "1"
+    unit: count
   snowflake.login.attempts.total:
+    __type: long
     __context_names:
       - openpipeline
     __description: >-
       Total number of Snowflake login attempts (failed + successful) within the collection window.
-    __example: "1276"
+    __example: 1276
     displayName: Snowflake Login Attempts Total
-    unit: "1"
+    unit: count
+dql_queries:
+  - query_string: |
+      timeseries failed = sum(snowflake.login.attempts.failed), by: { db.user, deployment.environment.name }
+    description: Plot failed Snowflake login attempts per user over time.
+    description_copilot: Timeseries of failed Snowflake login attempts per user.
+    context:
+      - metrics
+  - query_string: |
+      timeseries total = sum(snowflake.login.attempts.total), by: { client.type, deployment.environment.name }
+    description: Plot total Snowflake login attempts broken down by client type over time.
+    description_copilot: Timeseries of total Snowflake login attempts per client type.
+    context:
+      - metrics
+  - query_string: |
+      timeseries { failed = sum(snowflake.login.attempts.failed), successful = sum(snowflake.login.attempts.successful) },
+        by: { db.user, deployment.environment.name }
+    description: Compare failed and successful Snowflake login attempts per user over time.
+    description_copilot: Timeseries comparing failed and successful Snowflake login attempts per user.
+    context:
+      - metrics
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "login_history"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA login_history plugin log entries from Grail.
+    description_copilot: Search for all login_history plugin logs from the Snowflake observability agent.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "login_history"
+      | filter isNotNull(snowflake.error.code)
+      | fields timestamp, db.user, authentication.type, snowflake.error.code, snowflake.status.message
+      | sort timestamp desc
+      | limit 50
+    description: Fetch failed Snowflake logins with their authentication type and error details.
+    description_copilot: Find failed Snowflake login attempts with error codes and authentication type.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "login_history"
+      | filter isNotNull(client.ip)
+      | summarize { attempts = count() }, by: { client.ip, db.user }
+      | sort attempts desc
+      | limit 25
+    description: Rank source IP and user combinations by Snowflake login attempt volume.
+    description_copilot: Find which source IPs and users generate the most Snowflake login attempts.
+    context:
+      - logs

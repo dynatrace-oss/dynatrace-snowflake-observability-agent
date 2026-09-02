@@ -1,0 +1,58 @@
+model:
+  id: snowflake.logs.resource_monitors
+  title: Snowflake Resource Monitors log records
+  brief: Log records emitted by the DSOA resource_monitors plugin.
+  model_group_id: snowflake.logs
+  data_object: logs
+  interfaces: [ i.dsoa_resource ]
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "resource_monitors"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA resource_monitors plugin log entries from Grail.
+      description_copilot: Search for all resource_monitors plugin logs from the Snowflake observability agent.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "resource_monitors"
+        | filter isNotNull(snowflake.resource_monitor.name)
+        | fields timestamp, snowflake.resource_monitor.name, snowflake.credits.quota.used, snowflake.credits.quota.used_pct
+        | sort timestamp desc
+        | limit 50
+      description: Inspect per-monitor credit quota consumption readings from the resource_monitors plugin.
+      description_copilot: Show recent Snowflake resource monitor credit quota consumption.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "resource_monitors"
+        | filter toDouble(snowflake.credits.quota.used_pct) > 90
+        | sort timestamp desc
+        | limit 50
+      description: Fetch resource monitors that have consumed more than 90% of their credit quota.
+      description_copilot: Find Snowflake resource monitors close to exhausting their credit quota.
+  groups:
+    - id: snowflake.logs.resource_monitors.fields
+      type: attribute_group
+      title: Resource Monitors log record fields
+      brief: Attribute fields for Resource Monitors log records.
+      attributes:
+        - ref: snowflake.resource_monitor.frequency
+        - ref: snowflake.resource_monitor.is_active
+        - ref: snowflake.resource_monitor.level
+        - ref: snowflake.resource_monitor.threshold.direction
+        - ref: snowflake.resource_monitor.threshold.level
+        - ref: snowflake.resource_monitor.threshold.value
+        - ref: snowflake.resource_monitor.warehouses
+        - ref: snowflake.warehouse.event.trigger
+        - ref: snowflake.warehouse.execution_state
+        - ref: snowflake.warehouse.has_query_acceleration_enabled
+        - ref: snowflake.warehouse.is_auto_resume
+        - ref: snowflake.warehouse.is_current
+        - ref: snowflake.warehouse.is_default
+        - ref: snowflake.warehouse.is_unmonitored
+        - ref: snowflake.warehouse.owner.name
+        - ref: snowflake.warehouse.owner.role_type
+        - ref: snowflake.warehouse.scaling_policy

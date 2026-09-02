@@ -1,0 +1,94 @@
+model:
+  id: snowflake.metrics.active_queries
+  title: Snowflake active queries metrics
+  brief: Metrics collected by the DSOA active_queries plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: snowflake.metrics
+  data_object: metric
+  interfaces: [ i.dsoa_resource, i.snowflake_warehouse, i.snowflake_database ]
+  dql_queries:
+    - query_string: >
+        timeseries val = avg(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
+      description: Plot average execution time of currently running Snowflake queries per warehouse over time.
+      description_copilot: Timeseries of Snowflake query execution time broken down by warehouse.
+    - query_string: |
+        timeseries {
+          execution = avg(snowflake.time.execution),
+          running = avg(snowflake.time.running),
+          compilation = avg(snowflake.time.compilation)
+        },
+          by: { snowflake.warehouse.name, deployment.environment.name }
+      description: Compare average compilation, execution and total running time of active Snowflake queries per warehouse.
+      description_copilot: Timeseries comparing Snowflake query compilation, execution and running times per warehouse.
+    - query_string: |
+        timeseries p90 = percentile(snowflake.time.total_elapsed, 90),
+          by: { snowflake.warehouse.name, snowflake.role.name, deployment.environment.name }
+      description: Plot the 90th percentile total elapsed time of active Snowflake queries broken down by warehouse and role.
+      description_copilot: Timeseries of the p90 total elapsed time of active Snowflake queries per warehouse and role.
+  groups:
+    - id: snowflake.data.written_to_result
+      type: metric
+      metric_name: snowflake.data.written_to_result
+      instrument: gauge
+      brief: Number of bytes written to a result object.
+      title: Bytes Written to Result
+      unit: By
+      attributes:
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.role.name
+    - id: snowflake.rows.written_to_result
+      type: metric
+      metric_name: snowflake.rows.written_to_result
+      instrument: gauge
+      brief: Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;.
+      title: Rows Written to Result
+      unit: count
+      note: 'Original unit: row.'
+      attributes:
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.role.name
+    - id: snowflake.time.compilation
+      type: metric
+      metric_name: snowflake.time.compilation
+      instrument: gauge
+      brief: The total compilation time of the currently running query.
+      title: Query Compilation Time
+      unit: ms
+      attributes:
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.role.name
+    - id: snowflake.time.execution
+      type: metric
+      metric_name: snowflake.time.execution
+      instrument: gauge
+      brief: Execution time (in milliseconds)
+      title: Execution Time
+      unit: ms
+      attributes:
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.role.name
+    - id: snowflake.time.running
+      type: metric
+      metric_name: snowflake.time.running
+      instrument: gauge
+      brief: The total running time of the currently running query.
+      title: Query Running Time
+      unit: ms
+      attributes:
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.role.name
+    - id: snowflake.time.total_elapsed
+      type: metric
+      metric_name: snowflake.time.total_elapsed
+      instrument: gauge
+      brief: Elapsed time (in milliseconds).
+      title: Total Elapsed Time
+      unit: ms
+      attributes:
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.role.name

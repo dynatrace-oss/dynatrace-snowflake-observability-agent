@@ -1,0 +1,46 @@
+model:
+  id: snowflake.events.resource_monitors
+  title: Snowflake Resource Monitors lifecycle events
+  brief: Timestamp-based state-change events emitted by the DSOA resource_monitors plugin via the OpenPipeline Events API.
+  model_group_id: snowflake.events
+  data_object: events
+  interfaces: [ i.dsoa_resource ]
+  dql_queries:
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "resource_monitors"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch the most recent DSOA resource_monitors lifecycle events (monitor and warehouse state changes).
+      description_copilot: Search for Snowflake resource monitor and warehouse lifecycle events.
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "resource_monitors"
+        | summarize { events = count() }, by: { snowflake.event.type }
+        | sort events desc
+      description: Count DSOA resource_monitors lifecycle events grouped by event type.
+      description_copilot: Break down Snowflake resource monitor lifecycle events by their event type.
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "resource_monitors"
+        | filter isNotNull(snowflake.resource_monitor.name)
+        | fields timestamp, snowflake.event.type, snowflake.resource_monitor.name
+        | sort timestamp desc
+        | limit 25
+      description: Inspect resource monitor lifecycle events with their monitor name and event type.
+      description_copilot: Show Snowflake resource monitor lifecycle events with monitor name and event type.
+  groups:
+    - id: snowflake.events.resource_monitors.fields
+      type: attribute_group
+      title: Resource Monitors event fields
+      attributes:
+        - ref: snowflake.event.type
+        - ref: snowflake.resource_monitor.created_on
+        - ref: snowflake.resource_monitor.end_time
+        - ref: snowflake.resource_monitor.start_time
+        - ref: snowflake.warehouse.created_on
+        - ref: snowflake.warehouse.resumed_on
+        - ref: snowflake.warehouse.updated_on

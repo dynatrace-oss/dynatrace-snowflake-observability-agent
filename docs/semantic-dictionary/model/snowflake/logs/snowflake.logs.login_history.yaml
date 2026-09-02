@@ -1,0 +1,55 @@
+model:
+  id: snowflake.logs.login_history
+  title: Snowflake login history log records
+  brief: Log records emitted by the DSOA login_history plugin.
+  model_group_id: snowflake.logs
+  data_object: logs
+  interfaces: [ i.dsoa_resource ]
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "login_history"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA login_history plugin log entries from Grail.
+      description_copilot: Search for all login_history plugin logs from the Snowflake observability agent.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "login_history"
+        | filter isNotNull(snowflake.error.code)
+        | fields timestamp, db.user, authentication.type, snowflake.error.code, snowflake.status.message
+        | sort timestamp desc
+        | limit 50
+      description: Fetch failed Snowflake logins with their authentication type and error details.
+      description_copilot: Find failed Snowflake login attempts with error codes and authentication type.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "login_history"
+        | filter isNotNull(client.ip)
+        | summarize { attempts = count() }, by: { client.ip, db.user }
+        | sort attempts desc
+        | limit 25
+      description: Rank source IP and user combinations by Snowflake login attempt volume.
+      description_copilot: Find which source IPs and users generate the most Snowflake login attempts.
+  groups:
+    - id: snowflake.logs.login_history.fields
+      type: attribute_group
+      title: Login history log record fields
+      brief: Attribute fields for Login History log records.
+      attributes:
+        - ref: authentication.factor.first
+        - ref: authentication.factor.second
+        - ref: client.application.id
+        - ref: client.application.version
+        - ref: client.build_id
+        - ref: client.environment
+        - ref: client.version
+        - ref: db.snowflake.connection
+        - ref: event.related_id
+        - ref: snowflake.session.closed_reason
+        - ref: snowflake.session.start
+        - ref: snowflake.status.code
+        - ref: snowflake.status.message

@@ -1,0 +1,34 @@
+model_group:
+  id: snowflake.logs
+  title: Snowflake log records
+  brief: Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views.
+  parent_model_group_id: snowflake
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "metering"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA metering plugin log entries from Grail.
+      description_copilot: Search for all metering plugin logs from the Snowflake observability agent.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "metering"
+        | filter isNotNull(snowflake.service.name)
+        | fields timestamp, snowflake.service.name, snowflake.service.type, snowflake.credits.used
+        | sort timestamp desc
+        | limit 50
+      description: Inspect per-service credit consumption readings from the metering plugin.
+      description_copilot: Show recent Snowflake per-service credit consumption from the metering plugin.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "metering"
+        | filter isNotNull(snowflake.service.name)
+        | summarize { total_credits = sum(toDouble(snowflake.credits.used)) }, by: { snowflake.service.name }
+        | sort total_credits desc
+        | limit 25
+      description: Rank Snowflake services by total metered credit consumption.
+      description_copilot: Find which Snowflake services consume the most metered credits.

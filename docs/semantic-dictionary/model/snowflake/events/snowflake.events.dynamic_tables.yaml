@@ -1,0 +1,42 @@
+model:
+  id: snowflake.events.dynamic_tables
+  title: Snowflake dynamic tables lifecycle events
+  brief: Timestamp-based state-change events emitted by the DSOA dynamic_tables plugin via the OpenPipeline Events API.
+  model_group_id: snowflake.events
+  data_object: events
+  interfaces: [ i.dsoa_resource ]
+  dql_queries:
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "dynamic_tables"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch the most recent DSOA dynamic_tables lifecycle events (scheduling suspend/resume, graph version).
+      description_copilot: Search for Snowflake dynamic table scheduling and graph lifecycle events.
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "dynamic_tables"
+        | summarize { events = count() }, by: { snowflake.event.type }
+        | sort events desc
+      description: Count DSOA dynamic_tables lifecycle events grouped by event type.
+      description_copilot: Break down Snowflake dynamic table lifecycle events by their event type.
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "dynamic_tables"
+        | filter snowflake.event.type == "snowflake.table.dynamic.scheduling.suspended_on"
+        | sort timestamp desc
+        | limit 25
+      description: Fetch scheduling-suspended lifecycle events for Snowflake dynamic tables.
+      description_copilot: Find when Snowflake dynamic table scheduling was suspended.
+  groups:
+    - id: snowflake.events.dynamic_tables.fields
+      type: attribute_group
+      title: Dynamic tables event fields
+      attributes:
+        - ref: snowflake.event.type
+        - ref: snowflake.table.dynamic.graph.valid_from
+        - ref: snowflake.table.dynamic.scheduling.resumed_on
+        - ref: snowflake.table.dynamic.scheduling.suspended_on

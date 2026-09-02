@@ -16,16 +16,38 @@
 
 metrics:
   snowflake.credits.used:
-    __example: "15"
+    __type: double
+    __example: 15
     __description:
       Number of credits billed for loading data into the event table
       during the START_TIME and END_TIME window.
     displayName: Snowflake Credits Used
-    unit: credits
+    unit: credit
   snowflake.data.ingested:
-    __example: "10485760"
+    __type: long
+    __example: 10485760
     __description:
       Number of bytes of data loaded during the START_TIME and END_TIME
       window.
     displayName: Bytes Ingested for Event Table
-    unit: bytes
+    unit: By
+dql_queries:
+  - query_string: |
+      timeseries val = sum(snowflake.credits.used), by: { deployment.environment.name }
+    description: Plot credits billed for loading data into the event table over time.
+    description_copilot: Timeseries of Snowflake event table credit usage.
+    context:
+      - metrics
+  - query_string: |
+      timeseries val = sum(snowflake.data.ingested), by: { deployment.environment.name }
+    description: Plot bytes of data loaded into the event table over time.
+    description_copilot: Timeseries of Snowflake event table data ingestion volume.
+    context:
+      - metrics
+  - query_string: |
+      timeseries ingested = sum(snowflake.data.ingested), interval: 1d, by: { deployment.environment.name }
+      | fieldsAdd total_ingested = arraySum(ingested)
+    description: Report total daily bytes ingested into the event table per Snowflake account.
+    description_copilot: Daily total of Snowflake event table data ingestion per account.
+    context:
+      - metrics

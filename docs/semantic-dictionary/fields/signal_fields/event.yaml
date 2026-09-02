@@ -1,0 +1,12 @@
+groups:
+  - id: event
+    type: attribute_group
+    title: Event signal fields
+    brief: Signal-level fields for Event telemetry.
+    attributes:
+      - id: event.related_id
+        display_name: 'Event Related ID'
+        type: long
+        stability: experimental
+        brief: An identifier for a related event, if applicable.
+        examples: [ 987654321 ]

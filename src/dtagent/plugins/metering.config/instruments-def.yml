@@ -22,11 +22,62 @@
 
 dimensions:
   snowflake.service.type:
+    __type: string
+    __stability: stable
     __context_names: ["metering"]
     __example: AUTO_CLUSTERING
     __description: >-
       Snowflake service type that consumed credits (e.g. AUTO_CLUSTERING, PIPE, SERVERLESS_TASK, TELEMETRY_DATA_INGEST).
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: auto_clustering
+          value: AUTO_CLUSTERING
+          brief: >-
+            Credits consumed by the background service that continuously re-clusters micro-partitions of tables with an active clustering
+            key.
+        - id: pipe
+          value: PIPE
+          brief: >-
+            Credits consumed by Snowpipe for continuous micro-batch ingestion of staged files into Snowflake tables via serverless compute.
+        - id: serverless_task
+          value: SERVERLESS_TASK
+          brief: Credits consumed by tasks that run on Snowflake-managed serverless compute rather than a user-provisioned warehouse.
+        - id: telemetry_data_ingest
+          value: TELEMETRY_DATA_INGEST
+          brief: Credits consumed for ingesting OpenTelemetry-compatible logs, traces, and metrics into a Snowflake event table.
+        - id: warehouse_metering
+          value: WAREHOUSE_METERING
+          brief: Virtual warehouse compute credits.
+        - id: cloud_services
+          value: CLOUD_SERVICES
+          brief: Cloud services layer credits.
+        - id: replication
+          value: REPLICATION
+          brief: >-
+            Credits consumed to replicate databases, schemas, or failover groups across regions or cloud providers for disaster recovery or
+            data proximity.
+        - id: materialized_view
+          value: MATERIALIZED_VIEW
+          brief: >-
+            Credits consumed by the background service that keeps materialized view results up to date as underlying table data changes.
+        - id: search_optimization
+          value: SEARCH_OPTIMIZATION
+          brief: >-
+            Credits consumed to build and maintain the search access path that accelerates selective point-lookup and substring-search
+            queries.
+        - id: query_acceleration
+          value: QUERY_ACCELERATION
+          brief: >-
+            Credits consumed when the Query Acceleration Service offloads eligible query portions to auto-provisioned serverless compute to
+            reduce per-query latency.
+        - id: storage
+          value: STORAGE
+          brief: >-
+            Credits billed for bytes stored in Snowflake databases, internal stages, Time Travel history, and Fail-safe retention.
   snowflake.service.name:
+    __type: string
+    __stability: stable
     __context_names: ["metering"]
     __example: MY_PIPE
     __description: >-
@@ -35,50 +86,111 @@ dimensions:
 attributes:
   snowflake.service.entity_id:
     __context_names: ["metering"]
-    __example: "12345"
+    __example: 12345
+    __type: long
     __description: >-
       Unique Snowflake identifier of the service entity.
 
 metrics:
   snowflake.credits.used:
+    __type: double
     __context_names: ["metering"]
-    __example: "15.5"
+    __example: 15.5
     __description: >-
       Total credits consumed by the service in the metering window.
     displayName: Snowflake Credits Used
-    unit: credits
+    unit: credit
   snowflake.credits.used.compute:
+    __type: double
     __context_names: ["metering"]
-    __example: "12.3"
+    __example: 12.3
     __description: >-
       Compute credits consumed by the service in the metering window.
     displayName: Snowflake Compute Credits Used
-    unit: credits
+    unit: credit
   snowflake.credits.used.cloud_services:
+    __type: long
     __context_names: ["metering"]
-    __example: "3.2"
+    __example: 3.2
     __description: >-
       Cloud services credits consumed by the service in the metering window.
     displayName: Snowflake Cloud Services Credits Used
-    unit: credits
+    unit: credit
   snowflake.metering.data.size:
+    __type: long
     __context_names: ["metering"]
-    __example: "10485760"
+    __example: 10485760
     __description: >-
       Number of bytes processed by the service in the metering window.
     displayName: Bytes Processed
-    unit: bytes
+    unit: By
   snowflake.metering.data.rows:
+    __type: long
     __context_names: ["metering"]
-    __example: "50000"
+    __example: 50000
     __description: >-
       Number of rows processed by the service in the metering window.
     displayName: Rows Processed
-    unit: rows
+    unit: row
   snowflake.data.files:
+    __type: long
     __context_names: ["metering"]
-    __example: "120"
+    __example: 120
     __description: >-
       Number of files processed by the service in the metering window.
     displayName: Files Processed
-    unit: files
+    unit: file
+dql_queries:
+  - query_string: |
+      timeseries credits = sum(snowflake.credits.used), by: { snowflake.service.name, deployment.environment.name }
+    description: Plot total credits consumed per Snowflake service over time.
+    description_copilot: Timeseries of Snowflake credits consumed per service.
+    context:
+      - metrics
+  - query_string: |
+      timeseries compute = sum(snowflake.credits.used.compute), by: { snowflake.service.type, deployment.environment.name }
+    description: Plot compute credits consumed per Snowflake service type over time.
+    description_copilot: Timeseries of Snowflake compute credits per service type.
+    context:
+      - metrics
+  - query_string: |
+      timeseries { compute = sum(snowflake.credits.used.compute), cloud_services = sum(snowflake.credits.used.cloud_services) },
+        by: { snowflake.service.name, deployment.environment.name }
+    description: Compare compute and cloud-services credits per Snowflake service over time.
+    description_copilot: Timeseries comparing Snowflake compute and cloud-services credits per service.
+    context:
+      - metrics
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "metering"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA metering plugin log entries from Grail.
+    description_copilot: Search for all metering plugin logs from the Snowflake observability agent.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "metering"
+      | filter isNotNull(snowflake.service.name)
+      | fields timestamp, snowflake.service.name, snowflake.service.type, snowflake.credits.used
+      | sort timestamp desc
+      | limit 50
+    description: Inspect per-service credit consumption readings from the metering plugin.
+    description_copilot: Show recent Snowflake per-service credit consumption from the metering plugin.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "metering"
+      | filter isNotNull(snowflake.service.name)
+      | summarize { total_credits = sum(toDouble(snowflake.credits.used)) }, by: { snowflake.service.name }
+      | sort total_credits desc
+      | limit 25
+    description: Rank Snowflake services by total metered credit consumption.
+    description_copilot: Find which Snowflake services consume the most metered credits.
+    context:
+      - logs
