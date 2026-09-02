@@ -2,7 +2,7 @@ groups:
   - id: snowflake.resource_monitor.resource
     type: resource
     title: Snowflake Resource Monitor resource fields
-    brief: Resource-level fields describing Snowflake Snowflake Resource Monitor resource entities.
+    brief: Resource-level fields describing Snowflake Resource Monitor resource entities.
     attributes:
       - id: snowflake.resource_monitor.frequency
         display_name: 'Snowflake Resource Monitor Frequency'
@@ -44,7 +44,7 @@ groups:
   - id: snowflake.warehouse.resource
     type: resource
     title: Snowflake warehouse resource fields
-    brief: Resource-level fields describing Snowflake Snowflake warehouse resource entities.
+    brief: Resource-level fields describing Snowflake warehouse resource entities.
     attributes:
       - id: snowflake.warehouse.clusters.count
         display_name: 'Snowflake Warehouse Clusters Count'
