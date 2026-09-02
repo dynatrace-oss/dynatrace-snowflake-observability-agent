@@ -18,7 +18,7 @@ now also applies to `dsoa`. `doc/fields/snowflake.md` already consolidated all `
 `snowflake.*` groups (signal + resource) into one file (Fix 5 of the PR #1964 fixes) — `dsoa.md`
 now does the same for `dsoa`/`dsoa.*` groups.
 
-## Changes (`src/build/export_semantics.py`)
+## Changes (`src/build/semantic_exporter/`)
 
 1. **`_build_signal_fields_yaml`**: extended the existing `snowflake`/`snowflake.*` →
    `fields/signal_fields/snowflake.yaml` bucketing to also bucket `dsoa`/`dsoa.*` groups into

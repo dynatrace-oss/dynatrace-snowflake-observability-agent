@@ -34,10 +34,10 @@ from build.semantic_exporter.yaml_helpers import ExportError
 from build.semantic_exporter.field_emitters import (
     KNOWN_REFS,
     VALID_SEMDICT_FLAGS,
-    _classify_field,
-    _emit_id_entry,
-    _emit_ref_entry,
-    _validate_entry,
+    classify_field,
+    emit_id_entry,
+    emit_ref_entry,
+    validate_entry,
 )
 
 log = logging.getLogger("build.export_semantics")
@@ -110,7 +110,7 @@ class EntryDiscoverer:
                     log.warning("[%s] %s.%s: unknown __semdict '%s'; treating as 'new'", plugin_name, section, key, semdict_flag)
                     semdict_flag = "new"
                 if semdict_flag != "ref":
-                    errors.extend(_validate_entry(key, entry, section, str(path)))
+                    errors.extend(validate_entry(key, entry, section, str(path)))
                 if semdict_flag == "ref" and key not in KNOWN_REFS:
                     log.warning("[%s] %s.%s: __semdict: ref but key not in KNOWN_REFS", plugin_name, section, key)
                 entries[key] = {
@@ -118,7 +118,7 @@ class EntryDiscoverer:
                     "semdict": semdict_flag,
                     "plugin": plugin_name,
                     "entry": entry,
-                    "classification": _classify_field(key, section, entry.get("__field_type")),
+                    "classification": classify_field(key, section, entry.get("__field_type")),
                 }
         return errors, entries
 
@@ -166,8 +166,8 @@ class EntryDiscoverer:
         entry = meta["entry"]
         if semdict_flag == "ref":
             counters["ref"] += 1
-            return _emit_ref_entry(key, entry)
-        node = _emit_id_entry(key, entry, semdict_flag, no_display_name=no_display_name)
+            return emit_ref_entry(key, entry)
+        node = emit_id_entry(key, entry, semdict_flag, no_display_name=no_display_name)
         bucket = {"deprecated-alias": "deprecated_alias", "otel-only": "otel_only", "otel-dsoa": "otel_dsoa"}.get(semdict_flag, "new")
         counters[bucket] += 1
         return node

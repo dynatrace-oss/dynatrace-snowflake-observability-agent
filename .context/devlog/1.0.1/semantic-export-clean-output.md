@@ -2,7 +2,7 @@
 
 ## What changed
 
-- `src/build/export_semantics.py` — two targeted fixes:
+- `src/build/semantic_exporter/` — two targeted fixes:
 
   1. **WARNING fix (`_validate_entry`)**: The numeric-example-without-`__type` warning
      was firing for `metrics:` section entries.  In the `metrics` section, `__type`

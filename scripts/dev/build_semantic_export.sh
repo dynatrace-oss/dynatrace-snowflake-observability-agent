@@ -332,7 +332,7 @@ run_sanity_checks() {
     # files this export produces — not the thousands of pre-existing findings across every
     # other vendor namespace in the SD repo. The generator's --files-to-check expects the
     # container-internal /source/... paths (the SD repo source/ is mounted at /source).
-    # The globs mirror SD_OWNED_GROUP_PREFIXES in semantic_exporter/field_emitters.py.
+    # The globs mirror SD_OWNED_GROUP_PREFIXES in semantic_exporter/constants.py.
     local dsoa_files=()
     local f
     while IFS= read -r f; do

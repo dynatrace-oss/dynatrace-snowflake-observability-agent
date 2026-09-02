@@ -31,14 +31,14 @@ from build.semantic_exporter.field_emitters import (
     INTERFACE_DATABASE_KEYS,
     INTERFACE_WAREHOUSE_KEYS,
     RESOURCE_ATTRIBUTE_KEYS,
-    _GROUP_TITLE_OVERRIDES,
-    _RES_NS,
-    _SIG_NS,
-    _emit_metric_entry,
-    _make_display_name,
-    _make_title,
-    _ns_group,
-    _plugin_label,
+    GROUP_TITLE_OVERRIDES,
+    RES_NS,
+    SIG_NS,
+    emit_metric_entry,
+    make_display_name,
+    make_title,
+    ns_group,
+    plugin_label,
 )
 
 
@@ -85,7 +85,7 @@ class DocumentBuilder:
 
         sf_groups: Dict[str, Dict[str, Any]] = {}
         for key in sorted(snowflake_keys):
-            group_id, group_type = _ns_group(key, _RES_NS, "snowflake.resource", "resource")
+            group_id, group_type = ns_group(key, RES_NS, "snowflake.resource", "resource")
             if group_id not in sf_groups:
                 sf_groups[group_id] = {"type": group_type, "attrs": []}
             sf_groups[group_id]["attrs"].append(
@@ -97,8 +97,8 @@ class DocumentBuilder:
             {
                 "id": gid,
                 "type": sf_groups[gid]["type"],
-                "title": _make_title(gid[: -len(".resource")] if gid.endswith(".resource") else gid) + " resource fields",
-                "brief": f"Resource-level fields describing {_make_title(gid[:-len('.resource')] if gid.endswith('.resource') else gid)} resource entities.",
+                "title": make_title(gid[: -len(".resource")] if gid.endswith(".resource") else gid) + " resource fields",
+                "brief": f"Resource-level fields describing {make_title(gid[:-len('.resource')] if gid.endswith('.resource') else gid)} resource entities.",
                 "attributes": sf_groups[gid]["attrs"],
             }
             for gid in sorted(sf_groups)
@@ -155,7 +155,7 @@ class DocumentBuilder:
             # Refs are included via i.dsoa_resource and related interfaces by build_interfaces_yaml().
             if all_signal[key]["semdict"] == "ref":
                 continue
-            group_id, group_type = _ns_group(key, _SIG_NS, "snowflake.misc", "attribute_group")
+            group_id, group_type = ns_group(key, SIG_NS, "snowflake.misc", "attribute_group")
             if group_id not in groups_map:
                 groups_map[group_id] = {"type": group_type, "attrs": []}
             groups_map[group_id]["attrs"].append(
@@ -170,11 +170,11 @@ class DocumentBuilder:
         # convention this dsoa consolidation now also follows).
         docs: Dict[str, Dict[str, Any]] = {}
         for gid in sorted(groups_map):
-            brief_subject = "observed timestamp" if gid == "observed_timestamp" else _make_title(gid)
+            brief_subject = "observed timestamp" if gid == "observed_timestamp" else make_title(gid)
             group_entry = {
                 "id": gid,
                 "type": groups_map[gid]["type"],
-                "title": (_GROUP_TITLE_OVERRIDES.get(gid) or _make_title(gid)) + " signal fields",
+                "title": (GROUP_TITLE_OVERRIDES.get(gid) or make_title(gid)) + " signal fields",
                 "brief": f"Signal-level fields for {brief_subject} telemetry.",
                 "attributes": groups_map[gid]["attrs"],
             }
@@ -379,7 +379,7 @@ class DocumentBuilder:
                 if dc_names and not dc_names.intersection(mc_names):
                     continue
                 dim_refs.append({"ref": dim_key})
-            metric_node = _emit_metric_entry(metric_key, m_meta["entry"])
+            metric_node = emit_metric_entry(metric_key, m_meta["entry"])
             if dim_refs:
                 metric_node["attributes"] = dim_refs
             groups.append(metric_node)
@@ -387,7 +387,7 @@ class DocumentBuilder:
 
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.metrics.{plugin_name}",
-            "title": f"Snowflake {_plugin_label(plugin_name)} metrics",
+            "title": f"Snowflake {plugin_label(plugin_name)} metrics",
             "brief": f"Metrics collected by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
             "model_group_id": "snowflake.metrics",
             "data_object": "metric",
@@ -424,7 +424,7 @@ class DocumentBuilder:
             counters["event_timestamp_fields"] += 1
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.events.{plugin_name}",
-            "title": f"Snowflake {_plugin_label(plugin_name)} lifecycle events",
+            "title": f"Snowflake {plugin_label(plugin_name)} lifecycle events",
             "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
             "model_group_id": "snowflake.events",
             "data_object": "events",
@@ -436,7 +436,7 @@ class DocumentBuilder:
             {
                 "id": f"snowflake.events.{plugin_name}.fields",
                 "type": "attribute_group",
-                "title": f"{_plugin_label(plugin_name, cap_first=True)} event fields",
+                "title": f"{plugin_label(plugin_name, cap_first=True)} event fields",
                 "attributes": attrs,
             }
         ]
@@ -521,7 +521,7 @@ class DocumentBuilder:
         attr_refs = self.collect_plugin_attribute_refs(plugin_name, all_entries, exclude_span_only=True)
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.logs.{plugin_name}",
-            "title": f"Snowflake {_plugin_label(plugin_name)} log records",
+            "title": f"Snowflake {plugin_label(plugin_name)} log records",
             "brief": f"Log records emitted by the DSOA {plugin_name} plugin.",
             "model_group_id": "snowflake.logs",
             "data_object": "logs",
@@ -534,8 +534,8 @@ class DocumentBuilder:
                 {
                     "id": f"snowflake.logs.{plugin_name}.fields",
                     "type": "attribute_group",
-                    "title": f"{_plugin_label(plugin_name, cap_first=True)} log record fields",
-                    "brief": f"Attribute fields for {_make_display_name(plugin_name)} log records.",
+                    "title": f"{plugin_label(plugin_name, cap_first=True)} log record fields",
+                    "brief": f"Attribute fields for {make_display_name(plugin_name)} log records.",
                     "attributes": attr_refs,
                 }
             ]
@@ -564,7 +564,7 @@ class DocumentBuilder:
         attr_refs = self.collect_plugin_attribute_refs(plugin_name, all_entries)
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.spans.{plugin_name}",
-            "title": f"Snowflake {_plugin_label(plugin_name)} spans",
+            "title": f"Snowflake {plugin_label(plugin_name)} spans",
             "brief": f"Span records emitted by the DSOA {plugin_name} plugin.",
             "model_group_id": "snowflake.spans",
             "data_object": "spans",
@@ -577,8 +577,8 @@ class DocumentBuilder:
                 {
                     "id": f"snowflake.spans.{plugin_name}.fields",
                     "type": "attribute_group",
-                    "title": f"{_plugin_label(plugin_name, cap_first=True)} span fields",
-                    "brief": f"Attribute fields for {_make_display_name(plugin_name)} spans.",
+                    "title": f"{plugin_label(plugin_name, cap_first=True)} span fields",
+                    "brief": f"Attribute fields for {make_display_name(plugin_name)} spans.",
                     "attributes": attr_refs,
                 }
             ]

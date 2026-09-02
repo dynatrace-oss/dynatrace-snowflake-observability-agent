@@ -33,19 +33,19 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from build.semantic_exporter.yaml_helpers import _add_flow_seq_spaces, _IndentedDumper, _make_ruamel_yaml, _merge_into_ruamel
+from build.semantic_exporter.constants import SD_OWNED_GROUP_PREFIXES
+from build.semantic_exporter.yaml_helpers import add_flow_seq_spaces, IndentedDumper, make_ruamel_yaml, merge_into_ruamel
 from build.semantic_exporter.field_emitters import (
     SD_FIELD_CATEGORY,
     SD_FIELD_CATEGORY_DESCRIPTION,
     SD_FIELD_CATEGORY_DISPLAY_NAME,
     SD_MAINTAINER,
-    SD_OWNED_GROUP_PREFIXES,
     SD_OWNERS,
     SD_PM,
     SD_TEAM,
-    _FIELD_STUB_H2_OVERRIDES,
-    _make_title,
-    _requote_scalars,
+    FIELD_STUB_H2_OVERRIDES,
+    make_title,
+    requote_scalars,
 )
 
 log = logging.getLogger("build.export_semantics")
@@ -87,7 +87,7 @@ class OutputWriter:
         than replacing the file wholesale — preserving SD-maintained content in
         groups that DSOA does not own.
 
-        Uses :class:`_IndentedDumper` to produce properly indented block sequences
+        Uses :class:`IndentedDumper` to produce properly indented block sequences
         per Semantic Dictionary YAML conventions.
 
         Args:
@@ -100,22 +100,22 @@ class OutputWriter:
         """
         out_path = self.output_dir / rel_path
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        _requote_scalars(doc)
-        dsoa_text = yaml.dump(doc, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True, sort_keys=False, width=4096)
-        dsoa_text = _add_flow_seq_spaces(dsoa_text)
+        requote_scalars(doc)
+        dsoa_text = yaml.dump(doc, Dumper=IndentedDumper, default_flow_style=False, allow_unicode=True, sort_keys=False, width=4096)
+        dsoa_text = add_flow_seq_spaces(dsoa_text)
         if not out_path.exists():
             out_path.write_text(dsoa_text, encoding="utf-8")
         else:
             # Use ruamel.yaml round-trip merge so inline comments in the existing file
             # (e.g. stability: experimental # traces-in-grail) are preserved.
-            ry = _make_ruamel_yaml()
+            ry = make_ruamel_yaml()
             dsoa_cm = ry.load(dsoa_text)
             with open(out_path, "r", encoding="utf-8") as fh:
                 existing_cm = ry.load(fh)
-            _merge_into_ruamel(existing_cm, dsoa_cm)
+            merge_into_ruamel(existing_cm, dsoa_cm)
             buf = StringIO()
             ry.dump(existing_cm, buf)
-            out_path.write_text(_add_flow_seq_spaces(buf.getvalue()), encoding="utf-8")
+            out_path.write_text(add_flow_seq_spaces(buf.getvalue()), encoding="utf-8")
         log.debug("Wrote %s", out_path)
         counters["files"] += 1
         return out_path
@@ -496,7 +496,7 @@ class OutputWriter:
         # matching the SD's own multi-block-per-file convention (doc/fields/azure_resource.md).
         _consolidated_domains: Dict[str, Tuple[str, str]] = {
             "snowflake": ("snowflake.md", "Snowflake"),
-            "dsoa": ("dsoa.md", _FIELD_STUB_H2_OVERRIDES.get("dsoa") or "DSOA"),
+            "dsoa": ("dsoa.md", FIELD_STUB_H2_OVERRIDES.get("dsoa") or "DSOA"),
         }
 
         def _consolidated_domain(group_id: str) -> Optional[str]:
@@ -517,7 +517,7 @@ class OutputWriter:
             # h2 heading: sentence-case namespace, no "fields" or "resource" suffix.
             # Strip any ".resource" id suffix so "snowflake.warehouse.resource" → "## Snowflake warehouse".
             ns_key = group_id[: -len(".resource")] if group_id.endswith(".resource") else group_id
-            h2_title = _FIELD_STUB_H2_OVERRIDES.get(ns_key) or _make_title(ns_key)
+            h2_title = FIELD_STUB_H2_OVERRIDES.get(ns_key) or make_title(ns_key)
             filename = group_id.replace(".", "_") + ".md"
             content = (
                 f"## {h2_title}\n"

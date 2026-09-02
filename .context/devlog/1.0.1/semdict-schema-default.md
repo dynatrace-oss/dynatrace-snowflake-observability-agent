@@ -2,7 +2,7 @@
 
 ## What changed
 
-- `src/build/export_semantics.py` — `_parse_args()`: `--schema` default changed from
+- `src/build/semantic_exporter/` — `_parse_args()`: `--schema` default changed from
   `.context/otel-build-tool/semantic-conventions/semconv.schema.json` to
   `scripts/tools/semconv.schema.json`.
 - `scripts/dev/build_semantic_export.sh`:

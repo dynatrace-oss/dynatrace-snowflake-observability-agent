@@ -36,6 +36,8 @@ from typing import ClassVar
 import yaml
 from ruamel.yaml import YAML as RuamelYAML
 
+from build.semantic_exporter.constants import SD_OWNED_GROUP_PREFIXES
+
 ##region Data structures
 
 
@@ -51,7 +53,7 @@ class ExportError(Exception):
 _FLOW_SEQ_RE = re.compile(r"^(\s+\S+:\s*)\[([^\]]+)\]$", re.MULTILINE)
 
 
-def _add_flow_seq_spaces(content: str) -> str:
+def add_flow_seq_spaces(content: str) -> str:
     """Add spaces inside YAML flow-sequence brackets to match SD convention.
 
     Transforms ``['A']`` → ``[ 'A' ]``.  Only matches ``key: [...]`` patterns on
@@ -60,7 +62,7 @@ def _add_flow_seq_spaces(content: str) -> str:
     return _FLOW_SEQ_RE.sub(r"\1[ \2 ]", content)
 
 
-def _make_ruamel_yaml() -> RuamelYAML:
+def make_ruamel_yaml() -> RuamelYAML:
     """Return a ruamel.yaml instance configured for round-trip YAML processing.
 
     ``preserve_quotes=True`` keeps single/double/block-scalar styles intact.
@@ -75,7 +77,7 @@ def _make_ruamel_yaml() -> RuamelYAML:
     return ry
 
 
-def _merge_into_ruamel(existing, new) -> None:
+def merge_into_ruamel(existing, new) -> None:
     """Merge DSOA groups from *new* CommentedMap into *existing* CommentedMap in-place.
 
     Preserves all existing content (including inline comments) unchanged.
@@ -151,10 +153,6 @@ def _merge_into_ruamel(existing, new) -> None:
                 del ex_m[key]
         existing_container, new_container = ex_m, new_m
 
-    # Imported locally to avoid a circular import: field_emitters imports
-    # _QuotedStr/_SingleQuotedStr from this module.
-    from build.semantic_exporter.field_emitters import SD_OWNED_GROUP_PREFIXES  # pylint: disable=import-outside-toplevel,cyclic-import
-
     if "groups" not in existing_container or "groups" not in new_container:
         return
     existing_by_id = {g["id"]: g for g in existing_container.get("groups", [])}
@@ -203,7 +201,7 @@ def _merge_into_ruamel(existing, new) -> None:
             existing_container["groups"].append(new_group)
 
 
-class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
+class IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
     """YAML Dumper that properly indents block sequence items and preserves multi-line strings.
 
     The default PyYAML Dumper uses compact (indentless) block sequences, where
@@ -223,7 +221,7 @@ class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
           attributes:
           - ref: bar
 
-    Example — _IndentedDumper (correct for SD)::
+    Example — IndentedDumper (correct for SD)::
 
         groups:
           - id: foo
@@ -323,10 +321,10 @@ class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
         return super().represent_sequence(tag, sequence, flow_style=flow_style)
 
 
-_IndentedDumper.add_representer(str, _IndentedDumper.represent_str)
+IndentedDumper.add_representer(str, IndentedDumper.represent_str)
 
 
-class _QuotedStr(str):
+class QuotedStr(str):
     """String that is always serialised with double-quote YAML style.
 
     Used for enum member ``id`` and ``value`` fields so that all member scalars
@@ -336,25 +334,25 @@ class _QuotedStr(str):
     """
 
 
-def _represent_quoted_str(dumper: _IndentedDumper, data: str) -> yaml.ScalarNode:
+def _represent_quoted_str(dumper: IndentedDumper, data: str) -> yaml.ScalarNode:
     return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
 
 
-_IndentedDumper.add_representer(_QuotedStr, _represent_quoted_str)
+IndentedDumper.add_representer(QuotedStr, _represent_quoted_str)
 
 
-class _SingleQuotedStr(str):
+class SingleQuotedStr(str):
     """String that is always serialised with single-quote YAML style.
 
     Used for attribute example values so they match hand-authored SD YAML convention.
     """
 
 
-def _represent_single_quoted_str(dumper: _IndentedDumper, data: str) -> yaml.ScalarNode:
+def _represent_single_quoted_str(dumper: IndentedDumper, data: str) -> yaml.ScalarNode:
     return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="'")
 
 
-_IndentedDumper.add_representer(_SingleQuotedStr, _represent_single_quoted_str)
+IndentedDumper.add_representer(SingleQuotedStr, _represent_single_quoted_str)
 
 
 ##endregion

@@ -13,7 +13,7 @@ a future session.
 
 ### Task 6 (G4) — Split the `snowflake.misc` grab-bag
 
-**File:** `src/build/export_semantics.py` — `_SIG_NS` (ordered `(prefix, group_id,
+**File:** `src/build/semantic_exporter/` — `_SIG_NS` (ordered `(prefix, group_id,
 group_type)` list matched first-prefix-wins by `_ns_group`).
 
 Added namespace entries so these leave the `snowflake.misc` fallback bucket:
@@ -142,7 +142,7 @@ them without DSOA claiming ownership of their definitions.
 
 | File                                                           | Change                                                                                                                                                                                                                                                                                                                                      |
 |----------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `src/build/export_semantics.py`                                | Task 6: 15 new `_SIG_NS` entries (incl. one dynamic-graph entry ordered before its generic parent, three exact-match bare-field routes). Task 7: `plugin_dql_queries_span` dict + read + span call-site fallback; `exclude_span_only` param on `_collect_plugin_attribute_refs`; `_build_log_model_yaml` now excludes `__span_only` fields. |
+| `src/build/semantic_exporter/`                                | Task 6: 15 new `_SIG_NS` entries (incl. one dynamic-graph entry ordered before its generic parent, three exact-match bare-field routes). Task 7: `plugin_dql_queries_span` dict + read + span call-site fallback; `exclude_span_only` param on `_collect_plugin_attribute_refs`; `_build_log_model_yaml` now excludes `__span_only` fields. |
 | `scripts/tools/instruments-def.schema.json`                    | Task 7: added `dql_queries_span` top-level property and `__span_only` `AttributeDefinition` property.                                                                                                                                                                                                                                       |
 | `src/dtagent/plugins/query_history.config/instruments-def.yml` | Task 7: `__span_only: true` on 9 fields; new `dql_queries_span:` block (3 entries).                                                                                                                                                                                                                                                         |
 | `docs/CHANGELOG.md`                                            | Added `[1.0.0]` entries for both tasks.                                                                                                                                                                                                                                                                                                     |

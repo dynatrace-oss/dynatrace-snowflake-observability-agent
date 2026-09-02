@@ -255,7 +255,7 @@ class TestDimensionCoverage:
         This test uses the generated output files to verify coverage.
         """
         if not SEMDICT_SOURCE.exists():
-            pytest.skip("build/_semdict/source/ not found — run export_semantics.py first")
+            pytest.skip("build/_semdict/source/ not found — run scripts/dev/build_semantic_export.sh first")
 
         all_defs = _load_all_instruments_defs()
         generated = _load_generated_yaml_files()

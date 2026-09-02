@@ -91,7 +91,7 @@ def require_semdict_source() -> None:
         pytest.skip: If the output directory is missing.
     """
     if not SEMDICT_SOURCE.exists():
-        pytest.skip("build/_semdict/source/ not found — run export_semantics.py first")
+        pytest.skip("build/_semdict/source/ not found — run scripts/dev/build_semantic_export.sh first")
 
 
 def load_all_generated_yaml() -> Dict[str, Dict[str, Any]]:
