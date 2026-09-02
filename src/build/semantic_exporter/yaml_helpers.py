@@ -114,7 +114,7 @@ def merge_into_ruamel(existing, new) -> None:
     # new → existing when new has a non-empty value, for DSOA-owned groups only — e.g.
     # group-level title/brief text fixes (DSOA subtitle abbreviation, observed_timestamp
     # brief casing).
-    _GROUP_UPDATABLE_KEYS = frozenset({"title"})
+    _GROUP_UPDATABLE_KEYS = frozenset({"title", "brief"})
     # Top-level model_group keys we propagate from new → existing when new has a value.
     # parent_model_group_id is included so the sub-model-group hierarchy (e.g. wiring
     # snowflake.logs/.events/.spans under the parent "snowflake" model_group) is picked
