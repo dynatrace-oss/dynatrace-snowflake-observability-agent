@@ -25,7 +25,7 @@ attributes:
     __description: The pipe's COPY statement.
   snowflake.pipe.invalid_reason:
     __type: string
-    displayName: Snowflake pipe invalid reason
+    displayName: Snowflake pipe invalid state reason
     __context_names:
       - snowpipes
     __example: "Pipe paused by user"
@@ -39,7 +39,7 @@ attributes:
     __description: Cloud notification channel URL.
   snowflake.pipe.created_on:
     __type: string
-    displayName: Snowflake pipe creation timestamp
+    displayName: Snowflake pipe creation time
     __stability: stable
     __context_names:
       - snowpipes
@@ -271,7 +271,7 @@ event_timestamps:
     __description: Standard event trigger key.
   snowflake.pipe.created_on:
     __type: long
-    displayName: Snowflake pipe creation timestamp
+    displayName: Snowflake pipe creation time
     __stability: stable
     __context_names:
       - snowpipes

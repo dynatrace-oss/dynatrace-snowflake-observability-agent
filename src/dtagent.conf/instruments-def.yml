@@ -45,7 +45,7 @@ dimensions:
     __type: string
   deployment.environment.name:
     __stability: stable
-    __semdict: otel-only
+    __semdict: otel-dsoa
     displayName: Snowflake deployment environment name
     __semdict_note: >-
       OTel Semantic Conventions stable canonical name (since v1.26). DSOA co-emits this alongside the deprecated `deployment.environment`
@@ -60,7 +60,6 @@ dimensions:
     __type: string
   deployment.environment.tag:
     __stability: stable
-    __semdict: new
     displayName: Deployment environment tag
     __interface_note: "Optional user-defined tag for grouping Snowflake accounts in multitenancy mode, set via 'core.tag'."
     __description: "Optional tag for the deployment environment in multitenancy mode"
@@ -116,7 +115,6 @@ dimensions:
     __type: string
   dsoa.run.context:
     __stability: stable
-    __semdict: new
     displayName: DSOA execution context
     __interface_note: "Identifies the specific sub-context within the plugin (e.g. 'query_history', 'users_all_roles')."
     __description:
@@ -127,7 +125,6 @@ dimensions:
     __type: string
   dsoa.run.plugin:
     __stability: stable
-    __semdict: new
     displayName: DSOA execution plugin name
     __field_type: resource
     __interface_note: "The DSOA plugin that produced this telemetry (e.g. 'query_history', 'warehouse_usage')."
@@ -143,7 +140,6 @@ dimensions:
 #  * VALUE[example]       - the example of attribute value
 attributes:
   anomaly.detector:
-    __semdict: new
     __type: string
     displayName: Anomaly detector
     __description: >-
@@ -151,7 +147,6 @@ attributes:
       ``dsoa.data_volume_anomaly``) except for the failed-login detector which uses ``dsoa.failed_login_detection``.
     __example: "dsoa.data_volume_anomaly"
   anomaly.direction:
-    __semdict: new
     __type: string
     displayName: Anomaly direction
     __description: >-
@@ -168,7 +163,6 @@ attributes:
           value: below
           brief: Metric value dropped below the expected lower threshold.
   anomaly.subject:
-    __semdict: new
     __type: string
     displayName: Anomaly subject
     __description: >-
@@ -210,7 +204,6 @@ attributes:
     __example: "snowflake.credits.quota.used_pct"
   dsoa.run.id:
     __stability: stable
-    __semdict: new
     displayName: DSOA execution unique identifier
     __interface_note: "Unique identifier for a single DSOA agent execution run. Changes on every invocation."
     __description:
@@ -219,7 +212,6 @@ attributes:
     __example: "4aa7c76c-e98c-4b8b-a5b3-a8a721bbde2d"
     __type: string
   snowflake.event.type:
-    __semdict: new
     displayName: Snowflake event type
     __description: "Type of (timestamp based) event"
     __example: "snowflake.table.update"
@@ -228,7 +220,6 @@ attributes:
     __stability: stable
     __type: long
     displayName: Observed event timestamp
-    __semdict: new
     __semdict_note: >-
       In OTel Log Data Model, observed_timestamp is a structural field (not an attribute key). Dynatrace normalizes this into the attribute
       bag for query consistency.

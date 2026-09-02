@@ -1,3 +1,7 @@
+---
+cssclasses:
+  - wide-page
+---
 # displayName Review — BIZOBS-2639
 
 Review document for `displayName` values across all 21 `instruments-def.yml` files. Entries split by origin: fields newly introduced by DSOA vs. fields that reference existing Dynatrace Semantic Dictionary or OTel semconv definitions.
@@ -116,8 +120,8 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.data.size` | Snowflake table size | Size in bytes of the Snowflake object. | attribute | shares |
 | `snowflake.data.spilled.local` | Snowflake data spilled to local storage | Volume of data spilled to local disk. | metric | query_history |
 | `snowflake.data.spilled.remote` | Snowflake data spilled to remote storage | Volume of data spilled to remote disk. | metric | query_history |
-| `snowflake.data.transferred.inbound` | Snowflake inbound data transfer bytes | Number of bytes transferred in statements that load data from another region and/or cloud. | metric | query_history |
-| `snowflake.data.transferred.outbound` | Snowflake outbound data transfer bytes | Number of bytes transferred in statements that unload data to another region and/or cloud. | metric | query_history |
+| `snowflake.data.transferred.inbound` | Snowflake inbound data transferred | Number of bytes transferred in statements that load data from another region and/or cloud. | metric | query_history |
+| `snowflake.data.transferred.outbound` | Snowflake outbound data transferred | Number of bytes transferred in statements that unload data to another region and/or cloud. | metric | query_history |
 | `snowflake.data.written` | Snowflake bytes written | Number of bytes written (e.g. when loading into a table). | metric | query_history |
 | `snowflake.data.written_to_result` | Snowflake bytes written to result | Number of bytes written to a result object. | metric | active_queries |
 | `snowflake.data.written_to_result` | Snowflake bytes written to result | Number of bytes written to a result object. | metric | query_history |
@@ -145,13 +149,13 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.event.trigger` | Snowflake event trigger | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.eve… | event_timestamp | tasks |
 | `snowflake.event.trigger` | Snowflake event trigger | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.eve… | event_timestamp | users |
 | `snowflake.event.type` | Snowflake event type | Type of (timestamp based) event | attribute | dtagent.conf |
-| `snowflake.external_functions.data.received` | Snowflake external function total received bytes | The total number of bytes that this query received from all calls to all remote services. | metric | query_history |
-| `snowflake.external_functions.data.sent` | Snowflake external function total sent bytes | The total number of bytes that this query sent in all calls to all remote services. | metric | query_history |
+| `snowflake.external_functions.data.received` | Snowflake external function data received | The total number of bytes that this query received from all calls to all remote services. | metric | query_history |
+| `snowflake.external_functions.data.sent` | Snowflake external function data sent | The total number of bytes that this query sent in all calls to all remote services. | metric | query_history |
 | `snowflake.external_functions.invocations` | Snowflake external function invocations | The aggregate number of times that this query called remote services. For important details, see the Usage Not… | metric | query_history |
-| `snowflake.external_functions.rows.received` | Snowflake external function total received rows | The total number of rows that this query received from all calls to all remote services. | metric | query_history |
-| `snowflake.external_functions.rows.sent` | Snowflake external function total sent rows | The total number of rows that this query sent in all calls to all remote services. | metric | query_history |
+| `snowflake.external_functions.rows.received` | Snowflake external function rows received | The total number of rows that this query received from all calls to all remote services. | metric | query_history |
+| `snowflake.external_functions.rows.sent` | Snowflake external function rows sent | The total number of rows that this query sent in all calls to all remote services. | metric | query_history |
 | `snowflake.grant.by` | Snowflake account making the grant | Shows the name of the account which made the grant. | attribute | shares |
-| `snowflake.grant.created_on` | Snowflake grant creation timestamp | The timestamp when the grant was created. Epoch nanoseconds timestamp. | event_timestamp | shares |
+| `snowflake.grant.created_on` | Snowflake grant creation time | The timestamp when the grant was created. Epoch nanoseconds timestamp. | event_timestamp | shares |
 | `snowflake.grant.grantee` | Snowflake account receiving the grant | Shows the grantee account name. | attribute | shares |
 | `snowflake.grant.name` | Snowflake share grant name | Name of the grant to a share. | dimension | shares |
 | `snowflake.grant.on` | Snowflake grant object type | Shows on what type of object the grant was made. | attribute | shares |
@@ -162,37 +166,37 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.load.queued.overloaded` | Snowflake queries queued due to overload | The average number of queries queued due to load. | metric | warehouse_usage |
 | `snowflake.load.queued.provisioning` | Snowflake queries queued during provisioning | The average number of queries queued due to provisioning. | metric | warehouse_usage |
 | `snowflake.load.running` | Snowflake queries running | The average number of running queries. | metric | warehouse_usage |
-| `snowflake.load.used` | Snowflake compute load percentage | The approximate percentage of active compute resources in the warehouse for this query execution. | metric | query_history |
-| `snowflake.login.attempts.failed` | Snowflake login attempts failed | Number of failed Snowflake login attempts within the collection window. | metric | login_history |
-| `snowflake.login.attempts.successful` | Snowflake login attempts successful | Number of successful Snowflake login attempts within the collection window. | metric | login_history |
-| `snowflake.login.attempts.total` | Snowflake login attempts | Total number of Snowflake login attempts (failed + successful) within the collection window. | metric | login_history |
-| `snowflake.metering.data.rows` | Snowflake metering rows processed | Number of rows processed by the service in the metering window. | metric | metering |
-| `snowflake.metering.data.size` | Snowflake metering data processed | Number of bytes processed by the service in the metering window. | metric | metering |
+| `snowflake.load.used` | Snowflake compute load | The approximate percentage of active compute resources in the warehouse for this query execution. | metric | query_history |
+| `snowflake.login.attempts.failed` | Failed login attempts to Snowflake | Number of failed Snowflake login attempts within the collection window. | metric | login_history |
+| `snowflake.login.attempts.successful` | Successful login attempts to Snowflake | Number of successful Snowflake login attempts within the collection window. | metric | login_history |
+| `snowflake.login.attempts.total` | All login attempts to Snowflake | Total number of Snowflake login attempts (failed + successful) within the collection window. | metric | login_history |
+| `snowflake.metering.data.rows` | Snowflake metered rows | Number of rows processed by the service in the metering window. | metric | metering |
+| `snowflake.metering.data.size` | Snowflake metered data | Number of bytes processed by the service in the metering window. | metric | metering |
 | `snowflake.object.ddl.modified` | Snowflake DDL-modified object details | A JSON array that specifies the objects that were associated with a write operation in the query. | attribute | data_schemas |
 | `snowflake.object.ddl.operation` | Snowflake DDL operation | The SQL keyword that specifies the operation on the table, view, or column: - ALTER, - CREATE, - DROP, - REPLA… | attribute | data_schemas |
 | `snowflake.object.ddl.operation` | Snowflake DDL operation | DDL operation type (`CREATE`, `ALTER`, `DROP`, `UNDROP`, `REPLACE`). Populated only when `plugins.query_histor… | attribute | query_history |
 | `snowflake.object.ddl.properties` | Snowflake DDL property changes | A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the objec… | attribute | data_schemas |
 | `snowflake.object.ddl.properties` | Snowflake DDL property changes | JSON object describing the property delta recorded by Snowflake for the DDL operation. Keys are sensitive prop… | attribute | query_history |
-| `snowflake.object.id` | Snowflake DDL object ID | An identifier for the object, which is unique within a given account and domain. | attribute | data_schemas |
-| `snowflake.object.id` | Snowflake DDL object ID | Internal Snowflake identifier of the object modified by the DDL operation. Populated only when `plugins.query_… | attribute | query_history |
-| `snowflake.object.name` | Snowflake DDL object name | The fully qualified name of the object defined or modified by the DDL operation. | attribute | data_schemas |
-| `snowflake.object.name` | Snowflake DDL object name | Fully-qualified name of the object modified by the DDL operation. Populated only when `plugins.query_history.t… | attribute | query_history |
-| `snowflake.object.type` | Snowflake DDL object type | The domain of the object defined or modified by the DDL operation, which includes all objects that can be tagg… | attribute | data_schemas |
-| `snowflake.object.type` | Snowflake DDL object type | Type of object modified by the DDL operation captured for this query, as recorded by Snowflake in `ACCESS_HIST… | attribute | query_history |
-| `snowflake.org.billing.amount` | Snowflake org billing amount | The billing amount in currency for the account on the given day. | metric | org_costs |
-| `snowflake.org.billing.capacity_balance` | Snowflake org billing capacity balance | Remaining capacity balance for the organization contract. | metric | org_costs |
+| `snowflake.object.id` | Snowflake object ID | An identifier for the object, which is unique within a given account and domain. | attribute | data_schemas |
+| `snowflake.object.id` | Snowflake object ID | Internal Snowflake identifier of the object modified by the DDL operation. Populated only when `plugins.query_… | attribute | query_history |
+| `snowflake.object.name` | Snowflake object name | The fully qualified name of the object defined or modified by the DDL operation. | attribute | data_schemas |
+| `snowflake.object.name` | Snowflake object name | Fully-qualified name of the object modified by the DDL operation. Populated only when `plugins.query_history.t… | attribute | query_history |
+| `snowflake.object.type` | Snowflake object type | The domain of the object defined or modified by the DDL operation, which includes all objects that can be tagg… | attribute | data_schemas |
+| `snowflake.object.type` | Snowflake object type | Type of object modified by the DDL operation captured for this query, as recorded by Snowflake in `ACCESS_HIST… | attribute | query_history |
+| `snowflake.org.billing.amount` | Snowflake organization billing amount | The billing amount in currency for the account on the given day. | metric | org_costs |
+| `snowflake.org.billing.capacity_balance` | Snowflake organization billing capacity balance | Remaining capacity balance for the organization contract. | metric | org_costs |
 | `snowflake.org.billing.contract_number` | Snowflake billing contract number | The contract number associated with the Snowflake billing balance. | attribute | org_costs |
 | `snowflake.org.billing.currency` | Snowflake billing currency | The currency in which billing usage amounts are denominated. | dimension | org_costs |
-| `snowflake.org.billing.free_usage_balance` | Snowflake org billing free usage balance | Remaining free usage balance for the organization contract. | metric | org_costs |
-| `snowflake.org.billing.marketplace_capacity_drawdown_balance` | Snowflake org marketplace capacity drawdown balance | Marketplace capacity drawdown balance charged against the organization contract. | metric | org_costs |
-| `snowflake.org.billing.on_demand_consumption` | Snowflake org billing on-demand consumption | On-demand consumption amount charged against the organization contract. | metric | org_costs |
-| `snowflake.org.billing.rollover_balance` | Snowflake org billing rollover balance | Remaining rollover balance for the organization contract. | metric | org_costs |
-| `snowflake.org.credits.adjustment_cloud_services` | Snowflake org cloud services credit adjustment | Credit adjustment for cloud services (10% rule offset). | metric | org_costs |
-| `snowflake.org.credits.cloud_services` | Snowflake org cloud services credits used | Credits used for cloud services by the account on the given day. | metric | org_costs |
-| `snowflake.org.credits.compute` | Snowflake org compute credits used | Credits used for compute by the account on the given day. | metric | org_costs |
-| `snowflake.org.credits.used` | Snowflake org total credits used | Total credits used by the account on the given day across all service types. | metric | org_costs |
-| `snowflake.org.data.stored` | Snowflake org data stored | Total storage bytes used by the account on the given day across all storage types. | metric | org_costs |
-| `snowflake.org.data.transferred` | Snowflake org data transferred | Bytes transferred between clouds or regions on the given day. | metric | org_costs |
+| `snowflake.org.billing.free_usage_balance` | Snowflake organization billing free usage balance | Remaining free usage balance for the organization contract. | metric | org_costs |
+| `snowflake.org.billing.marketplace_capacity_drawdown_balance` | Snowflake organization marketplace capacity drawdown balance | Marketplace capacity drawdown balance charged against the organization contract. | metric | org_costs |
+| `snowflake.org.billing.on_demand_consumption` | Snowflake organization billing on-demand consumption | On-demand consumption amount charged against the organization contract. | metric | org_costs |
+| `snowflake.org.billing.rollover_balance` | Snowflake organization billing rollover balance | Remaining rollover balance for the organization contract. | metric | org_costs |
+| `snowflake.org.credits.adjustment_cloud_services` | Snowflake organization cloud services credit adjustment | Credit adjustment for cloud services (10% rule offset). | metric | org_costs |
+| `snowflake.org.credits.cloud_services` | Snowflake organization cloud services credits used | Credits used for cloud services by the account on the given day. | metric | org_costs |
+| `snowflake.org.credits.compute` | Snowflake organization compute credits used | Credits used for compute by the account on the given day. | metric | org_costs |
+| `snowflake.org.credits.used` | Snowflake organization total credits used | Total credits used by the account on the given day across all service types. | metric | org_costs |
+| `snowflake.org.data.stored` | Snowflake organization data stored | Total storage bytes used by the account on the given day across all storage types. | metric | org_costs |
+| `snowflake.org.data.transferred` | Snowflake organization data transferred | Bytes transferred between clouds or regions on the given day. | metric | org_costs |
 | `snowflake.org.name` | Snowflake organization name | The name of the Snowflake organization. | dimension | org_costs |
 | `snowflake.partitions.added` | Snowflake partitions added | The number of partitions added during the refresh. | metric | dynamic_tables |
 | `snowflake.partitions.removed` | Snowflake partitions removed | The number of partitions removed during the refresh. | metric | dynamic_tables |
@@ -201,8 +205,8 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.pipe.catalog` | Snowflake pipe database | Database containing the pipe. | dimension | snowpipes |
 | `snowflake.pipe.cost.bytes_billed` | Snowflake pipe bytes billed | Bytes billed for Snowpipe usage. | metric | snowpipes |
 | `snowflake.pipe.cost.credits_used` | Snowflake pipe credits used | Serverless credits consumed. | metric | snowpipes |
-| `snowflake.pipe.created_on` | Snowflake pipe creation timestamp | Pipe creation timestamp. | attribute | snowpipes |
-| `snowflake.pipe.created_on` | Snowflake pipe creation timestamp | Pipe creation event. | event_timestamp | snowpipes |
+| `snowflake.pipe.created_on` | Snowflake pipe creation time | Pipe creation timestamp. | attribute | snowpipes |
+| `snowflake.pipe.created_on` | Snowflake pipe creation time | Pipe creation event. | event_timestamp | snowpipes |
 | `snowflake.pipe.data.ingested` | Snowflake pipe data ingested | Bytes inserted. | metric | snowpipes |
 | `snowflake.pipe.definition` | Snowflake pipe COPY statement | The pipe's COPY statement. | attribute | snowpipes |
 | `snowflake.pipe.errors` | Snowflake pipe load errors | Files with load errors. | metric | snowpipes |
@@ -213,7 +217,7 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.pipe.full_name` | Snowflake fully qualified pipe name | Fully qualified pipe name (database.schema.pipe). | dimension | snowpipes |
 | `snowflake.pipe.id` | Snowflake pipe ID | Unique pipe UUID (from PIPE_USAGE_HISTORY). | dimension | snowpipes |
 | `snowflake.pipe.ingest.latency` | Snowflake pipe ingest latency | Per-file latency from PIPE_RECEIVED_TIME to LAST_LOAD_TIME (enabled by ACCOUNT_USAGE view). | metric | snowpipes |
-| `snowflake.pipe.invalid_reason` | Snowflake pipe invalid reason | Reason the pipe is in an invalid state. | attribute | snowpipes |
+| `snowflake.pipe.invalid_reason` | Snowflake pipe invalid state reason | Reason the pipe is in an invalid state. | attribute | snowpipes |
 | `snowflake.pipe.last_ingested_timestamp` | Snowflake pipe last ingested file timestamp | Most recent file ingestion timestamp. | attribute | snowpipes |
 | `snowflake.pipe.last_received_message_timestamp` | Snowflake pipe last received notification timestamp | Most recent event notification timestamp. | attribute | snowpipes |
 | `snowflake.pipe.latency.oldest_file` | Snowflake pipe oldest file latency | Milliseconds since oldest pending file timestamp. | metric | snowpipes |
@@ -240,7 +244,7 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.query.hash` | Snowflake query text hash | The hash of the query text. | attribute | active_queries |
 | `snowflake.query.hash` | Snowflake query text hash | The hash of the query text. | attribute | query_history |
 | `snowflake.query.hash` | Snowflake query text hash | The hash of the query text. | dimension | query_history |
-| `snowflake.query.hash` | Snowflake query hash | The hash of the query text. | attribute | tasks |
+| `snowflake.query.hash` | Snowflake query text hash | The hash of the query text. | attribute | tasks |
 | `snowflake.query.hash_version` | Snowflake query hash version | The version of the query hash logic. | attribute | active_queries |
 | `snowflake.query.hash_version` | Snowflake query hash version | The version of the query hash. | attribute | query_history |
 | `snowflake.query.hash_version` | Snowflake query hash version | The version of the query hash. | attribute | tasks |
@@ -255,10 +259,10 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.query.parametrized_hash` | Snowflake parameterized query text hash | The hash value of the parameterized query text. | attribute | active_queries |
 | `snowflake.query.parametrized_hash` | Snowflake parameterized query text hash | The hash of the parameterized query text. | attribute | query_history |
 | `snowflake.query.parametrized_hash` | Snowflake parameterized query text hash | The hash of the parameterized query text. | dimension | query_history |
-| `snowflake.query.parametrized_hash` | Snowflake query parametrized hash | The parameterized hash of the query. | attribute | tasks |
+| `snowflake.query.parametrized_hash` | Snowflake parametrized query hash | The parameterized hash of the query. | attribute | tasks |
 | `snowflake.query.parametrized_hash_version` | Snowflake parameterized query hash version | The version of the parameterized query hash logic. | attribute | active_queries |
 | `snowflake.query.parametrized_hash_version` | Snowflake parameterized query hash version | The version of the parameterized query hash. | attribute | query_history |
-| `snowflake.query.parametrized_hash_version` | Snowflake query parametrized hash version | The version of the parameterized query hash. | attribute | tasks |
+| `snowflake.query.parametrized_hash_version` | Snowflake parametrized query hash version | The version of the parameterized query hash. | attribute | tasks |
 | `snowflake.query.parent_id` | Snowflake parent query ID | The query ID of the parent job or NULL if the job does not have a parent. | attribute | data_schemas |
 | `snowflake.query.parent_id` | Snowflake parent query ID | The unique identifier for the parent query, if applicable. | attribute | query_history |
 | `snowflake.query.retry_cause` | Snowflake query retry cause | The cause for retrying the query, if applicable. | attribute | query_history |
@@ -275,13 +279,13 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.query.transaction_id` | Snowflake query transaction ID | The transaction ID associated with the query. | attribute | query_history |
 | `snowflake.query.with_operator_stats` | Snowflake query execution plan telemetry indicator | Indicates if the query was executed with operator-level statistics enabled. | attribute | query_history |
 | `snowflake.release_version` | Snowflake release version | The release version of Snowflake at the time of query execution. | attribute | query_history |
-| `snowflake.resource_monitor.created_on` | Snowflake Resource Monitor creation time | The timestamp when the resource monitor was created. | event_timestamp | resource_monitors |
-| `snowflake.resource_monitor.end_time` | Snowflake Resource Monitor end time | The timestamp when the resource monitor ended. | event_timestamp | resource_monitors |
+| `snowflake.resource_monitor.created_on` | Snowflake resource monitor creation time | The timestamp when the resource monitor was created. | event_timestamp | resource_monitors |
+| `snowflake.resource_monitor.end_time` | Snowflake resource monitor end time | The timestamp when the resource monitor ended. | event_timestamp | resource_monitors |
 | `snowflake.resource_monitor.frequency` | Snowflake resource monitor frequency | The frequency of the resource monitor. | attribute | resource_monitors |
 | `snowflake.resource_monitor.is_active` | Snowflake resource monitor active indicator | Indicates if the resource monitor is active. | attribute | resource_monitors |
 | `snowflake.resource_monitor.level` | Snowflake resource monitor level | The level of the resource monitor. | attribute | resource_monitors |
 | `snowflake.resource_monitor.name` | Snowflake resource monitor name | The name of the resource monitor. | dimension | resource_monitors |
-| `snowflake.resource_monitor.start_time` | Snowflake Resource Monitor start time | The timestamp when the resource monitor started. | event_timestamp | resource_monitors |
+| `snowflake.resource_monitor.start_time` | Snowflake resource monitor start time | The timestamp when the resource monitor started. | event_timestamp | resource_monitors |
 | `snowflake.resource_monitor.threshold.direction` | Snowflake resource monitor threshold crossing direction | Direction of the threshold crossing: ``up`` when quota is increasing into or remaining within a band; ``down``… | attribute | resource_monitors |
 | `snowflake.resource_monitor.threshold.level` | Snowflake resource monitor threshold alert band | Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)), ``critical`` ([90–100%)), or ``… | attribute | resource_monitors |
 | `snowflake.resource_monitor.threshold.value` | Snowflake resource monitor threshold value | Alert band the resource monitor's credit usage fell into when the event was emitted: one of ``info``, ``warn``… | attribute | resource_monitors |
@@ -323,9 +327,9 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.session.closed_reason` | Snowflake session closed reason | The reason the session was closed. | attribute | query_history |
 | `snowflake.session.id` | Snowflake session ID | The unique identifier for the session. | attribute | login_history |
 | `snowflake.session.id` | Snowflake session ID | The session ID during which the query was executed. | attribute | query_history |
-| `snowflake.session.start` | Snowflake session start timestamp | The start time of the session. | attribute | login_history |
-| `snowflake.session.start` | Snowflake session start timestamp | The start time of the session. | attribute | query_history |
-| `snowflake.share.created_on` | Snowflake share creation timestamp | The timestamp when the share was created. Epoch nanoseconds timestamp. | event_timestamp | shares |
+| `snowflake.session.start` | Snowflake session start time | The start time of the session. | attribute | login_history |
+| `snowflake.session.start` | Snowflake session start time | The start time of the session. | attribute | query_history |
+| `snowflake.share.created_on` | Snowflake share creation time | The timestamp when the share was created. Epoch nanoseconds timestamp. | event_timestamp | shares |
 | `snowflake.share.has_details_reported` | Snowflake share details reported indicator | Indicates whether or not details on this share should be reported. | attribute | shares |
 | `snowflake.share.is_secure_objects_only` | Snowflake share secure objects only indicator | Indicates if the share is only for secure objects. | attribute | shares |
 | `snowflake.share.kind` | Snowflake share type | Indicates the type of share. | attribute | shares |
@@ -350,15 +354,15 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.table.clustering_key` | Snowflake table clustering key | The clustering key defined on the table, or NONE if no clustering key is defined. | dimension | table_health |
 | `snowflake.table.cold_status` | Snowflake table cold status indicator | Table temperature classification based on access recency. | dimension | cold_tables |
 | `snowflake.table.comment` | Snowflake table comment | Comment for this table. | attribute | shares |
-| `snowflake.table.created_on` | Snowflake table creation timestamp | The timestamp when the table was created. Epoch nanoseconds timestamp. | event_timestamp | shares |
+| `snowflake.table.created_on` | Snowflake table creation time | The timestamp when the table was created. Epoch nanoseconds timestamp. | event_timestamp | shares |
 | `snowflake.table.days_since_last_access` | Snowflake days since last table access | Number of days since the table was last accessed by any query. | metric | cold_tables |
-| `snowflake.table.ddl` | Snowflake table last DDL timestamp | The timestamp of the last DDL operation performed on the table or view, including CREATE, ALTER, DROP, or UNDR… | event_timestamp | data_volume |
-| `snowflake.table.ddl` | Snowflake table last DDL timestamp | The timestamp of the last DDL operation performed on the table or view. | event_timestamp | shares |
+| `snowflake.table.ddl` | Snowflake table last DDL time | The timestamp of the last DDL operation performed on the table or view, including CREATE, ALTER, DROP, or UNDR… | event_timestamp | data_volume |
+| `snowflake.table.ddl` | Snowflake table last DDL time | The timestamp of the last DDL operation performed on the table or view. | event_timestamp | shares |
 | `snowflake.table.dynamic.graph.alter_trigger` | Snowflake dynamic table graph alter trigger | Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY function. Possible values: NONE (backw… | attribute | dynamic_tables |
 | `snowflake.table.dynamic.graph.inputs` | Snowflake dynamic table graph inputs | Each OBJECT represents a table, view, or dynamic table that serves as the input to this dynamic table. | attribute | dynamic_tables |
-| `snowflake.table.dynamic.graph.valid_from` | Snowflake dynamic table graph validity start timestamp | Encodes the VALID_FROM timestamp of the DYNAMIC_TABLE_GRAPH_HISTORY table function when the refresh occurred. | attribute | dynamic_tables |
+| `snowflake.table.dynamic.graph.valid_from` | Snowflake dynamic table graph validity start time | Encodes the VALID_FROM timestamp of the DYNAMIC_TABLE_GRAPH_HISTORY table function when the refresh occurred. | attribute | dynamic_tables |
 | `snowflake.table.dynamic.graph.valid_from` | Snowflake dynamic table graph validity start time | The timestamp after which the description of the dynamic table is valid. | event_timestamp | dynamic_tables |
-| `snowflake.table.dynamic.graph.valid_to` | Snowflake dynamic table graph validity end timestamp | If present, the description of the dynamic table is valid up to this time. If null, the description is still a… | attribute | dynamic_tables |
+| `snowflake.table.dynamic.graph.valid_to` | Snowflake dynamic table graph validity end time | If present, the description of the dynamic table is valid up to this time. If null, the description is still a… | attribute | dynamic_tables |
 | `snowflake.table.dynamic.lag.max` | Snowflake dynamic table maximum lag | The maximum lag time in seconds of refreshes for this dynamic table. | metric | dynamic_tables |
 | `snowflake.table.dynamic.lag.mean` | Snowflake dynamic table mean lag | The mean lag time (in seconds) of refreshes for this dynamic table. | metric | dynamic_tables |
 | `snowflake.table.dynamic.lag.target.time_above` | Snowflake dynamic table time above target lag | The time in seconds when the actual lag was more than the defined target lag. | metric | dynamic_tables |
@@ -373,11 +377,11 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.table.dynamic.latest.state` | Snowflake dynamic table refresh state (latest) | Status of the last terminated refresh for the dynamic table. | attribute | dynamic_tables |
 | `snowflake.table.dynamic.refresh.action` | Snowflake dynamic table refresh action | Describes the type of refresh action performed. | attribute | dynamic_tables |
 | `snowflake.table.dynamic.refresh.code` | Snowflake dynamic table refresh state code | Code representing the current state of the refresh. | attribute | dynamic_tables |
-| `snowflake.table.dynamic.refresh.completion_target` | Snowflake dynamic table refresh completion target timestamp | Time by which this refresh should complete to keep lag under the TARGET_LAG parameter for the dynamic table. | attribute | dynamic_tables |
+| `snowflake.table.dynamic.refresh.completion_target` | Snowflake dynamic table refresh completion target time | Time by which this refresh should complete to keep lag under the TARGET_LAG parameter for the dynamic table. | attribute | dynamic_tables |
 | `snowflake.table.dynamic.refresh.data_timestamp` | Snowflake dynamic table refresh data timestamp | Transactional timestamp when the refresh was evaluated. | attribute | dynamic_tables |
-| `snowflake.table.dynamic.refresh.end` | Snowflake dynamic table refresh end timestamp | Time when the refresh completed. | attribute | dynamic_tables |
+| `snowflake.table.dynamic.refresh.end` | Snowflake dynamic table refresh end time | Time when the refresh completed. | attribute | dynamic_tables |
 | `snowflake.table.dynamic.refresh.message` | Snowflake dynamic table refresh message | Description of the current state of the refresh. | attribute | dynamic_tables |
-| `snowflake.table.dynamic.refresh.start` | Snowflake dynamic table refresh start timestamp | Time when the refresh job started. | attribute | dynamic_tables |
+| `snowflake.table.dynamic.refresh.start` | Snowflake dynamic table refresh start time | Time when the refresh job started. | attribute | dynamic_tables |
 | `snowflake.table.dynamic.refresh.state` | Snowflake dynamic table refresh state | Status of the refresh for the dynamic table. | attribute | dynamic_tables |
 | `snowflake.table.dynamic.refresh.trigger` | Snowflake dynamic table refresh trigger | Describes the trigger for the refresh. | attribute | dynamic_tables |
 | `snowflake.table.dynamic.scheduling.reason.code` | Snowflake dynamic table scheduling reason code | Optional reason code if the state is not ACTIVE. | attribute | dynamic_tables |
@@ -400,7 +404,7 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.table.is_iceberg` | Snowflake Iceberg table indicator | Indicates whether the table is an Iceberg table. | attribute | shares |
 | `snowflake.table.is_temporary` | Snowflake temporary table indicator | Indicates whether this is a temporary table. | attribute | shares |
 | `snowflake.table.is_transient` | Snowflake transient table indicator | Indicates whether this is a transient table. | attribute | shares |
-| `snowflake.table.last_accessed_at` | Snowflake table last access timestamp | ISO 8601 timestamp of the most recent query that accessed this table. | attribute | cold_tables |
+| `snowflake.table.last_accessed_at` | Snowflake table last access time | ISO 8601 timestamp of the most recent query that accessed this table. | attribute | cold_tables |
 | `snowflake.table.last_ddl_by` | Snowflake table last DDL executor | The current username for the user who executed the last DDL operation. | attribute | shares |
 | `snowflake.table.owner` | Snowflake table owner role | Name of the role that owns the table. | attribute | shares |
 | `snowflake.table.retained_for_clone_bytes` | Snowflake table retained-for-clone bytes | Number of bytes of data in the table that is retained for cloning. | metric | table_health |
@@ -410,8 +414,8 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.table.time_travel_bytes` | Snowflake table time travel bytes | Number of bytes of data in the table that is maintained for Time Travel. | metric | table_health |
 | `snowflake.table.type` | Snowflake table type | The type of the table. Possible values: BASE TABLE, TEMPORARY TABLE, EXTERNAL TABLE. | dimension | data_volume |
 | `snowflake.table.type` | Snowflake table type | Indicates the table type. | attribute | shares |
-| `snowflake.table.update` | Snowflake table last update timestamp | The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation. | event_timestamp | data_volume |
-| `snowflake.table.update` | Snowflake table last update timestamp | The timestamp when the object was last altered by a DML, DDL, or background metadata operation. | event_timestamp | shares |
+| `snowflake.table.update` | Snowflake table last update time | The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation. | event_timestamp | data_volume |
+| `snowflake.table.update` | Snowflake table last update time | The timestamp when the object was last altered by a DML, DDL, or background metadata operation. | event_timestamp | shares |
 | `snowflake.task.condition` | Snowflake task condition text | The condition text of the task. | attribute | tasks |
 | `snowflake.task.config.allow_overlap` | Snowflake task overlapping execution indicator | Indicates if overlapping execution is allowed. | attribute | tasks |
 | `snowflake.task.config.id` | Snowflake task configuration ID | The configuration of the task. | attribute | tasks |
@@ -419,24 +423,24 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.task.error_integration` | Snowflake task error integration | The error integration for the task. | attribute | tasks |
 | `snowflake.task.graph.root_id` | Snowflake task graph root ID | The root ID of the task graph. | attribute | tasks |
 | `snowflake.task.graph.version` | Snowflake task graph version | The version of the task graph. | attribute | tasks |
-| `snowflake.task.graph.version.created_on` | Snowflake task graph version creation timestamp | The timestamp when the task graph version was created. | event_timestamp | tasks |
+| `snowflake.task.graph.version.created_on` | Snowflake task graph version creation time | The timestamp when the task graph version was created. | event_timestamp | tasks |
 | `snowflake.task.id` | Snowflake task ID | The unique identifier for the task. | attribute | tasks |
 | `snowflake.task.instance_id` | Snowflake task instance ID | The unique identifier for the task instance. | attribute | tasks |
 | `snowflake.task.is_internal` | Snowflake internal task indicator | Whether the task is an internal DSOA scheduler task (measurement or finalizer). | dimension | tasks |
-| `snowflake.task.last_committed_on` | Snowflake task last committed timestamp | The last committed time of the task. | attribute | tasks |
-| `snowflake.task.last_suspended_on` | Snowflake task last suspended timestamp | The last suspended time of the task. | attribute | tasks |
+| `snowflake.task.last_committed_on` | Snowflake task last committed time | The last committed time of the task. | attribute | tasks |
+| `snowflake.task.last_suspended_on` | Snowflake task last suspended time | The last suspended time of the task. | attribute | tasks |
 | `snowflake.task.name` | Snowflake task name | The name of the task. | dimension | tasks |
 | `snowflake.task.owner` | Snowflake task owner | The owner of the task. | attribute | tasks |
 | `snowflake.task.predecessors` | Snowflake task predecessors | The predecessors of the task. | attribute | tasks |
 | `snowflake.task.run.attempt` | Snowflake task run attempt number | The attempt number of the task run. | attribute | tasks |
 | `snowflake.task.run.cancelled` | Snowflake task runs cancelled | Number of Snowflake task runs that ended in CANCELLED state within the collection window. | metric | tasks |
-| `snowflake.task.run.completed_time` | Snowflake task run completion timestamp | The completed time of the task run. | attribute | tasks |
+| `snowflake.task.run.completed_time` | Snowflake task run completion time | The completed time of the task run. | attribute | tasks |
 | `snowflake.task.run.failed` | Snowflake task runs failed | Number of Snowflake task runs that ended in FAILED state within the collection window. | metric | tasks |
 | `snowflake.task.run.group_id` | Snowflake task run group ID | The group ID of the task run. | attribute | tasks |
 | `snowflake.task.run.id` | Snowflake task run ID | The unique identifier for the task run. | attribute | tasks |
 | `snowflake.task.run.return_value` | Snowflake task run return value | The return value of the task run. | attribute | tasks |
 | `snowflake.task.run.scheduled_from` | Snowflake task run schedule source | The source from which the task was scheduled. | attribute | tasks |
-| `snowflake.task.run.scheduled_time` | Snowflake task run scheduled timestamp | The scheduled time of the task run. | attribute | tasks |
+| `snowflake.task.run.scheduled_time` | Snowflake task run scheduled time | The scheduled time of the task run. | attribute | tasks |
 | `snowflake.task.run.state` | Snowflake task run state | The state of the task run. | attribute | tasks |
 | `snowflake.task.run.successful` | Snowflake task runs successful | Number of Snowflake task runs that ended in SUCCEEDED state within the collection window. | metric | tasks |
 | `snowflake.task.schedule` | Snowflake task schedule | The schedule of the task. | attribute | tasks |
@@ -463,17 +467,17 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.trust_center.scanner.package.id` | Snowflake Trust Center scanner package ID | The unique identifier for the scanner package used in the Trust Center. | dimension | trust_center |
 | `snowflake.trust_center.scanner.package.name` | Snowflake Trust Center scanner package name | The name of the scanner package used in the Trust Center. | attribute | trust_center |
 | `snowflake.trust_center.scanner.type` | Snowflake Trust Center scanner type | The type of scanner used in the Trust Center, such as 'CIS Benchmarks' or 'Threat Intelligence'. | dimension | trust_center |
-| `snowflake.user.bypass_mfa_until` | Snowflake user MFA bypass timestamp | The time until which the user can bypass MFA. Epoch nanoseconds timestamp. | attribute | users |
+| `snowflake.user.bypass_mfa_until` | Snowflake user MFA bypass time | The time until which the user can bypass MFA. Epoch nanoseconds timestamp. | attribute | users |
 | `snowflake.user.comment` | Snowflake user comment | Any comments associated with the user. | attribute | users |
-| `snowflake.user.created_on` | Snowflake user account creation timestamp | The timestamp of the user account creation. | event_timestamp | users |
+| `snowflake.user.created_on` | Snowflake user account creation time | The timestamp of the user account creation. | event_timestamp | users |
 | `snowflake.user.default.namespace` | Snowflake user default namespace | The default namespace for the user. | attribute | users |
 | `snowflake.user.default.role` | Snowflake user default role | The default role for the user. | attribute | users |
 | `snowflake.user.default.secondary_role` | Snowflake user default secondary role | The default secondary role for the user. | attribute | users |
 | `snowflake.user.default.warehouse` | Snowflake user default warehouse | The default warehouse for the user. | attribute | users |
-| `snowflake.user.deleted_on` | Snowflake user account deletion timestamp | The timestamp of the user account deletion. | event_timestamp | users |
+| `snowflake.user.deleted_on` | Snowflake user account deletion time | The timestamp of the user account deletion. | event_timestamp | users |
 | `snowflake.user.display_name` | Snowflake user display name | The display name of the user. | attribute | users |
 | `snowflake.user.email` | Snowflake user email address | The email address of the user. | attribute | users |
-| `snowflake.user.expires_at` | Snowflake user account expiration timestamp | The expiration date of the user account. | attribute | users |
+| `snowflake.user.expires_at` | Snowflake user account expiration time | The expiration date of the user account. | attribute | users |
 | `snowflake.user.ext_authn.duo` | Snowflake user Duo authentication indicator | Indicates if Duo authentication is enabled for the user. | attribute | users |
 | `snowflake.user.ext_authn.uid` | Snowflake user external authentication UID | The external authentication UID for the user. | attribute | users |
 | `snowflake.user.has_mfa` | Snowflake user MFA enrollment indicator | Indicates if the user is enrolled for multi-factor authentication. | attribute | users |
@@ -485,24 +489,24 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.user.is_disabled` | Snowflake user disabled indicator | Indicates if the user account is disabled. | attribute | users |
 | `snowflake.user.is_from_organization` | Snowflake user organization import indicator | Indicates if the user was imported from a global organization. | attribute | users |
 | `snowflake.user.is_locked` | Snowflake user locked indicator | Indicates if the user account is locked by Snowflake. | attribute | users |
-| `snowflake.user.last_success_login` | Snowflake user last successful login timestamp | The timestamp of the last successful login by the user. | event_timestamp | users |
-| `snowflake.user.locked_until_time` | Snowflake user locked until timestamp | The time until which the user account is locked. | attribute | users |
+| `snowflake.user.last_success_login` | Snowflake user last successful login time | The timestamp of the last successful login by the user. | event_timestamp | users |
+| `snowflake.user.locked_until_time` | Snowflake user locked until time | The time until which the user account is locked. | attribute | users |
 | `snowflake.user.must_change_password` | Snowflake user password change required indicator | Indicates if the user must change their password. | attribute | users |
 | `snowflake.user.name.first` | Snowflake user first name | The first name of the user. | attribute | users |
 | `snowflake.user.name.last` | Snowflake user last name | The last name of the user. | attribute | users |
 | `snowflake.user.name.login` | Snowflake user login name | The login name of the user. | attribute | users |
 | `snowflake.user.owner` | Snowflake user owner role | The role that owns the user account. | attribute | users |
-| `snowflake.user.password_last_set_time` | Snowflake user password last set timestamp | The timestamp of the last password change for the user. | event_timestamp | users |
+| `snowflake.user.password_last_set_time` | Snowflake user password last set time | The timestamp of the last password change for the user. | event_timestamp | users |
 | `snowflake.user.privilege.granted_by` | Snowflake user privilege grantor roles | Array of all roles which granted grants to a user for a privilege. | attribute | users |
 | `snowflake.user.privilege.grants_on` | Snowflake user privilege grant targets | List of all objects of given type on which given privilege was given; both object type and privilege are repor… | attribute | users |
-| `snowflake.user.privilege.last_altered` | Snowflake user privilege last altered timestamp | The timestamp of the last alteration to the user's privileges. | event_timestamp | users |
+| `snowflake.user.privilege.last_altered` | Snowflake user privilege last altered time | The timestamp of the last alteration to the user's privileges. | event_timestamp | users |
 | `snowflake.user.privilege.name` | Snowflake user privilege name | Name of the privilege and type of object this privilege granted on to the user or role. Composed as `privilege… | attribute | users |
 | `snowflake.user.roles.all` | Snowflake user all roles | Comma separated list of all roles granted to a user. | attribute | users |
 | `snowflake.user.roles.direct.list` | Snowflake user direct roles | List of all direct roles granted to user. | attribute | users |
 | `snowflake.user.roles.direct.removed` | Snowflake user removed direct role | Name of the role that was revoked from user. | attribute | users |
-| `snowflake.user.roles.direct.removed_on` | Snowflake user direct role removal timestamp | The timestamp of the last removal of a direct role from the user. | event_timestamp | users |
+| `snowflake.user.roles.direct.removed_on` | Snowflake user direct role removal time | The timestamp of the last removal of a direct role from the user. | event_timestamp | users |
 | `snowflake.user.roles.granted_by` | Snowflake user role grantor roles | Array of admin roles that were used to grant current list of user roles. | attribute | users |
-| `snowflake.user.roles.last_altered` | Snowflake user roles last altered timestamp | The timestamp of the last alteration to the roles granted to the user. | event_timestamp | users |
+| `snowflake.user.roles.last_altered` | Snowflake user roles last altered time | The timestamp of the last alteration to the roles granted to the user. | event_timestamp | users |
 | `snowflake.user.type` | Snowflake user type | The type of user who executed the query. Possible values: PERSON (human interactive user), SERVICE (programmat… | dimension | query_history |
 | `snowflake.user.type` | Snowflake user type | Specifies the type of user | attribute | users |
 | `snowflake.warehouse.auto_suspend` | Snowflake warehouse auto-suspend timeout | The number of seconds after which an idle warehouse is automatically suspended. A value of null or 0 indicates… | metric | resource_monitors |
@@ -512,7 +516,7 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.warehouse.clusters.max` | Snowflake warehouse maximum cluster count | Maximal number of clusters in the given warehouse | metric | resource_monitors |
 | `snowflake.warehouse.clusters.min` | Snowflake warehouse minimum cluster count | Minimal number of clusters in the given warehouse | metric | resource_monitors |
 | `snowflake.warehouse.clusters.started` | Snowflake warehouse started clusters | Current number of started clusters in the given warehouse | metric | resource_monitors |
-| `snowflake.warehouse.created_on` | Snowflake Warehouse creation time | The timestamp when the warehouse was created. | event_timestamp | resource_monitors |
+| `snowflake.warehouse.created_on` | Snowflake warehouse creation time | The timestamp when the warehouse was created. | event_timestamp | resource_monitors |
 | `snowflake.warehouse.event.name` | Snowflake warehouse event name | The name of the event. | dimension | warehouse_usage |
 | `snowflake.warehouse.event.reason` | Snowflake warehouse event reason | The reason for the event. | attribute | warehouse_usage |
 | `snowflake.warehouse.event.state` | Snowflake warehouse event state | The state of the event, such as STARTED or COMPLETED. | dimension | warehouse_usage |
@@ -533,7 +537,7 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.warehouse.name` | Snowflake warehouse name | The name of the Snowflake warehouse. | dimension | warehouse_usage |
 | `snowflake.warehouse.owner.name` | Snowflake warehouse owner name | The owner of the warehouse. | attribute | resource_monitors |
 | `snowflake.warehouse.owner.role_type` | Snowflake warehouse owner role type | The principal type of the warehouse owner: ROLE or APPLICATION. | attribute | resource_monitors |
-| `snowflake.warehouse.resumed_on` | Snowflake Warehouse last resumed time | The timestamp when the warehouse was last resumed. | event_timestamp | resource_monitors |
+| `snowflake.warehouse.resumed_on` | Snowflake warehouse last resumed time | The timestamp when the warehouse was last resumed. | event_timestamp | resource_monitors |
 | `snowflake.warehouse.scaling_policy` | Snowflake warehouse scaling policy | The scaling policy of the warehouse. | attribute | resource_monitors |
 | `snowflake.warehouse.size` | Snowflake warehouse size | The size of the warehouse used. | attribute | query_history |
 | `snowflake.warehouse.size` | Snowflake warehouse size | The size of the warehouse. | attribute | resource_monitors |
@@ -541,7 +545,7 @@ Fields with `__semdict: new` (or no `__semdict`). These did not exist in the Sem
 | `snowflake.warehouse.type` | Snowflake warehouse type | The type of warehouse used to execute the query. | attribute | active_queries |
 | `snowflake.warehouse.type` | Snowflake warehouse type | The type of warehouse used. | attribute | query_history |
 | `snowflake.warehouse.type` | Snowflake warehouse type | The type of the warehouse. | attribute | resource_monitors |
-| `snowflake.warehouse.updated_on` | Snowflake Warehouse last updated time | The timestamp when the warehouse was last updated. | event_timestamp | resource_monitors |
+| `snowflake.warehouse.updated_on` | Snowflake warehouse last updated time | The timestamp when the warehouse was last updated. | event_timestamp | resource_monitors |
 
 ---
 

@@ -26,32 +26,27 @@ attributes:
     __description: The authentication method used for the session.
   client.application.id:
     __stability: stable
-    __semdict: new
     __example: SnowflakeJDBCDriver
     __type: string
     displayName: Client application ID
     __description: The ID of the client application used to execute the query.
   client.application.version:
-    __semdict: new
     __example: 1.0.0
     __type: string
     displayName: Client application version
     __description: The version of the client application used to execute the query.
   client.build_id:
-    __semdict: new
     __example: build123
     __type: string
     displayName: Client build ID
     __description: The build ID of the client application.
   client.environment:
     __stability: stable
-    __semdict: new
     __example: production
     __type: string
     displayName: Client application environment
     __description: The environment of the client application.
   client.version:
-    __semdict: new
     __example: 1.0.0
     __type: string
     displayName: Client version
@@ -66,12 +61,10 @@ attributes:
     __stability: stable
     __type: string[]
     displayName: Snowflake tables used in query
-    __semdict: new
     __example: ["users", "orders"]
     __description: The tables involved in the query.
   db.snowflake.views:
     __stability: stable
-    __semdict: new
     __semdict_note: "Fully proprietary; no OTel analog."
     __example: ["user_view"]
     __type: string[]
@@ -84,7 +77,6 @@ attributes:
     displayName: Login event ID
     __description: The login event ID associated with the query.
   snowflake.session.id:
-    __semdict: new
     __stability: experimental
     __example: "1234567890"
     __type: string
@@ -501,7 +493,7 @@ attributes:
     __description: The reason the session was closed.
   snowflake.session.start:
     __type: long
-    displayName: Snowflake session start timestamp
+    displayName: Snowflake session start time
     __example: 1633046400000000000
     __description: The start time of the session.
   snowflake.warehouse.cluster.number:
@@ -625,7 +617,7 @@ dimensions:
     __example: ["PROD_DB", "TEST_DB"]
     __description: The databases involved in the query.
   db.user:
-    __semdict: ref
+    __semdict: otel-dsoa
     __stability: experimental
     __type: string
     displayName: Database user
@@ -801,13 +793,13 @@ metrics:
     __type: long
     __example: 10485760
     __description: Number of bytes transferred in statements that load data from another region and/or cloud.
-    displayName: Snowflake inbound data transfer bytes
+    displayName: Snowflake inbound data transferred
     unit: By
   snowflake.data.transferred.outbound:
     __type: long
     __example: 5242880
     __description: Number of bytes transferred in statements that unload data to another region and/or cloud.
-    displayName: Snowflake outbound data transfer bytes
+    displayName: Snowflake outbound data transferred
     unit: By
   snowflake.data.written:
     __type: long
@@ -825,13 +817,13 @@ metrics:
     __type: long
     __example: 1048576
     __description: The total number of bytes that this query received from all calls to all remote services.
-    displayName: Snowflake external function total received bytes
+    displayName: Snowflake external function data received
     unit: By
   snowflake.external_functions.data.sent:
     __type: long
     __example: 524288
     __description: The total number of bytes that this query sent in all calls to all remote services.
-    displayName: Snowflake external function total sent bytes
+    displayName: Snowflake external function data sent
     unit: By
   snowflake.external_functions.invocations:
     __type: long
@@ -843,19 +835,19 @@ metrics:
     __type: long
     __example: 1000
     __description: The total number of rows that this query received from all calls to all remote services.
-    displayName: Snowflake external function total received rows
+    displayName: Snowflake external function rows received
     unit: row
   snowflake.external_functions.rows.sent:
     __type: long
     __example: 500
     __description: The total number of rows that this query sent in all calls to all remote services.
-    displayName: Snowflake external function total sent rows
+    displayName: Snowflake external function rows sent
     unit: row
   snowflake.load.used:
     __type: long
     __example: 85
     __description: The approximate percentage of active compute resources in the warehouse for this query execution.
-    displayName: Snowflake compute load percentage
+    displayName: Snowflake compute load
     unit: "%"
   snowflake.partitions.scanned:
     __type: long

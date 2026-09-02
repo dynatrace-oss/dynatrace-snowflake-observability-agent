@@ -16,7 +16,7 @@
 
 attributes:
   db.user:
-    __semdict: ref
+    __semdict: otel-dsoa
     __stability: experimental
     __type: string
     displayName: Database user

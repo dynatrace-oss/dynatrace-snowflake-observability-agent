@@ -17,7 +17,7 @@
 
 dimensions:
   db.user:
-    __semdict: ref
+    __semdict: otel-dsoa
     __stability: experimental
     __type: string
     displayName: Database user
@@ -29,7 +29,7 @@ dimensions:
 attributes:
   snowflake.user.bypass_mfa_until:
     __type: long
-    displayName: Snowflake user MFA bypass timestamp
+    displayName: Snowflake user MFA bypass time
     __example: 1620213179885000000
     __context_names:
       - users
@@ -89,7 +89,7 @@ attributes:
     __description: The email address of the user.
   snowflake.user.expires_at:
     __type: long
-    displayName: Snowflake user account expiration timestamp
+    displayName: Snowflake user account expiration time
     __example: 1620213179885000000
     __context_names:
       - users
@@ -181,7 +181,7 @@ attributes:
     __description: Indicates if the user was imported from a global organization.
   snowflake.user.locked_until_time:
     __type: long
-    displayName: Snowflake user locked until timestamp
+    displayName: Snowflake user locked until time
     __example: 1615479617866000000
     __context_names:
       - users
@@ -333,14 +333,14 @@ event_timestamps:
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.user.privilege.last_altered:
     __type: long
-    displayName: Snowflake user privilege last altered timestamp
+    displayName: Snowflake user privilege last altered time
     __example: 1732181350954000000
     __context_names:
       - users_all_privileges
     __description: The timestamp of the last alteration to the user's privileges.
   snowflake.user.roles.last_altered:
     __type: long
-    displayName: Snowflake user roles last altered timestamp
+    displayName: Snowflake user roles last altered time
     __example: 1718260900411000000
     __context_names:
       - users_all_roles
@@ -348,14 +348,14 @@ event_timestamps:
     __description: The timestamp of the last alteration to the roles granted to the user.
   snowflake.user.created_on:
     __type: long
-    displayName: Snowflake user account creation timestamp
+    displayName: Snowflake user account creation time
     __example: 1651830381846000000
     __context_names:
       - users
     __description: The timestamp of the user account creation.
   snowflake.user.deleted_on:
     __type: long
-    displayName: Snowflake user account deletion timestamp
+    displayName: Snowflake user account deletion time
     __example: 1615219846384000000
     __context_names:
       - users
@@ -363,21 +363,21 @@ event_timestamps:
   snowflake.user.last_success_login:
     __stability: stable
     __type: long
-    displayName: Snowflake user last successful login timestamp
+    displayName: Snowflake user last successful login time
     __example: 1732181350954000000
     __context_names:
       - users
     __description: The timestamp of the last successful login by the user.
   snowflake.user.password_last_set_time:
     __type: long
-    displayName: Snowflake user password last set timestamp
+    displayName: Snowflake user password last set time
     __example: 1615219848053000000
     __context_names:
       - users
     __description: The timestamp of the last password change for the user.
   snowflake.user.roles.direct.removed_on:
     __type: long
-    displayName: Snowflake user direct role removal timestamp
+    displayName: Snowflake user direct role removal time
     __example: 1718260900411000000
     __context_names:
       - users_removed_direct_roles

@@ -87,6 +87,10 @@ def render(rows: list[dict]) -> str:
     existing = sorted([r for r in rows if r["origin"] == "existing"], key=sort_key)
 
     out = [
+        "---\n",
+        "cssclasses:\n",
+        "  - wide-page\n",
+        "---\n",
         "# displayName Review — BIZOBS-2639\n\n",
         "Review document for `displayName` values across all 21 `instruments-def.yml` files. "
         "Entries split by origin: fields newly introduced by DSOA vs. fields that reference "

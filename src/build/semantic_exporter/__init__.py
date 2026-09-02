@@ -190,7 +190,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     except ExportError as exc:
         log.error("Export failed: %s", exc)
         return 1
-    total = summary["ref"] + summary["new"] + summary["deprecated_alias"] + summary["otel_only"]
+    total = summary["ref"] + summary["new"] + summary["deprecated_alias"] + summary["otel_only"] + summary["otel_dsoa"]
     print("✓ Export complete")
     print(f"Files generated            : {summary['files']}")
     print(f"Total classified fields    : {total}")
@@ -198,6 +198,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"  - new                    : {summary['new']}")
     print(f"  - deprecated-alias       : {summary['deprecated_alias']}")
     print(f"  - otel-only              : {summary['otel_only']}")
+    print(f"  - otel-dsoa              : {summary['otel_dsoa']}")
     print(f"Resource fields emitted    : {summary['resource_fields']}")
     print(f"Signal fields emitted      : {summary['signal_fields']}")
     print(f"Metric fields emitted      : {summary['metric_fields']}")

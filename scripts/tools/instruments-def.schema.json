@@ -74,12 +74,13 @@
     },
     "Semdict": {
       "type": "string",
-      "description": "Semantic Dictionary provenance of this field.",
+      "description": "Semantic Dictionary provenance of this field. Omit __semdict entirely for fields DSOA already owns and has contributed to the SD — 'new' and 'otel-only' are transient markers for fields not yet contributed.",
       "enum": [
         "new",
+        "otel-only",
+        "otel-dsoa",
         "ref",
-        "deprecated-alias",
-        "otel-only"
+        "deprecated-alias"
       ]
     },
     "FieldTypeAnnotation": {

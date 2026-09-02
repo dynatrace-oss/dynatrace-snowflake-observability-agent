@@ -265,7 +265,7 @@ ATTR_TYPE_MAP: Dict[str, str] = {
 }
 
 #: Valid semdict classification values.
-VALID_SEMDICT_FLAGS = {"ref", "new", "deprecated-alias", "otel-only"}
+VALID_SEMDICT_FLAGS = {"ref", "new", "deprecated-alias", "otel-only", "otel-dsoa"}
 
 # (prefix, group_id, group_type) for signal fields — order matters (longest prefix first).
 # All DSOA-owned signal groups use type: attribute_group — they appear on multiple signal

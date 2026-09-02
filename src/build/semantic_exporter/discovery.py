@@ -101,6 +101,10 @@ class EntryDiscoverer:
                 if not isinstance(entry, dict):
                     log.warning("[%s] %s.%s: skipping non-dict entry", plugin_name, section, key)
                     continue
+                # No __semdict key means the field is DSOA-owned and already contributed to the
+                # SD — behaviourally identical to "new" here (both get a full id: definition
+                # emitted); "new" is kept only as an explicit self-reminder for fields still
+                # pending their first SD contribution.
                 semdict_flag = entry.get("__semdict", "new")
                 if semdict_flag not in VALID_SEMDICT_FLAGS:
                     log.warning("[%s] %s.%s: unknown __semdict '%s'; treating as 'new'", plugin_name, section, key, semdict_flag)
@@ -164,5 +168,6 @@ class EntryDiscoverer:
             counters["ref"] += 1
             return _emit_ref_entry(key, entry)
         node = _emit_id_entry(key, entry, semdict_flag, no_display_name=no_display_name)
-        counters["deprecated_alias" if semdict_flag == "deprecated-alias" else "otel_only" if semdict_flag == "otel-only" else "new"] += 1
+        bucket = {"deprecated-alias": "deprecated_alias", "otel-only": "otel_only", "otel-dsoa": "otel_dsoa"}.get(semdict_flag, "new")
+        counters[bucket] += 1
         return node

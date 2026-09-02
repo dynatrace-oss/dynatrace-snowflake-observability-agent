@@ -22,7 +22,7 @@ attributes:
     __example: 01b30d58-0604-6e1c-0040-e003029c1322
     __description: An internal, system-generated identifier for the SQL statement.
   db.user:
-    __semdict: ref
+    __semdict: otel-dsoa
     __stability: experimental
     __type: string
     displayName: Database user

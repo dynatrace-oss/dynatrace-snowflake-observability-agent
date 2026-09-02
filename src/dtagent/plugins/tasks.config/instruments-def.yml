@@ -49,7 +49,7 @@ attributes:
     __description: The error message returned by the operation, if any.
   snowflake.query.hash:
     __type: string
-    displayName: Snowflake query hash
+    displayName: Snowflake query text hash
     __stability: stable
     __context_names:
       - task_history
@@ -72,7 +72,7 @@ attributes:
     __description: The unique identifier for the SQL query.
   snowflake.query.parametrized_hash:
     __type: string
-    displayName: Snowflake query parametrized hash
+    displayName: Snowflake parametrized query hash
     __stability: stable
     __context_names:
       - task_history
@@ -80,7 +80,7 @@ attributes:
     __description: The parameterized hash of the query.
   snowflake.query.parametrized_hash_version:
     __type: long
-    displayName: Snowflake query parametrized hash version
+    displayName: Snowflake parametrized query hash version
     __context_names:
       - task_history
     __example: 1
@@ -163,14 +163,14 @@ attributes:
     __description: The unique identifier for the task instance.
   snowflake.task.last_committed_on:
     __type: long
-    displayName: Snowflake task last committed timestamp
+    displayName: Snowflake task last committed time
     __context_names:
       - task_versions
     __example: 1633046400000000000
     __description: The last committed time of the task.
   snowflake.task.last_suspended_on:
     __type: long
-    displayName: Snowflake task last suspended timestamp
+    displayName: Snowflake task last suspended time
     __context_names:
       - task_versions
     __example: 1633046700000000000
@@ -201,7 +201,7 @@ attributes:
     __description: The attempt number of the task run.
   snowflake.task.run.completed_time:
     __type: long
-    displayName: Snowflake task run completion timestamp
+    displayName: Snowflake task run completion time
     __stability: stable
     __context_names:
       - task_history
@@ -230,7 +230,7 @@ attributes:
     __description: The return value of the task run.
   snowflake.task.run.scheduled_time:
     __type: long
-    displayName: Snowflake task run scheduled timestamp
+    displayName: Snowflake task run scheduled time
     __stability: stable
     __context_names:
       - task_history
@@ -325,7 +325,7 @@ event_timestamps:
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.task.graph.version.created_on:
     __type: long
-    displayName: Snowflake task graph version creation timestamp
+    displayName: Snowflake task graph version creation time
     __stability: stable
     __context_names:
       - task_versions

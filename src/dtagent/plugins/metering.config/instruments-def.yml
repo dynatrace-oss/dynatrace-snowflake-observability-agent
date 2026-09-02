@@ -125,7 +125,7 @@ metrics:
     __example: 10485760
     __description: >-
       Number of bytes processed by the service in the metering window.
-    displayName: Snowflake metering data processed
+    displayName: Snowflake metered data
     unit: By
   snowflake.metering.data.rows:
     __type: long
@@ -133,7 +133,7 @@ metrics:
     __example: 50000
     __description: >-
       Number of rows processed by the service in the metering window.
-    displayName: Snowflake metering rows processed
+    displayName: Snowflake metered rows
     unit: row
   snowflake.data.files:
     __type: long

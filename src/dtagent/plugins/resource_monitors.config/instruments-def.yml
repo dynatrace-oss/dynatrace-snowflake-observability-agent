@@ -322,17 +322,17 @@ event_timestamps:
     __type: long
     __example: 1728991696789000000
     __description: The timestamp when the resource monitor was created.
-    displayName: Snowflake Resource Monitor creation time
+    displayName: Snowflake resource monitor creation time
   snowflake.resource_monitor.end_time:
     __type: long
     __example: 1732981199999000000
     __description: The timestamp when the resource monitor ended.
-    displayName: Snowflake Resource Monitor end time
+    displayName: Snowflake resource monitor end time
   snowflake.resource_monitor.start_time:
     __type: long
     __example: 1730419200000000000
     __description: The timestamp when the resource monitor started.
-    displayName: Snowflake Resource Monitor start time
+    displayName: Snowflake resource monitor start time
   snowflake.warehouse.created_on:
     __type: string
     __semdict_note: >-
@@ -340,20 +340,20 @@ event_timestamps:
       operations.
     __example: "2024-09-01 08:00:00.000"
     __description: The timestamp when the warehouse was created.
-    displayName: Snowflake Warehouse creation time
+    displayName: Snowflake warehouse creation time
   snowflake.warehouse.resumed_on:
     __stability: stable
     __type: string
     __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __example: "2024-11-15 09:00:00.000"
     __description: The timestamp when the warehouse was last resumed.
-    displayName: Snowflake Warehouse last resumed time
+    displayName: Snowflake warehouse last resumed time
   snowflake.warehouse.updated_on:
     __type: string
     __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __example: "2024-11-10 14:30:00.000"
     __description: The timestamp when the warehouse was last updated.
-    displayName: Snowflake Warehouse last updated time
+    displayName: Snowflake warehouse last updated time
 
 metrics:
   snowflake.acceleration.scale_factor.max:

@@ -65,14 +65,14 @@ attributes:
       - dynamic_table_graph_history
     __example: 1732135627448000000
     __description: Encodes the VALID_FROM timestamp of the DYNAMIC_TABLE_GRAPH_HISTORY table function when the refresh occurred.
-    displayName: Snowflake dynamic table graph validity start timestamp
+    displayName: Snowflake dynamic table graph validity start time
   snowflake.table.dynamic.graph.valid_to:
     __type: long
     __context_names:
       - dynamic_table_graph_history
     __example: 1733011200000000000
     __description: If present, the description of the dynamic table is valid up to this time. If null, the description is still accurate.
-    displayName: Snowflake dynamic table graph validity end timestamp
+    displayName: Snowflake dynamic table graph validity end time
   snowflake.table.dynamic.lag.target.type:
     __type: string
     __context_names:
@@ -184,7 +184,7 @@ attributes:
       - dynamic_table_refresh_history
     __example: 1732515005695000000
     __description: Time by which this refresh should complete to keep lag under the TARGET_LAG parameter for the dynamic table.
-    displayName: Snowflake dynamic table refresh completion target timestamp
+    displayName: Snowflake dynamic table refresh completion target time
   snowflake.table.dynamic.refresh.data_timestamp:
     __type: long
     __context_names:
@@ -198,7 +198,7 @@ attributes:
       - dynamic_table_refresh_history
     __example: 1732514995308000000
     __description: Time when the refresh completed.
-    displayName: Snowflake dynamic table refresh end timestamp
+    displayName: Snowflake dynamic table refresh end time
   snowflake.table.dynamic.refresh.message:
     __type: string
     __stability: stable
@@ -209,7 +209,7 @@ attributes:
     displayName: Snowflake dynamic table refresh message
   snowflake.table.dynamic.refresh.start:
     __type: long
-    displayName: Snowflake dynamic table refresh start timestamp
+    displayName: Snowflake dynamic table refresh start time
     __context_names:
       - dynamic_table_refresh_history
     __example: 1732514994978000000

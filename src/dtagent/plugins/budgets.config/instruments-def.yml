@@ -44,9 +44,6 @@ attributes:
 dimensions:
   db.namespace:
     __semdict: ref
-    __semdict_note: >-
-      Defined in OTel Semantic Conventions (db.namespace, stable since v1.28). Not yet present as a globally referenceable field in the
-      Dynatrace Semantic Dictionary. Emitting as id: pending global SD registration.
     __type: string
     displayName: Snowflake database name
     __context_names:

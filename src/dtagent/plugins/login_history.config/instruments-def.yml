@@ -78,7 +78,6 @@ attributes:
     __description: The type of authentication used for the session.
   client.application.id:
     __stability: stable
-    __semdict: new
     __context_names:
       - sessions
     __example: SnowflakeJDBCDriver
@@ -86,7 +85,6 @@ attributes:
     displayName: Client application ID
     __description: The ID of the client application used for the session.
   client.application.version:
-    __semdict: new
     __context_names:
       - sessions
     __example: 1.0.0
@@ -94,7 +92,6 @@ attributes:
     displayName: Client application version
     __description: The version of the client application used for the session.
   client.build_id:
-    __semdict: new
     __context_names:
       - sessions
     __example: build123
@@ -103,7 +100,6 @@ attributes:
     __description: The build ID of the client application.
   client.environment:
     __stability: stable
-    __semdict: new
     __context_names:
       - sessions
     __example: PRODUCTION
@@ -128,7 +124,6 @@ attributes:
   snowflake.error.code:
     __type: string
     displayName: Snowflake error code
-    __semdict: new
     __semdict_note: >-
       In DSOA, used exclusively for Snowflake login failures as a string error code (e.g. "390100"). Diverges from the Dynatrace SD
       error.code field (type: long, iOS/mobile numeric codes) — semantics and type are incompatible.
@@ -150,7 +145,6 @@ attributes:
   event.related_id:
     __type: long
     displayName: Related event ID
-    __semdict: new
     __stability: experimental
     __context_names:
       - login_history
@@ -159,7 +153,6 @@ attributes:
   snowflake.session.id:
     __type: string
     displayName: Snowflake session ID
-    __semdict: new
     __stability: experimental
     __context_names:
       - sessions
@@ -176,11 +169,10 @@ attributes:
     __context_names:
       - sessions
     __type: long
-    displayName: Snowflake session start timestamp
+    displayName: Snowflake session start time
     __example: 1633046400000000000
     __description: The start time of the session.
   snowflake.status.code:
-    __semdict: new
     __context_names:
       - login_history
     __example: OK
@@ -199,7 +191,6 @@ attributes:
   snowflake.status.message:
     __type: string
     displayName: Snowflake status message
-    __semdict: new
     __context_names:
       - login_history
     __example: Login successful
@@ -225,7 +216,7 @@ dimensions:
     displayName: Client type
     __description: The type of client used to connect to Snowflake, such as JDBC_DRIVER or ODBC_DRIVER.
   db.user:
-    __semdict: ref
+    __semdict: otel-dsoa
     __stability: experimental
     __context_names:
       - login_history
@@ -253,7 +244,7 @@ metrics:
       - openpipeline
     __description: Number of failed Snowflake login attempts within the collection window.
     __example: 42
-    displayName: Snowflake login attempts failed
+    displayName: Failed login attempts to Snowflake
     unit: count
   snowflake.login.attempts.successful:
     __type: long
@@ -261,7 +252,7 @@ metrics:
       - openpipeline
     __description: Number of successful Snowflake login attempts within the collection window.
     __example: 1234
-    displayName: Snowflake login attempts successful
+    displayName: Successful login attempts to Snowflake
     unit: count
   snowflake.login.attempts.total:
     __type: long
@@ -270,7 +261,7 @@ metrics:
     __description: >-
       Total number of Snowflake login attempts (failed + successful) within the collection window.
     __example: 1276
-    displayName: Snowflake login attempts
+    displayName: All login attempts to Snowflake
     unit: count
 dql_queries:
   - query_string: |

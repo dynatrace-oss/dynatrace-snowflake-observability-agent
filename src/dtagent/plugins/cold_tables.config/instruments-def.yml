@@ -74,7 +74,7 @@ dimensions:
 attributes:
   snowflake.table.last_accessed_at:
     __type: string
-    displayName: Snowflake table last access timestamp
+    displayName: Snowflake table last access time
     __context_names: ["cold_tables"]
     __example: "2026-01-15T10:30:00Z"
     __description: ISO 8601 timestamp of the most recent query that accessed this table.

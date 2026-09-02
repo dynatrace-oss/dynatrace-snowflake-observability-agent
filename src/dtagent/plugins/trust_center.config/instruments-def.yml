@@ -19,7 +19,6 @@ attributes:
   snowflake.error.code:
     __type: string
     displayName: Snowflake error code
-    __semdict: new
     __semdict_note: >-
       DSOA-specific string error code for Snowflake Trust Center scanner failures. Not the same as the Dynatrace SD error.code field (type:
       long for iOS/mobile numeric codes). Pending rename to snowflake.trust_center.error.code for namespace clarity.
@@ -79,7 +78,6 @@ attributes:
   snowflake.status.message:
     __type: string
     displayName: Snowflake Trust Center status message
-    __semdict: new
     __example: 2.4 Ensure monitoring and alerting exist for password sign-in without MFA
     __description: The name and description of the scanner, providing additional details about the status.
 dimensions:

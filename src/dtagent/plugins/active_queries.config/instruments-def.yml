@@ -33,7 +33,6 @@ attributes:
     displayName: Database query text
     __description: The text of the SQL query.
   snowflake.session.id:
-    __semdict: otel-only
     __stability: experimental
     __type: string
     displayName: Snowflake session ID
@@ -106,19 +105,13 @@ dimensions:
     displayName: Database name
     __semdict: ref
     __stability: stable
-    __semdict_note: >-
-      Defined in OTel Semantic Conventions (db.namespace, stable since v1.28). Not yet present as a globally referenceable field in the
-      Dynatrace Semantic Dictionary. Emitting as id: pending global SD registration.
     __example: analytics_db
     __description: The name of the database in which the query was executed.
   db.user:
     __type: string
     displayName: Database user
-    __semdict: otel-only
+    __semdict: otel-dsoa
     __stability: experimental
-    __semdict_note: >-
-      Defined in OTel Semantic Conventions (db.user, experimental). Not yet present as a globally referenceable field in the Dynatrace
-      Semantic Dictionary. Emitting as id: pending global SD registration.
     __example: john_doe
     __description: The name of the user who executed the query.
   snowflake.query.execution_status:
