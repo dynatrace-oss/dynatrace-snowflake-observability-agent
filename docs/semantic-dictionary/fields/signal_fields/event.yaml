@@ -5,7 +5,7 @@ groups:
     brief: Signal-level fields for Event telemetry.
     attributes:
       - id: event.related_id
-        display_name: 'Event Related ID'
+        display_name: 'Related event ID'
         type: long
         stability: experimental
         brief: An identifier for a related event, if applicable.

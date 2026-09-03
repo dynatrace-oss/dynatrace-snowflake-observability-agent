@@ -17,6 +17,7 @@
 attributes:
   snowflake.budget.owner.name:
     __type: string
+    displayName: Snowflake budget owner name
     __stability: stable
     __context_names:
       - budgets
@@ -29,6 +30,7 @@ attributes:
     __example: ROLE
     __description: >
       The principal type of the budget owner: ROLE or APPLICATION.
+    displayName: Snowflake budget owner role type
   snowflake.budget.resource:
     __stability: stable
     __type: string[]
@@ -38,10 +40,12 @@ attributes:
     __example:
       - ["DATABASE1", "WAREHOUSE1"]
     __description: The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors.
+    displayName: Snowflake budget resource
 dimensions:
   db.namespace:
     __semdict: ref
     __type: string
+    displayName: Snowflake database name
     __context_names:
       - budgets
       - spendings
@@ -49,6 +53,7 @@ dimensions:
     __description: The name of the database that was specified in the context of the query at compilation.
   snowflake.budget.name:
     __type: string
+    displayName: Snowflake budget name
     __stability: stable
     __context_names:
       - budgets
@@ -57,6 +62,7 @@ dimensions:
     __description: Name of the budget.
   snowflake.budget.full_name:
     __type: string
+    displayName: Snowflake fully qualified budget name
     __context_names:
       - budgets
       - spendings
@@ -64,14 +70,16 @@ dimensions:
     __description: Fully-qualified name of the budget (DATABASE.SCHEMA.NAME).
   snowflake.schema.name:
     __type: string
+    displayName: Snowflake schema name
     __stability: stable
     __context_names:
       - budgets
       - spendings
     __example: public
-    __description: Schema that was specified in the context of the query at compilation.
+    __description: The name of the schema.
   snowflake.service.type:
     __type: string
+    displayName: Snowflake service type
     __stability: stable
     __context_names:
       - spendings
@@ -93,6 +101,7 @@ dimensions:
 event_timestamps:
   snowflake.event.trigger:
     __type: string
+    displayName: Snowflake event trigger
     __context_names:
       - budgets
     __example: "snowflake.budget.created_on"
@@ -106,6 +115,7 @@ event_timestamps:
       - budgets
     __example: 1732981199999000000
     __description: The timestamp when the budget was created.
+    displayName: Snowflake budget creation time
 metrics:
   snowflake.credits.limit:
     __type: long
@@ -113,7 +123,7 @@ metrics:
       - budgets
     __example: 100
     __description: The number of credits set as the spending limit for the budget.
-    displayName: Budget Spending Limit
+    displayName: Snowflake budget spending limit
     unit: credit
   snowflake.credits.spent:
     __type: double
@@ -121,7 +131,7 @@ metrics:
       - spendings
     __example: 75
     __description: Number of credits used.
-    displayName: Credits Spent
+    displayName: Snowflake credits spent
     unit: credit
 dql_queries:
   - query_string: |

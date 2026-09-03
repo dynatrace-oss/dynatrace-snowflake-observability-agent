@@ -22,8 +22,8 @@ model:
         | fields timestamp, snowflake.account.name, snowflake.org.credits.used, snowflake.org.billing.amount
         | sort timestamp desc
         | limit 50
-      description: Inspect per-account organisation credit and billing readings from the org_costs plugin.
-      description_copilot: Show recent Snowflake organisation credit and billing figures per account.
+      description: Inspect per-account organization credit and billing readings from the org_costs plugin.
+      description_copilot: Show recent Snowflake organization credit and billing figures per account.
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -32,12 +32,12 @@ model:
         | summarize { total_billed = sum(toDouble(snowflake.org.billing.amount)) }, by: { snowflake.account.name }
         | sort total_billed desc
         | limit 25
-      description: Rank Snowflake accounts by total organisation billing amount.
-      description_copilot: Find which Snowflake accounts have the highest organisation billing amount.
+      description: Rank Snowflake accounts by total organization billing amount.
+      description_copilot: Find which Snowflake accounts have the highest organization billing amount.
   groups:
     - id: snowflake.logs.org_costs.fields
       type: attribute_group
       title: Organization costs log record fields
-      brief: Attribute fields for Organization Costs log records.
+      brief: Attribute fields for organization costs log records.
       attributes:
         - ref: snowflake.org.billing.contract_number

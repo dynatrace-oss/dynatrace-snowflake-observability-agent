@@ -38,7 +38,7 @@ model:
     - id: snowflake.logs.login_history.fields
       type: attribute_group
       title: Login history log record fields
-      brief: Attribute fields for Login History log records.
+      brief: Attribute fields for login history log records.
       attributes:
         - ref: authentication.factor.first
         - ref: authentication.factor.second

@@ -25,7 +25,7 @@ model:
       metric_name: snowflake.table.access.count
       instrument: gauge
       brief: Total number of query accesses to this table within the lookback window.
-      title: Table Access Count
+      title: Snowflake table access count
       unit: count
       attributes:
         - ref: db.collection.name
@@ -36,7 +36,7 @@ model:
       metric_name: snowflake.table.days_since_last_access
       instrument: gauge
       brief: Number of days since the table was last accessed by any query.
-      title: Days Since Last Access
+      title: Snowflake days since last table access
       unit: d
       attributes:
         - ref: db.collection.name

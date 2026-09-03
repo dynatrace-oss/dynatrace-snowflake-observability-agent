@@ -5,7 +5,7 @@ groups:
     brief: Resource-level fields describing Snowflake Resource Monitor resource entities.
     attributes:
       - id: snowflake.resource_monitor.frequency
-        display_name: 'Snowflake Resource Monitor Frequency'
+        display_name: 'Snowflake resource monitor frequency'
         type:
           allow_custom_values: true
           members:
@@ -28,7 +28,7 @@ groups:
         brief: The frequency of the resource monitor.
         examples: [ 'DAILY' ]
       - id: snowflake.resource_monitor.level
-        display_name: 'Snowflake Resource Monitor Level'
+        display_name: 'Snowflake resource monitor level'
         type:
           allow_custom_values: false
           members:
@@ -47,14 +47,14 @@ groups:
     brief: Resource-level fields describing Snowflake warehouse resource entities.
     attributes:
       - id: snowflake.warehouse.clusters.count
-        display_name: 'Snowflake Warehouse Clusters Count'
+        display_name: 'Snowflake warehouse cluster count'
         type: long
         stability: stable
         brief: The number of clusters in the warehouse.
         examples: [ 2 ]
         note: The .count suffix is deliberately preserved. Sibling metrics snowflake.warehouse.clusters.min, .max, and .started exist in the same namespace; using the bare plural snowflake.warehouse.clusters as a scalar would be ambiguous alongside them.
       - id: snowflake.warehouse.execution_state
-        display_name: 'Snowflake Warehouse Execution State'
+        display_name: 'Snowflake warehouse execution state'
         type:
           allow_custom_values: true
           members:
@@ -77,25 +77,25 @@ groups:
         brief: The execution state of the warehouse.
         examples: [ 'RUNNING' ]
       - id: snowflake.warehouse.has_query_acceleration_enabled
-        display_name: 'Snowflake Warehouse Has Query Acceleration Enabled'
+        display_name: 'Snowflake warehouse query acceleration indicator'
         type: boolean
         stability: experimental
         brief: Indicates if query acceleration is enabled for the warehouse.
         examples: [ true ]
       - id: snowflake.warehouse.is_auto_resume
-        display_name: 'Snowflake Warehouse Is Auto Resume'
+        display_name: 'Snowflake warehouse auto-resume indicator'
         type: boolean
         stability: stable
         brief: Indicates if the warehouse is set to auto-resume.
         examples: [ true ]
       - id: snowflake.warehouse.owner.name
-        display_name: 'Snowflake Warehouse Owner Name'
+        display_name: 'Snowflake warehouse owner name'
         type: string
         stability: experimental
         brief: The owner of the warehouse.
         examples: [ 'ADMIN' ]
       - id: snowflake.warehouse.scaling_policy
-        display_name: 'Snowflake Warehouse Scaling Policy'
+        display_name: 'Snowflake warehouse scaling policy'
         type:
           allow_custom_values: true
           members:

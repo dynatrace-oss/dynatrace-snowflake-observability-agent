@@ -23,6 +23,7 @@ attributes:
     __description: Human-readable description of the login event, providing additional context about the outcome.
     __example: "Failed login attempt for user JOHN.DOE from 192.168.1.100."
     __type: string
+    displayName: Event description
   authentication.factor.first:
     __stability: stable
     __context_names:
@@ -30,6 +31,7 @@ attributes:
     __example: PASSWORD
     __description: The first factor used for authentication, typically a password.
     __type: string
+    displayName: First authentication factor
     __enum:
       allow_custom_values: true
       members:
@@ -56,6 +58,7 @@ attributes:
     __description: >-
       The second factor used for authentication, such as an MFA token. Omitted when only a single factor was used.
     __type: string
+    displayName: Second authentication factor
     __enum:
       allow_custom_values: true
       members:
@@ -71,36 +74,37 @@ attributes:
       - sessions
     __example: PASSWORD
     __type: string
+    displayName: Authentication type
     __description: The type of authentication used for the session.
   client.application.id:
     __stability: stable
-    __semdict: new
     __context_names:
       - sessions
     __example: SnowflakeJDBCDriver
     __type: string
+    displayName: Client application ID
     __description: The ID of the client application used for the session.
   client.application.version:
-    __semdict: new
     __context_names:
       - sessions
     __example: 1.0.0
     __type: string
+    displayName: Client application version
     __description: The version of the client application used for the session.
   client.build_id:
-    __semdict: new
     __context_names:
       - sessions
     __example: build123
     __type: string
+    displayName: Client build ID
     __description: The build ID of the client application.
   client.environment:
     __stability: stable
-    __semdict: new
     __context_names:
       - sessions
     __example: PRODUCTION
     __type: string
+    displayName: Client environment
     __description: The environment of the client application.
   client.version:
     __context_names:
@@ -108,16 +112,18 @@ attributes:
       - sessions
     __example: 1.0.0
     __type: string
+    displayName: Client version
     __description: The version of the client software used to connect to Snowflake.
   db.snowflake.connection:
     __context_names:
       - login_history
     __example: connection_1
     __type: string
+    displayName: Snowflake connection name
     __description: The name of the connection used by the client, or NULL if the client is not using a connection URL.
   snowflake.error.code:
     __type: string
-    __semdict: new
+    displayName: Snowflake error code
     __semdict_note: >-
       In DSOA, used exclusively for Snowflake login failures as a string error code (e.g. "390100"). Diverges from the Dynatrace SD
       error.code field (type: long, iOS/mobile numeric codes) — semantics and type are incompatible.
@@ -125,7 +131,8 @@ attributes:
       - login_history
     __example: "390100"
 
-    __description: A code identifying the type of error that occurred.
+    __description: The error code returned by the operation, if any.
+    __interface_note: Identifies the type of login error that occurred.
   event.id:
     __semdict: ref
     __context_names:
@@ -133,10 +140,11 @@ attributes:
       - sessions
     __example: 13825839647097210
     __type: long
+    displayName: Event ID
     __description: A unique identifier for the login attempt or the login event associated with the session.
   event.related_id:
     __type: long
-    __semdict: new
+    displayName: Related event ID
     __stability: experimental
     __context_names:
       - login_history
@@ -144,7 +152,7 @@ attributes:
     __description: An identifier for a related event, if applicable.
   snowflake.session.id:
     __type: string
-    __semdict: new
+    displayName: Snowflake session ID
     __stability: experimental
     __context_names:
       - sessions
@@ -152,6 +160,7 @@ attributes:
     __description: The unique identifier for the session.
   snowflake.session.closed_reason:
     __type: string
+    displayName: Snowflake session closed reason
     __context_names:
       - sessions
     __example: USER_LOGOUT
@@ -160,15 +169,16 @@ attributes:
     __context_names:
       - sessions
     __type: long
+    displayName: Snowflake session start time
     __example: 1633046400000000000
     __description: The start time of the session.
   snowflake.status.code:
-    __semdict: new
     __context_names:
       - login_history
     __example: OK
     __description: The status of the login attempt, indicating success (OK) or failure (ERROR).
     __type: string
+    displayName: Snowflake status code
     __enum:
       allow_custom_values: false
       members:
@@ -180,7 +190,7 @@ attributes:
           brief: The operation failed.
   snowflake.status.message:
     __type: string
-    __semdict: new
+    displayName: Snowflake status message
     __context_names:
       - login_history
     __example: Login successful
@@ -195,6 +205,7 @@ dimensions:
       intentionally preserved to make the column origin self-evident.
     __example: 192.168.1.1
     __type: string
+    displayName: Client IP address
     __description: The IP address of the client that initiated the event.
   client.type:
     __stability: stable
@@ -202,21 +213,26 @@ dimensions:
       - login_history
     __example: JDBC_DRIVER
     __type: string
+    displayName: Client type
     __description: The type of client used to connect to Snowflake, such as JDBC_DRIVER or ODBC_DRIVER.
   db.user:
-    __stability: stable
+    __semdict: otel-dsoa
+    __stability: experimental
     __context_names:
       - login_history
       - sessions
     __example: john_doe
     __type: string
-    __description: The user who performed the event in the database.
+    displayName: Database user
+    __description: The name of the database user associated with the operation.
+    __interface_note: The Snowflake user who performed the login or session event.
   event.name:
     __semdict: ref
     __context_names:
       - login_history
     __example: LOGIN
     __type: string
+    displayName: Event name
     __description: |
       The type of event that occurred, such as:
       - LOGIN,
@@ -228,7 +244,7 @@ metrics:
       - openpipeline
     __description: Number of failed Snowflake login attempts within the collection window.
     __example: 42
-    displayName: Snowflake Login Attempts Failed
+    displayName: Failed login attempts to Snowflake
     unit: count
   snowflake.login.attempts.successful:
     __type: long
@@ -236,7 +252,7 @@ metrics:
       - openpipeline
     __description: Number of successful Snowflake login attempts within the collection window.
     __example: 1234
-    displayName: Snowflake Login Attempts Successful
+    displayName: Successful login attempts to Snowflake
     unit: count
   snowflake.login.attempts.total:
     __type: long
@@ -245,7 +261,7 @@ metrics:
     __description: >-
       Total number of Snowflake login attempts (failed + successful) within the collection window.
     __example: 1276
-    displayName: Snowflake Login Attempts Total
+    displayName: All login attempts to Snowflake
     unit: count
 dql_queries:
   - query_string: |

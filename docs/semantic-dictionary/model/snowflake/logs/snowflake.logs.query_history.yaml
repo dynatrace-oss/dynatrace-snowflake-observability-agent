@@ -44,7 +44,7 @@ model:
     - id: snowflake.logs.query_history.fields
       type: attribute_group
       title: Query history log record fields
-      brief: Attribute fields for Query History log records.
+      brief: Attribute fields for query history log records.
       attributes:
         - ref: db.snowflake.tables
         - ref: db.snowflake.views

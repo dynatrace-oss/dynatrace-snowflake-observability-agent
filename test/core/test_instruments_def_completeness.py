@@ -113,14 +113,16 @@ _REQUIRED_LONG_FIELDS: frozenset = frozenset(
     }
 )
 
-#: OTel-only fields that require __semdict_note (provenance annotation).
-_OTEL_ONLY_FIELDS_NEEDING_NOTE: frozenset = frozenset(
-    {
-        "db.namespace",
-        "db.collection.name",
-        "db.user",
-    }
-)
+#: Known OTel-sourced fields and their expected __semdict classification.
+#: db.namespace/db.collection.name were already registered upstream when DSOA
+#: adopted them (ref); db.user and deployment.environment.name were registered
+#: in the Dynatrace Semantic Dictionary by DSOA itself (otel-dsoa).
+_OTEL_FIELD_EXPECTED_SEMDICT: Dict[str, str] = {
+    "db.namespace": "ref",
+    "db.collection.name": "ref",
+    "db.user": "otel-dsoa",
+    "deployment.environment.name": "otel-dsoa",
+}
 
 #: Fields that must appear in instruments-def.yml (discovered via code audit).
 #: Tuple of (plugin_name, field_key).
@@ -134,12 +136,17 @@ _REQUIRED_EVENT_PAYLOAD_FIELDS: List[Tuple[str, str]] = [
 #: field has been officially registered upstream.
 _KNOWN_SEMDICT_REFS: frozenset = frozenset(
     {
+        "authentication.type",
+        "client.ip",
+        "db.collection.name",
+        "db.namespace",
         "db.operation.name",
         "db.query.text",
         "db.system",
         "event.category",
         "event.description",
         "event.id",
+        "event.kind",
         "event.name",
         "host.name",
         "metric.key",
@@ -147,7 +154,6 @@ _KNOWN_SEMDICT_REFS: frozenset = frozenset(
         "telemetry.exporter.name",
         "telemetry.exporter.version",
         "vulnerability.risk.level",
-        "authentication.type",
     }
 )
 
@@ -376,43 +382,27 @@ class TestOtelStabilityAnnotations:
 
 @pytest.mark.integration
 class TestOtelProvenanceNotes:
-    """OTel-only fields must have provenance notes (__semdict_note)."""
+    """Known OTel-sourced fields must keep their established __semdict classification."""
 
     def test_required_otel_fields_have_semdict_annotation(self):
-        """Fields in _OTEL_ONLY_FIELDS_NEEDING_NOTE must have __semdict: otel-only.
+        """Fields in _OTEL_FIELD_EXPECTED_SEMDICT must keep their expected __semdict value.
 
-        These fields are defined in OTel Semantic Conventions and should be
-        annotated for proper SD provenance tracking.
+        db.namespace/db.collection.name were already registered in the SD when DSOA
+        adopted them (ref); db.user/deployment.environment.name were registered in
+        the SD by DSOA itself (otel-dsoa).
         """
         all_defs = _load_all_instruments_defs()
         all_fields = _collect_all_fields(all_defs)
 
         violations = []
-        for key in _OTEL_ONLY_FIELDS_NEEDING_NOTE:
+        for key, expected in _OTEL_FIELD_EXPECTED_SEMDICT.items():
             entry = all_fields.get(key)
             if entry is None:
                 continue
-            if entry.get("__semdict") != "otel-only":
-                violations.append(f"{key} (plugin={entry.get('__plugin')}): expected __semdict: otel-only, got {entry.get('__semdict')!r}")
-        assert not violations, "OTel fields missing __semdict: otel-only:\n" + "\n".join(violations)
-
-    def test_required_otel_fields_have_provenance_notes(self):
-        """Fields db.namespace, db.collection.name, db.user must have __semdict_note.
-
-        The note must explain OTel provenance so SD reviewers can decide
-        whether to register the field globally.
-        """
-        all_defs = _load_all_instruments_defs()
-        all_fields = _collect_all_fields(all_defs)
-
-        violations = []
-        for key in _OTEL_ONLY_FIELDS_NEEDING_NOTE:
-            entry = all_fields.get(key)
-            if entry is None:
-                continue
-            if not entry.get("__semdict_note"):
-                violations.append(f"{key} (plugin={entry.get('__plugin')}): missing __semdict_note")
-        assert not violations, "OTel fields missing __semdict_note:\n" + "\n".join(violations)
+            actual = entry.get("__semdict")
+            if actual != expected:
+                violations.append(f"{key} (plugin={entry.get('__plugin')}): expected __semdict: {expected}, got {actual!r}")
+        assert not violations, "OTel fields with unexpected __semdict:\n" + "\n".join(violations)
 
 
 @pytest.mark.integration
@@ -763,6 +753,31 @@ class TestSemdicRefProvenance:
                         )
         assert not violations, "__semdict: ref on unknown fields:\n" + "\n".join(violations)
 
+    def test_semdict_is_consistent_across_plugins(self):
+        """A field key must carry the same __semdict value in every plugin that defines it.
+
+        A field split across plugins with different __semdict values (e.g. one
+        plugin says 'ref', another says 'otel-dsoa') means one of them is wrong —
+        the field has a single, real SD provenance. `_collect_all_fields()` dedupes
+        by key and would silently hide this kind of drift, so this test walks
+        `_load_all_instruments_defs()` directly.
+        """
+        all_defs = _load_all_instruments_defs()
+
+        semdict_by_key: Dict[str, Dict[str, Any]] = {}
+        for plugin_name, data in all_defs.items():
+            for section in ("attributes", "dimensions", "metrics", "event_timestamps"):
+                for key, entry in (data.get(section) or {}).items():
+                    semdict_by_key.setdefault(key, {})[plugin_name] = (entry or {}).get("__semdict")
+
+        violations = []
+        for key, by_plugin in semdict_by_key.items():
+            distinct = set(by_plugin.values())
+            if len(distinct) > 1:
+                details = ", ".join(f"{plugin}={value!r}" for plugin, value in sorted(by_plugin.items()))
+                violations.append(f"{key}: inconsistent __semdict across plugins: {details}")
+        assert not violations, "Inconsistent __semdict across plugins:\n" + "\n".join(violations)
+
     ##endregion
     """Metric __example values must be numeric literals (int or float), not strings.
 
@@ -800,6 +815,70 @@ class TestSemdicRefProvenance:
                         pass  # genuinely string (non-numeric) — OK for metrics
 
         assert not violations, f"{len(violations)} metric(s) with string-quoted numeric __example:\n" + "\n".join(violations)
+
+
+@pytest.mark.integration
+class TestDisplayNameCasing:
+    """displayName values must use Sentence case, not Title Case."""
+
+    # Words allowed to be capitalised after the first word.
+    # Sourced from field_emitters.DISPLAY_NAME_ACRONYMS and TITLE_PROPER_NOUNS.
+    _ALLOWED_CAPS: frozenset = frozenset(
+        {
+            # Acronyms
+            "DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID", "IDs", "DB", "QA", "SQL", "DQL", "UTC",
+            "IP", "MFA", "RSA", "UID", "CPU", "COPY",
+            # Proper nouns (individual words from multi-word product/feature names)
+            "Snowflake", "Dynatrace", "Iceberg", "Snowpipe", "Snowpipes",
+            "Duo",  # Duo Security (MFA product)
+            "Trust", "Center",  # Snowflake Trust Center
+            "Travel",  # Snowflake Time Travel
+        }
+    )
+
+    def _is_title_case_violation(self, display_name: str) -> bool:
+        words = display_name.split()
+        if len(words) < 2:
+            return False
+        return any(
+            # For hyphenated compounds (e.g. DDL-modified), check the first segment
+            (w.split("-")[0] if "-" in w else w)[0].isupper()
+            and (w.split("-")[0] if "-" in w else w) not in self._ALLOWED_CAPS
+            for w in words[1:]
+        )
+
+    def test_attribute_display_names_are_sentence_case(self):
+        """Attribute displayName values must use Sentence case."""
+        all_defs = _load_all_instruments_defs()
+        violations = []
+        for plugin_name, data in all_defs.items():
+            for key, entry in (data.get("attributes") or {}).items():
+                dn = (entry or {}).get("displayName")
+                if dn and self._is_title_case_violation(dn):
+                    violations.append(f"{plugin_name}/{key}: {dn!r}")
+        assert not violations, f"{len(violations)} attribute displayName(s) in Title Case:\n" + "\n".join(violations)
+
+    def test_dimension_display_names_are_sentence_case(self):
+        """Dimension displayName values must use Sentence case."""
+        all_defs = _load_all_instruments_defs()
+        violations = []
+        for plugin_name, data in all_defs.items():
+            for key, entry in (data.get("dimensions") or {}).items():
+                dn = (entry or {}).get("displayName")
+                if dn and self._is_title_case_violation(dn):
+                    violations.append(f"{plugin_name}/{key}: {dn!r}")
+        assert not violations, f"{len(violations)} dimension displayName(s) in Title Case:\n" + "\n".join(violations)
+
+    def test_metric_display_names_are_sentence_case(self):
+        """Metric displayName values must use Sentence case."""
+        all_defs = _load_all_instruments_defs()
+        violations = []
+        for plugin_name, data in all_defs.items():
+            for key, entry in (data.get("metrics") or {}).items():
+                dn = (entry or {}).get("displayName")
+                if dn and self._is_title_case_violation(dn):
+                    violations.append(f"{plugin_name}/{key}: {dn!r}")
+        assert not violations, f"{len(violations)} metric displayName(s) in Title Case:\n" + "\n".join(violations)
 
 
 ##endregion

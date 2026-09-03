@@ -177,7 +177,44 @@ insufficient.
 
 ---
 
-## 8. Integration tests
+## 8. `__semdict` taxonomy — field provenance classification
+
+Every `attributes`, `dimensions`, and `metrics` entry in `instruments-def.yml` may carry an
+optional `__semdict` key that records the Dynatrace Semantic Dictionary (SD) provenance of the
+field. The exporter uses this to decide how to emit the field and which counter bucket to
+increment in the export summary.
+
+| Value | Meaning | Exporter behavior |
+|---|---|---|
+| *(absent)* | DSOA-owned field, already contributed to SD | Full `id:` block emitted |
+| `new` | DSOA-owned field, **not yet contributed** to SD | Full `id:` block emitted |
+| `otel-dsoa` | OTel semconv field that DSOA contributed to SD | Full `id:` block emitted |
+| `ref` | Field pre-existing in SD, contributed by others | `ref:` pointer only — no `display_name`, no validation |
+| `otel-only` | OTel semconv field not yet in SD | Full `id:` block emitted; transient, pending DSOA SD PR |
+| `deprecated-alias` | Deprecated alias for another field | Full `id:` block with `deprecated:` stability |
+
+**Rule: absence means owned.** The majority of DSOA fields are already registered in the SD
+and carry no `__semdict` key. Absence is the default/settled state — do not add `__semdict`
+to a field that is already in SD and DSOA-owned.
+
+**Rule: tag new fields `__semdict: new` before submitting an SD PR.** Any genuinely new field
+(not yet present anywhere in the SD) must be explicitly marked `__semdict: new` before the PR.
+This makes the pending contribution visible in the export summary and prevents it from silently
+being treated as already-contributed. Once the SD PR merges and the field is registered, remove
+the `new` tag — absence then signals the settled state.
+
+**Rule: `ref` fields must be in `_KNOWN_SEMDICT_REFS`.** Adding `__semdict: ref` without a
+corresponding entry in `test/core/test_instruments_def_completeness.py::_KNOWN_SEMDICT_REFS`
+is a hard CI failure. Confirm the field is registered upstream before adding it to the
+allowlist.
+
+**Rule: consistent across plugins.** A field key must carry the same `__semdict` value in
+every plugin that defines it. Cross-plugin inconsistency (e.g. one plugin says `ref`, another
+says `otel-dsoa`) is caught by `TestSemdicRefProvenance::test_semdict_is_consistent_across_plugins`.
+
+---
+
+## 9. Integration tests
 
 The `test/core/` conftest auto-runs `build_semantic_export.sh` at the start of every pytest
 session, so integration tests always see current output:

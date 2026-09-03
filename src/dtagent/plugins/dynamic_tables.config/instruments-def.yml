@@ -17,15 +17,19 @@
 #
 attributes:
   db.query.text:
+    __semdict: ref
     __context_names:
       - dynamic_table_graph_history
     __example:
       SELECT A.EMP_ID,A.EMP_NAME,A.EMP_ADDRESS, B.SKILL_ID,B.SKILL_NAME,B.SKILL_LEVEL FROM EMPLOYEE A, EMPLOYEE_SKILL B WHERE
       A.EMP_ID=B.EMP_ID ORDER BY B.SKILL_ID ;
-    __description: The SELECT statement for this dynamic table.
+    __description: The text of the query.
+    __interface_note: For dynamic tables, this is the SELECT statement that defines the table.
     __type: string
+    displayName: Database query text
   snowflake.query.id:
     __type: string
+    displayName: Snowflake query ID
     __stability: stable
     __context_names:
       - dynamic_tables
@@ -42,6 +46,7 @@ attributes:
     __description: >-
       Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY function. Possible values: NONE (backwards-compatible),
       CREATE_DYNAMIC_TABLE, ALTER_TARGET_LAG, SUSPEND, RESUME, REPLICATION_REFRESH, ALTER_WAREHOUSE.
+    displayName: Snowflake dynamic table graph alter trigger
   snowflake.table.dynamic.graph.inputs:
     __type: string[]
     __semdict_note: >-
@@ -52,6 +57,7 @@ attributes:
       - - '{"kind": "TABLE", "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE"}'
         - '{"kind": "TABLE", "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_SKILL"}'
     __description: Each OBJECT represents a table, view, or dynamic table that serves as the input to this dynamic table.
+    displayName: Snowflake dynamic table graph inputs
   snowflake.table.dynamic.graph.valid_from:
     __type: long
     __context_names:
@@ -59,12 +65,14 @@ attributes:
       - dynamic_table_graph_history
     __example: 1732135627448000000
     __description: Encodes the VALID_FROM timestamp of the DYNAMIC_TABLE_GRAPH_HISTORY table function when the refresh occurred.
+    displayName: Snowflake dynamic table graph validity start time
   snowflake.table.dynamic.graph.valid_to:
     __type: long
     __context_names:
       - dynamic_table_graph_history
     __example: 1733011200000000000
     __description: If present, the description of the dynamic table is valid up to this time. If null, the description is still accurate.
+    displayName: Snowflake dynamic table graph validity end time
   snowflake.table.dynamic.lag.target.type:
     __type: string
     __context_names:
@@ -72,6 +80,7 @@ attributes:
       - dynamic_table_graph_history
     __example: USER_DEFINED
     __description: The type of target lag.
+    displayName: Snowflake dynamic table target lag type
   snowflake.table.dynamic.latest.code:
     __type: string
     __context_names:
@@ -80,6 +89,7 @@ attributes:
     __description:
       Code representing the current state of the refresh. If the LAST_COMPLETED_REFRESH_STATE is FAILED, this column shows the error code
       associated with the failure.
+    displayName: Snowflake dynamic table refresh state code (latest)
   snowflake.table.dynamic.latest.data_timestamp:
     __type: string
     __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
@@ -87,6 +97,7 @@ attributes:
       - dynamic_tables
     __example: "2024-11-22 12:55:29.695 Z"
     __description: Data timestamp of the last successful refresh.
+    displayName: Snowflake dynamic table refresh timestamp (latest)
   snowflake.table.dynamic.latest.dependency.data_timestamp:
     __type: string
     __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
@@ -94,13 +105,16 @@ attributes:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:09:53.695 Z"
     __description: Data timestamp of the latest dependency to become available.
+    displayName: Snowflake dynamic table dependency data timestamp (latest)
   snowflake.table.dynamic.latest.dependency.name:
     __type: string
     __context_names:
       - dynamic_table_refresh_history
     __example: DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE
     __description: Qualified name of the latest dependency to become available.
+    displayName: Snowflake dynamic table dependency name (latest)
   snowflake.table.dynamic.latest.message:
+    displayName: Snowflake dynamic table refresh message (latest)
     __type: string
     __context_names:
       - dynamic_tables
@@ -132,6 +146,7 @@ attributes:
         - id: suspended
           value: SUSPENDED
           brief: Dynamic table scheduling is suspended.
+    displayName: Snowflake dynamic table refresh state (latest)
   snowflake.table.dynamic.refresh.action:
     __type: string
     __stability: stable
@@ -154,6 +169,7 @@ attributes:
         - id: incremental
           value: INCREMENTAL
           brief: Normal incremental refresh.
+    displayName: Snowflake dynamic table refresh action
   snowflake.table.dynamic.refresh.code:
     __type: string
     __stability: stable
@@ -161,24 +177,28 @@ attributes:
       - dynamic_table_refresh_history
     __example: SUCCESS
     __description: Code representing the current state of the refresh.
+    displayName: Snowflake dynamic table refresh state code
   snowflake.table.dynamic.refresh.completion_target:
     __type: long
     __context_names:
       - dynamic_table_refresh_history
     __example: 1732515005695000000
     __description: Time by which this refresh should complete to keep lag under the TARGET_LAG parameter for the dynamic table.
+    displayName: Snowflake dynamic table refresh completion target time
   snowflake.table.dynamic.refresh.data_timestamp:
     __type: long
     __context_names:
       - dynamic_table_refresh_history
     __example: 1732514993695000000
     __description: Transactional timestamp when the refresh was evaluated.
+    displayName: Snowflake dynamic table refresh data timestamp
   snowflake.table.dynamic.refresh.end:
     __type: long
     __context_names:
       - dynamic_table_refresh_history
     __example: 1732514995308000000
     __description: Time when the refresh completed.
+    displayName: Snowflake dynamic table refresh end time
   snowflake.table.dynamic.refresh.message:
     __type: string
     __stability: stable
@@ -186,8 +206,10 @@ attributes:
       - dynamic_table_refresh_history
     __example: "Refresh completed successfully"
     __description: Description of the current state of the refresh.
+    displayName: Snowflake dynamic table refresh message
   snowflake.table.dynamic.refresh.start:
     __type: long
+    displayName: Snowflake dynamic table refresh start time
     __context_names:
       - dynamic_table_refresh_history
     __example: 1732514994978000000
@@ -220,6 +242,7 @@ attributes:
         - id: upstream_failed
           value: UPSTREAM_FAILED
           brief: Refresh not performed due to an upstream failed refresh.
+    displayName: Snowflake dynamic table refresh state
   snowflake.table.dynamic.refresh.trigger:
     __type: string
     __stability: stable
@@ -239,6 +262,7 @@ attributes:
         - id: creation
           value: CREATION
           brief: Refresh performed during creation DDL statement.
+    displayName: Snowflake dynamic table refresh trigger
   snowflake.table.dynamic.scheduling.reason.code:
     __type: string
     __context_names:
@@ -246,6 +270,7 @@ attributes:
       - dynamic_table_graph_history
     __example: MAINTENANCE
     __description: Optional reason code if the state is not ACTIVE.
+    displayName: Snowflake dynamic table scheduling reason code
   snowflake.table.dynamic.scheduling.reason.message:
     __type: string
     __context_names:
@@ -253,6 +278,7 @@ attributes:
       - dynamic_table_graph_history
     __example: Scheduled maintenance
     __description: Text description of the reason the dynamic table is not active. Only applies if the state is not active.
+    displayName: Snowflake dynamic table scheduling reason message
   snowflake.table.dynamic.scheduling.state:
     __type: string
     __stability: stable
@@ -261,9 +287,12 @@ attributes:
       - dynamic_table_graph_history
     __example: ACTIVE
     __description: Scheduling state of the dynamic table.
+    displayName: Snowflake dynamic table scheduling state
 dimensions:
   db.collection.name:
+    __semdict: ref
     __type: string
+    displayName: Snowflake dynamic table name
     __context_names:
       - dynamic_tables
       - dynamic_table_refresh_history
@@ -273,6 +302,7 @@ dimensions:
   db.namespace:
     __semdict: ref
     __type: string
+    displayName: Snowflake database name
     __context_names:
       - dynamic_tables
       - dynamic_table_refresh_history
@@ -281,25 +311,28 @@ dimensions:
     __description: The name of the database in which the query was executed.
   snowflake.schema.name:
     __type: string
+    displayName: Snowflake schema name
     __stability: stable
     __context_names:
       - dynamic_tables
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
     __example: DYNAMIC_TABLE_SCH
-    __description: Name of the schema that contains the dynamic table.
+    __description: The name of the schema.
   snowflake.table.full_name:
     __type: string
+    displayName: Snowflake fully qualified table name
     __stability: stable
     __context_names:
       - dynamic_tables
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
     __example: DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET
-    __description: Fully qualified name of the dynamic table.
+    __description: Fully qualified name of the Snowflake table (database.schema.table).
 event_timestamps:
   snowflake.event.trigger:
     __type: string
+    displayName: Snowflake event trigger
     __context_names:
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
@@ -314,7 +347,9 @@ event_timestamps:
       - dynamic_table_graph_history
     __example: 1732135627448000000
     __description: The timestamp after which the description of the dynamic table is valid.
+    displayName: Snowflake dynamic table graph validity start time
   snowflake.table.dynamic.scheduling.resumed_on:
+    displayName: Snowflake dynamic table scheduling resume time
     __stability: stable
     __type: string
     __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
@@ -323,6 +358,7 @@ event_timestamps:
     __example: "2024-11-25 08:09:53.695 Z"
     __description: The timestamp when the dynamic table was last resumed, if ACTIVE.
   snowflake.table.dynamic.scheduling.suspended_on:
+    displayName: Snowflake dynamic table scheduling suspend time
     __type: string
     __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __context_names:
@@ -336,7 +372,7 @@ metrics:
       - dynamic_table_refresh_history
     __example: 5
     __description: The number of partitions added during the refresh.
-    displayName: Partitions Added
+    displayName: Snowflake partitions added
     unit: partition
   snowflake.partitions.removed:
     __type: long
@@ -344,7 +380,7 @@ metrics:
       - dynamic_table_refresh_history
     __example: 3
     __description: The number of partitions removed during the refresh.
-    displayName: Partitions Removed
+    displayName: Snowflake partitions removed
     unit: partition
   snowflake.rows.copied:
     __type: long
@@ -352,7 +388,7 @@ metrics:
       - dynamic_table_refresh_history
     __example: 75
     __description: The number of rows copied during the refresh.
-    displayName: Rows Copied
+    displayName: Snowflake rows copied
     unit: row
   snowflake.rows.deleted:
     __type: long
@@ -360,7 +396,7 @@ metrics:
       - dynamic_table_refresh_history
     __example: 50
     __description: The number of rows deleted during the refresh.
-    displayName: Rows Deleted
+    displayName: Snowflake rows deleted
     unit: row
   snowflake.rows.inserted:
     __type: long
@@ -368,7 +404,7 @@ metrics:
       - dynamic_table_refresh_history
     __example: 100
     __description: The number of rows inserted during the refresh.
-    displayName: Rows Inserted
+    displayName: Snowflake rows inserted
     unit: row
   snowflake.table.dynamic.lag.max:
     __type: long
@@ -376,7 +412,7 @@ metrics:
       - dynamic_tables
     __example: 83
     __description: The maximum lag time in seconds of refreshes for this dynamic table.
-    displayName: Maximum Lag Time
+    displayName: Snowflake dynamic table maximum lag
     unit: s
   snowflake.table.dynamic.lag.mean:
     __type: long
@@ -384,7 +420,7 @@ metrics:
       - dynamic_tables
     __example: 26
     __description: The mean lag time (in seconds) of refreshes for this dynamic table.
-    displayName: Mean Lag Time
+    displayName: Snowflake dynamic table mean lag
     unit: s
   snowflake.table.dynamic.lag.target.time_above:
     __type: long
@@ -392,7 +428,7 @@ metrics:
       - dynamic_tables
     __example: 151
     __description: The time in seconds when the actual lag was more than the defined target lag.
-    displayName: Time Above Target Lag
+    displayName: Snowflake dynamic table time above target lag
     unit: s
   snowflake.table.dynamic.lag.target.value:
     __type: long
@@ -403,7 +439,7 @@ metrics:
     __description:
       The time in seconds in the retention period or since the last configuration change, when the actual lag was more than the defined
       target lag.
-    displayName: Target Lag Time
+    displayName: Snowflake dynamic table target lag
     unit: s
   snowflake.table.dynamic.lag.target.within_ratio:
     __type: double
@@ -412,7 +448,7 @@ metrics:
     __example: 0.999
     __description:
       The ratio of time in the retention period or since the last configuration change, when actual lag is within the target lag.
-    displayName: Time Within Target Lag Ratio
+    displayName: Snowflake dynamic table within-target lag ratio
     unit: ratio
 dql_queries:
   - query_string: |

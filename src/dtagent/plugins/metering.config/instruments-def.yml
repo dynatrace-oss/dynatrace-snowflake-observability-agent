@@ -23,6 +23,7 @@
 dimensions:
   snowflake.service.type:
     __type: string
+    displayName: Snowflake service type
     __stability: stable
     __context_names: ["metering"]
     __example: AUTO_CLUSTERING
@@ -77,6 +78,7 @@ dimensions:
             Credits billed for bytes stored in Snowflake databases, internal stages, Time Travel history, and Fail-safe retention.
   snowflake.service.name:
     __type: string
+    displayName: Snowflake service name
     __stability: stable
     __context_names: ["metering"]
     __example: MY_PIPE
@@ -88,6 +90,7 @@ attributes:
     __context_names: ["metering"]
     __example: 12345
     __type: long
+    displayName: Snowflake service entity ID
     __description: >-
       Unique Snowflake identifier of the service entity.
 
@@ -98,7 +101,7 @@ metrics:
     __example: 15.5
     __description: >-
       Total credits consumed by the service in the metering window.
-    displayName: Snowflake Credits Used
+    displayName: Snowflake credits used
     unit: credit
   snowflake.credits.used.compute:
     __type: double
@@ -106,7 +109,7 @@ metrics:
     __example: 12.3
     __description: >-
       Compute credits consumed by the service in the metering window.
-    displayName: Snowflake Compute Credits Used
+    displayName: Snowflake compute credits used
     unit: credit
   snowflake.credits.used.cloud_services:
     __type: long
@@ -114,7 +117,7 @@ metrics:
     __example: 3.2
     __description: >-
       Cloud services credits consumed by the service in the metering window.
-    displayName: Snowflake Cloud Services Credits Used
+    displayName: Snowflake cloud services credits used
     unit: credit
   snowflake.metering.data.size:
     __type: long
@@ -122,7 +125,7 @@ metrics:
     __example: 10485760
     __description: >-
       Number of bytes processed by the service in the metering window.
-    displayName: Bytes Processed
+    displayName: Snowflake metered data
     unit: By
   snowflake.metering.data.rows:
     __type: long
@@ -130,7 +133,7 @@ metrics:
     __example: 50000
     __description: >-
       Number of rows processed by the service in the metering window.
-    displayName: Rows Processed
+    displayName: Snowflake metered rows
     unit: row
   snowflake.data.files:
     __type: long
@@ -138,7 +141,7 @@ metrics:
     __example: 120
     __description: >-
       Number of files processed by the service in the metering window.
-    displayName: Files Processed
+    displayName: Snowflake data files processed
     unit: file
 dql_queries:
   - query_string: |

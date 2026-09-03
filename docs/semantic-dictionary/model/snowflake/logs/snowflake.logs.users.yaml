@@ -36,7 +36,7 @@ model:
     - id: snowflake.logs.users.fields
       type: attribute_group
       title: Users log record fields
-      brief: Attribute fields for Users log records.
+      brief: Attribute fields for users log records.
       attributes:
         - ref: snowflake.user.bypass_mfa_until
         - ref: snowflake.user.comment

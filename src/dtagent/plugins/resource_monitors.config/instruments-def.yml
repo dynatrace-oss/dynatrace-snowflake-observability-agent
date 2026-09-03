@@ -18,28 +18,34 @@
 attributes:
   snowflake.budget.name:
     __type: string
+    displayName: Snowflake budget name
     __stability: stable
     __example: BUDGET_2024
     __description: The name of the budget associated with the warehouse.
   snowflake.credits.quota.value:
     __type: long
+    displayName: Snowflake credits quota
     __example: 1000
     __description: The credit quota of the resource monitor.
   snowflake.credits.quota.remaining:
     __type: double
+    displayName: Snowflake credits quota remaining
     __example: 500.0
     __description: The remaining credits of the resource monitor.
   snowflake.credits.quota.used:
     __type: double
+    displayName: Snowflake credits quota used
     __example: 500.0
     __description: The credits used by the resource monitor.
   snowflake.credits.quota.used_pct:
     __type: double
+    displayName: Snowflake quota used percentage
     __is_defined_at_runtime: true
     __example: 85.0
     __description: Live percentage of quota consumed at the time of threshold event emission.
   snowflake.resource_monitor.frequency:
     __type: string
+    displayName: Snowflake resource monitor frequency
     __stability: stable
     __field_type: resource
     __example: DAILY
@@ -67,10 +73,12 @@ attributes:
   snowflake.resource_monitor.is_active:
     __stability: stable
     __type: boolean
+    displayName: Snowflake resource monitor active indicator
     __example: true
     __description: Indicates if the resource monitor is active.
   snowflake.resource_monitor.level:
     __type: string
+    displayName: Snowflake resource monitor level
     __field_type: resource
     __example: ACCOUNT
     __description: The level of the resource monitor.
@@ -87,6 +95,7 @@ attributes:
           brief: Resource monitor applies at the warehouse level.
   snowflake.resource_monitor.threshold.direction:
     __type: string
+    displayName: Snowflake resource monitor threshold crossing direction
     __is_defined_at_runtime: true
     __example: up
     __description: >-
@@ -103,6 +112,7 @@ attributes:
           brief: Consumption drops back below a previously active band.
   snowflake.resource_monitor.threshold.level:
     __type: string
+    displayName: Snowflake resource monitor threshold alert band
     __is_defined_at_runtime: true
     __example: warn
     __description: >-
@@ -124,8 +134,8 @@ attributes:
           brief: Quota consumption is at or above 100%.
   snowflake.resource_monitor.threshold.value:
     __type: double
+    displayName: Snowflake resource monitor threshold value
     __is_defined_at_runtime: true
-    __unit: "%"
     __example: 80
     __description: >-
       Alert band the resource monitor's credit usage fell into when the event was emitted: one of ``info``, ``warn``, ``critical``, or
@@ -135,11 +145,13 @@ attributes:
       80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures live consumption at emit time.
   snowflake.warehouse.event.trigger:
     __type: string
+    displayName: Snowflake warehouse event trigger
     __is_defined_at_runtime: true
     __example: "snowflake.warehouse.created_on"
     __description: The event that triggered the "warehouse is not monitored" notification.
   snowflake.warehouse.execution_state:
     __type: string
+    displayName: Snowflake warehouse execution state
     __stability: stable
     __field_type: resource
     __example: RUNNING
@@ -166,39 +178,47 @@ attributes:
   snowflake.warehouse.has_query_acceleration_enabled:
     __field_type: resource
     __type: boolean
+    displayName: Snowflake warehouse query acceleration indicator
     __example: true
     __description: Indicates if query acceleration is enabled for the warehouse.
   snowflake.warehouse.is_auto_resume:
     __stability: stable
     __field_type: resource
     __type: boolean
+    displayName: Snowflake warehouse auto-resume indicator
     __example: true
     __description: Indicates if the warehouse is set to auto-resume.
   snowflake.warehouse.is_current:
     __type: boolean
+    displayName: Snowflake warehouse current indicator
     __example: true
     __description: Indicates if the warehouse is the current warehouse.
   snowflake.warehouse.is_default:
     __type: boolean
+    displayName: Snowflake warehouse default indicator
     __example: true
     __description: Indicates if the warehouse is the default warehouse.
   snowflake.warehouse.is_unmonitored:
     __stability: stable
     __type: boolean
+    displayName: Snowflake warehouse unmonitored indicator
     __example: true
     __description: Indicates if the warehouse is NOT monitored by a resource monitor.
   snowflake.warehouse.owner.name:
     __type: string
+    displayName: Snowflake warehouse owner name
     __field_type: resource
     __example: ADMIN
     __description: The owner of the warehouse.
   snowflake.warehouse.owner.role_type:
     __type: string
+    displayName: Snowflake warehouse owner role type
     __example: ROLE
     __description: >
       The principal type of the warehouse owner: ROLE or APPLICATION.
   snowflake.warehouse.scaling_policy:
     __type: string
+    displayName: Snowflake warehouse scaling policy
     __stability: stable
     __field_type: resource
     __example: STANDARD
@@ -216,6 +236,7 @@ attributes:
           brief: Economy scaling policy (slower to scale up, saves credits).
   snowflake.warehouse.size:
     __type: string
+    displayName: Snowflake warehouse size
     __stability: stable
     __field_type: resource
     __example: X-SMALL
@@ -255,6 +276,7 @@ attributes:
           brief: 512 credits/hour; largest available size, generally available on AWS and Azure.
   snowflake.warehouse.type:
     __type: string
+    displayName: Snowflake warehouse type
     __stability: stable
     __field_type: resource
     __example: STANDARD
@@ -272,22 +294,26 @@ attributes:
             training and memory-intensive UDFs and stored procedures.
   snowflake.resource_monitor.warehouses:
     __type: string[]
+    displayName: Snowflake resource monitor warehouses
     __example: ["COMPUTE_WH"]
     __description: The names of the warehouses monitored.
 dimensions:
   snowflake.resource_monitor.name:
     __type: string
+    displayName: Snowflake resource monitor name
     __stability: stable
     __example: RM_MONITOR
     __description: The name of the resource monitor.
   snowflake.warehouse.name:
     __type: string
+    displayName: Snowflake warehouse name
     __stability: stable
     __example: COMPUTE_WH
-    __description: The name of the warehouse.
+    __description: The name of the Snowflake warehouse.
 event_timestamps:
   snowflake.event.trigger:
     __type: string
+    displayName: Snowflake event trigger
     __example: "snowflake.warehouse.resumed_on"
     __description:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
@@ -296,14 +322,17 @@ event_timestamps:
     __type: long
     __example: 1728991696789000000
     __description: The timestamp when the resource monitor was created.
+    displayName: Snowflake resource monitor creation time
   snowflake.resource_monitor.end_time:
     __type: long
     __example: 1732981199999000000
     __description: The timestamp when the resource monitor ended.
+    displayName: Snowflake resource monitor end time
   snowflake.resource_monitor.start_time:
     __type: long
     __example: 1730419200000000000
     __description: The timestamp when the resource monitor started.
+    displayName: Snowflake resource monitor start time
   snowflake.warehouse.created_on:
     __type: string
     __semdict_note: >-
@@ -311,102 +340,105 @@ event_timestamps:
       operations.
     __example: "2024-09-01 08:00:00.000"
     __description: The timestamp when the warehouse was created.
+    displayName: Snowflake warehouse creation time
   snowflake.warehouse.resumed_on:
     __stability: stable
     __type: string
     __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __example: "2024-11-15 09:00:00.000"
     __description: The timestamp when the warehouse was last resumed.
+    displayName: Snowflake warehouse last resumed time
   snowflake.warehouse.updated_on:
     __type: string
     __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __example: "2024-11-10 14:30:00.000"
     __description: The timestamp when the warehouse was last updated.
+    displayName: Snowflake warehouse last updated time
 
 metrics:
   snowflake.acceleration.scale_factor.max:
     __type: long
     __example: 2
     __description: Maximal scale factor for query acceleration in the given warehouse
-    displayName: Query Acceleration Upper Limit Scale Factor
+    displayName: Snowflake query acceleration upper limit scale factor
     unit: "1"
   snowflake.compute.available:
     __type: double
     __example: 60
     __description: Percentage of available resources in given warehouse.
-    displayName: Percentage Available
+    displayName: Snowflake available compute resources percentage
     unit: "%"
   snowflake.compute.other:
     __type: double
     __example: 10
     __description: Percentage of other resources in given warehouse
-    displayName: Percentage Other
+    displayName: Snowflake other compute resources percentage
     unit: "%"
   snowflake.compute.provisioning:
     __type: double
     __example: 20
     __description: Percentage of provisioning resources in given warehouse.
-    displayName: Percentage Provisioning
+    displayName: Snowflake provisioning compute resources percentage
     unit: "%"
   snowflake.compute.quiescing:
     __type: double
     __example: 10
     __description: Percentage of quiescing resources in given warehouse.
-    displayName: Percentage Quiescing
+    displayName: Snowflake quiescing compute resources percentage
     unit: "%"
   snowflake.credits.quota.value:
     __type: double
     __example: 1000
     __description: Total number of credits allowed for the given resource monitor
-    displayName: Credits Quota
+    displayName: Snowflake credits quota
     unit: credit
   snowflake.credits.quota.remaining:
     __type: double
     __example: 250
     __description: Number of credits remaining for the given resource monitor
-    displayName: Credits Remaining
+    displayName: Snowflake credits quota remaining
     unit: credit
   snowflake.credits.quota.used:
     __type: double
     __example: 750
     __description: Number of credits used by the given resource monitor
-    displayName: Credits Used
+    displayName: Snowflake credits quota used
     unit: credit
   snowflake.credits.quota.used_pct:
     __type: double
     __example: 75
     __description: Percentage of quota used by given resource monitor
-    displayName: Percentage Quota Used
+    displayName: Snowflake quota used percentage
     unit: "%"
   snowflake.queries.queued:
     __type: long
     __example: 5
     __description: Current number of queued queries in the given warehouse
-    displayName: Queued Queries
+    displayName: Snowflake queued queries
     unit: query
   snowflake.queries.running:
     __type: long
     __example: 15
     __description: Current number of running queries in the given warehouse
-    displayName: Running Queries
+    displayName: Snowflake running queries
     unit: query
   snowflake.resource_monitor.warehouses.count:
     __type: long
     __example: 5
     __description: Number of warehouses monitored by the given resource monitor
-    displayName: Warehouses Count
+    displayName: Snowflake resource monitor warehouse count
     unit: warehouse
   snowflake.warehouse.clusters.max:
     __type: long
     __example: 10
     __description: Maximal number of clusters in the given warehouse
-    displayName: Maximum Cluster Count
+    displayName: Snowflake warehouse maximum cluster count
     unit: cluster
   snowflake.warehouse.clusters.min:
     __type: long
     __example: 1
     __description: Minimal number of clusters in the given warehouse
-    displayName: Minimum Cluster Count
+    displayName: Snowflake warehouse minimum cluster count
     unit: cluster
   snowflake.warehouse.auto_suspend:
     __type: long
@@ -414,13 +446,13 @@ metrics:
     __description: >-
       The number of seconds after which an idle warehouse is automatically suspended. A value of null or 0 indicates auto-suspend is
       disabled.
-    displayName: Warehouse Auto-Suspend Timeout
+    displayName: Snowflake warehouse auto-suspend timeout
     unit: s
   snowflake.warehouse.clusters.started:
     __type: long
     __example: 3
     __description: Current number of started clusters in the given warehouse
-    displayName: Started Clusters
+    displayName: Snowflake warehouse started clusters
     unit: cluster
 dql_queries:
   - query_string: |

@@ -5,39 +5,39 @@ groups:
     brief: Resource-level DSOA execution metadata and deployment context.
     attributes:
       - id: deployment.environment
-        display_name: 'Deployment Environment'
+        display_name: 'Snowflake deployment environment'
         type: string
         deprecated: Use deployment.environment.name instead.
         brief: Deprecated alias for deployment.environment.name. The deployment environment, e.g., production, staging, or development. Will be removed in release 1.3.0.
         examples: [ 'PROD' ]
         note: OTel Semantic Conventions v1.26 renamed `deployment.environment` to `deployment.environment.name` (stable). DSOA continues to emit `deployment.environment` for backward compatibility with existing Dynatrace configurations; migration to `deployment.environment.name` is deferred pending adoption analysis.
       - id: deployment.environment.name
-        display_name: 'Deployment Environment Name'
+        display_name: 'Snowflake deployment environment name'
         type: string
         stability: stable
         brief: The deployment environment name (OTel semconv canonical field), e.g., production, staging, or development. Emitted alongside deployment.environment during the deprecation window.
         examples: [ 'PROD' ]
         note: OTel Semantic Conventions stable canonical name (since v1.26). DSOA co-emits this alongside the deprecated `deployment.environment` during the migration window. Operators should migrate DQL queries to filter by this key.
       - id: deployment.environment.tag
-        display_name: 'Deployment Environment Tag'
+        display_name: 'Deployment environment tag'
         type: string
         stability: stable
         brief: Optional tag for the deployment environment in multitenancy mode
         examples: [ 'SA080' ]
       - id: dsoa.run.context
-        display_name: 'DSOA Run Context'
+        display_name: 'DSOA execution context'
         type: string
         stability: stable
         brief: The name of the Dynatrace Snowflake Observability Agent context (part of plugin) used to produce the telemetry (logs, traces, metrics, or events). In case of multiple contexts within the same plugin, this helps differentiate between them. If plugin delivers only one context, this field will have the same value as the plugin name.
         examples: [ 'users_all_roles' ]
       - id: dsoa.run.id
-        display_name: 'DSOA Run ID'
+        display_name: 'DSOA execution unique identifier'
         type: string
         stability: stable
         brief: Unique ID of each execution of the Dynatrace Snowflake Observability Agent plugin. It can be used to differentiate between telemetry produced between two executions, e.g., to calculate the change in the system.
         examples: [ '4aa7c76c-e98c-4b8b-a5b3-a8a721bbde2d' ]
       - id: dsoa.run.plugin
-        display_name: 'DSOA Run Plugin'
+        display_name: 'DSOA execution plugin name'
         type: string
         stability: stable
         brief: The name of the DSOA plugin that produced this telemetry. Use to filter all telemetry from a specific plugin (e.g., 'query_history', 'warehouse_usage'). Distinct from dsoa.run.context, which may represent a sub-context within a plugin.
