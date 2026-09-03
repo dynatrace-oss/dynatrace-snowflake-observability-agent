@@ -5,7 +5,6 @@ Usage: python3 scripts/tools/generate_display_name_review.py
 """
 
 import glob
-import re
 import sys
 from pathlib import Path
 
@@ -13,8 +12,6 @@ import yaml
 
 REPO_ROOT = Path(__file__).parent.parent.parent
 OUTPUT = REPO_ROOT / ".context/devlog/1.0.1/display-name-review.md"
-
-SECTION_ORDER = {"attribute": 0, "dimension": 1, "event_timestamp": 2, "metric": 3}
 PLURAL_TO_SINGULAR = {
     "attributes": "attribute",
     "dimensions": "dimension",
