@@ -39,7 +39,7 @@ model:
     - id: snowflake.spans.query_history.fields
       type: attribute_group
       title: Query history span fields
-      brief: Attribute fields for Query History spans.
+      brief: Attribute fields for query history spans.
       attributes:
         - ref: db.snowflake.tables
         - ref: db.snowflake.views

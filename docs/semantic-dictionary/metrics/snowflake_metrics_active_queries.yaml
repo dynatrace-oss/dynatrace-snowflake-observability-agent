@@ -30,7 +30,7 @@ model:
       metric_name: snowflake.data.written_to_result
       instrument: gauge
       brief: Number of bytes written to a result object.
-      title: Bytes Written to Result
+      title: Snowflake bytes written to result
       unit: By
       attributes:
         - ref: db.user
@@ -41,7 +41,7 @@ model:
       metric_name: snowflake.rows.written_to_result
       instrument: gauge
       brief: Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;.
-      title: Rows Written to Result
+      title: Snowflake rows written to result
       unit: count
       note: 'Original unit: row.'
       attributes:
@@ -53,7 +53,7 @@ model:
       metric_name: snowflake.time.compilation
       instrument: gauge
       brief: The total compilation time of the currently running query.
-      title: Query Compilation Time
+      title: Snowflake query compilation time
       unit: ms
       attributes:
         - ref: db.user
@@ -64,7 +64,7 @@ model:
       metric_name: snowflake.time.execution
       instrument: gauge
       brief: Execution time (in milliseconds)
-      title: Execution Time
+      title: Snowflake query execution time
       unit: ms
       attributes:
         - ref: db.user
@@ -75,7 +75,7 @@ model:
       metric_name: snowflake.time.running
       instrument: gauge
       brief: The total running time of the currently running query.
-      title: Query Running Time
+      title: Snowflake query running time
       unit: ms
       attributes:
         - ref: db.user
@@ -86,7 +86,7 @@ model:
       metric_name: snowflake.time.total_elapsed
       instrument: gauge
       brief: Elapsed time (in milliseconds).
-      title: Total Elapsed Time
+      title: Snowflake query total elapsed time
       unit: ms
       attributes:
         - ref: db.user

@@ -24,7 +24,7 @@ model:
       metric_name: snowflake.table.active_bytes
       instrument: gauge
       brief: Number of bytes of active data in the table.
-      title: Active Bytes
+      title: Snowflake table active bytes
       unit: By
       attributes:
         - ref: db.collection.name
@@ -36,7 +36,7 @@ model:
       brief: |-
         Fraction of micro-partitions that are constant (fully within a single clustering
         key range). Higher values indicate better clustering quality.
-      title: Constant Partition Ratio
+      title: Snowflake table constant partition ratio
       unit: ratio
       attributes:
         - ref: db.collection.name
@@ -50,7 +50,7 @@ model:
         Flag indicating whether clustering has degraded beyond the configured threshold
         (plugins.table_health.clustering_degradation_threshold).
         1 = degraded, 0 = healthy or no clustering data available.
-      title: Clustering Degraded
+      title: Snowflake table clustering degraded indicator
       unit: count
       attributes:
         - ref: db.collection.name
@@ -62,7 +62,7 @@ model:
       brief: |-
         Average clustering depth of the table. Lower values indicate better clustering.
         A value of 1.0 means all micro-partitions are perfectly clustered.
-      title: Clustering Depth
+      title: Snowflake table clustering depth
       unit: count
       attributes:
         - ref: db.collection.name
@@ -75,7 +75,7 @@ model:
       brief: |-
         Change in average clustering depth between the two most recent snapshots.
         Positive values indicate degradation; negative values indicate improvement.
-      title: Clustering Depth Change
+      title: Snowflake table clustering depth change
       unit: count
       attributes:
         - ref: db.collection.name
@@ -87,7 +87,7 @@ model:
       brief: |-
         Average overlap depth of the table. Lower values indicate less overlap between
         micro-partitions and better clustering efficiency.
-      title: Clustering Overlap
+      title: Snowflake table clustering overlap
       unit: count
       attributes:
         - ref: db.collection.name
@@ -98,7 +98,7 @@ model:
       metric_name: snowflake.table.clustering.total_partitions
       instrument: gauge
       brief: Total number of micro-partitions in the table.
-      title: Total Partitions
+      title: Snowflake table total partitions
       unit: count
       attributes:
         - ref: db.collection.name
@@ -109,7 +109,7 @@ model:
       metric_name: snowflake.table.failsafe_bytes
       instrument: gauge
       brief: Number of bytes of data in the table that is maintained for Failsafe.
-      title: Failsafe Bytes
+      title: Snowflake table failsafe bytes
       unit: By
       attributes:
         - ref: db.collection.name
@@ -121,7 +121,7 @@ model:
       brief: |-
         Change in active bytes between the two most recent snapshots.
         Positive values indicate growth; negative values indicate shrinkage.
-      title: Table Growth (Bytes)
+      title: Snowflake table growth in bytes
       unit: By
       attributes:
         - ref: db.collection.name
@@ -133,7 +133,7 @@ model:
       brief: |-
         Percentage change in active bytes between the two most recent snapshots.
         Null when the previous snapshot had zero bytes.
-      title: Table Growth (%)
+      title: Snowflake table growth percentage
       unit: '%'
       attributes:
         - ref: db.collection.name
@@ -143,7 +143,7 @@ model:
       metric_name: snowflake.table.retained_for_clone_bytes
       instrument: gauge
       brief: Number of bytes of data in the table that is retained for cloning.
-      title: Retained for Clone Bytes
+      title: Snowflake table retained-for-clone bytes
       unit: By
       attributes:
         - ref: db.collection.name
@@ -153,7 +153,7 @@ model:
       metric_name: snowflake.table.time_travel_bytes
       instrument: gauge
       brief: Number of bytes of data in the table that is maintained for Time Travel.
-      title: Time Travel Bytes
+      title: Snowflake table time travel bytes
       unit: By
       attributes:
         - ref: db.collection.name

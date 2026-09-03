@@ -25,7 +25,7 @@ model:
       metric_name: snowflake.credits.used
       instrument: gauge
       brief: Number of credits billed for loading data into the event table during the START_TIME and END_TIME window.
-      title: Snowflake Credits Used
+      title: Snowflake credits used
       unit: count
       note: 'Original unit: credit.'
     - id: snowflake.data.ingested
@@ -33,5 +33,5 @@ model:
       metric_name: snowflake.data.ingested
       instrument: gauge
       brief: Number of bytes of data loaded during the START_TIME and END_TIME window.
-      title: Bytes Ingested for Event Table
+      title: Snowflake data ingested
       unit: By

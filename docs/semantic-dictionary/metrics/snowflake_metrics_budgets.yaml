@@ -25,7 +25,7 @@ model:
       metric_name: snowflake.credits.limit
       instrument: gauge
       brief: The number of credits set as the spending limit for the budget.
-      title: Budget Spending Limit
+      title: Snowflake budget spending limit
       unit: count
       note: 'Original unit: credit.'
       attributes:
@@ -36,7 +36,7 @@ model:
       metric_name: snowflake.credits.spent
       instrument: gauge
       brief: Number of credits used.
-      title: Credits Spent
+      title: Snowflake credits spent
       unit: count
       note: 'Original unit: credit.'
       attributes:

@@ -37,7 +37,7 @@ model:
     - id: snowflake.logs.active_queries.fields
       type: attribute_group
       title: Active queries log record fields
-      brief: Attribute fields for Active Queries log records.
+      brief: Attribute fields for active queries log records.
       attributes:
         - ref: snowflake.error.code
         - ref: snowflake.error.message

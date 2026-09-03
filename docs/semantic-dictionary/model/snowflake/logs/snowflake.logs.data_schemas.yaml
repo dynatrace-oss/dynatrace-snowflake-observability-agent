@@ -36,7 +36,7 @@ model:
     - id: snowflake.logs.data_schemas.fields
       type: attribute_group
       title: Data schemas log record fields
-      brief: Attribute fields for Data Schemas log records.
+      brief: Attribute fields for data schemas log records.
       attributes:
         - ref: snowflake.object.ddl.modified
         - ref: snowflake.object.ddl.properties

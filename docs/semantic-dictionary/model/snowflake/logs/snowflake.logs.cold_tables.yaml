@@ -37,6 +37,6 @@ model:
     - id: snowflake.logs.cold_tables.fields
       type: attribute_group
       title: Cold tables log record fields
-      brief: Attribute fields for Cold Tables log records.
+      brief: Attribute fields for cold tables log records.
       attributes:
         - ref: snowflake.table.last_accessed_at

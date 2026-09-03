@@ -25,19 +25,19 @@ model:
       metric_name: snowflake.login.attempts.failed
       instrument: gauge
       brief: Number of failed Snowflake login attempts within the collection window.
-      title: Snowflake Login Attempts Failed
+      title: Failed login attempts to Snowflake
       unit: count
     - id: snowflake.login.attempts.successful
       type: metric
       metric_name: snowflake.login.attempts.successful
       instrument: gauge
       brief: Number of successful Snowflake login attempts within the collection window.
-      title: Snowflake Login Attempts Successful
+      title: Successful login attempts to Snowflake
       unit: count
     - id: snowflake.login.attempts.total
       type: metric
       metric_name: snowflake.login.attempts.total
       instrument: gauge
       brief: Total number of Snowflake login attempts (failed + successful) within the collection window.
-      title: Snowflake Login Attempts Total
+      title: All login attempts to Snowflake
       unit: count

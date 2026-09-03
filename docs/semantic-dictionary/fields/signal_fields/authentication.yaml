@@ -5,7 +5,7 @@ groups:
     brief: Signal-level fields for Authentication telemetry.
     attributes:
       - id: authentication.factor.first
-        display_name: 'Authentication Factor First'
+        display_name: 'First authentication factor'
         type:
           allow_custom_values: true
           members:
@@ -28,7 +28,7 @@ groups:
         brief: The first factor used for authentication, typically a password.
         examples: [ 'PASSWORD' ]
       - id: authentication.factor.second
-        display_name: 'Authentication Factor Second'
+        display_name: 'Second authentication factor'
         type:
           allow_custom_values: true
           members:
