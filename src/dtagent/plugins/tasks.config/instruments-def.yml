@@ -341,7 +341,7 @@ metrics:
     __context_names:
       - serverless_tasks
     __example: 10
-    __description: The number of credits consumed. during the START_TIME and END_TIME window.
+    __description: The number of credits consumed during the START_TIME and END_TIME window.
     displayName: Snowflake credits used
     unit: credit
   snowflake.task.run.failed:
