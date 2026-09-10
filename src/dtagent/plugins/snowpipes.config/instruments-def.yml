@@ -52,7 +52,7 @@ attributes:
     __context_names:
       - snowpipes
     __example: RUNNING
-    __description: Raw execution state from SYSTEM$PIPE_STATUS.
+    __description: Raw execution state from ``SYSTEM$PIPE_STATUS``.
   snowflake.pipe.last_ingested_timestamp:
     __type: string
     displayName: Snowflake pipe last ingested file timestamp
@@ -259,7 +259,8 @@ dimensions:
       - snowpipes
     __example: RUNNING
     __description: >
-      Raw execution state from SYSTEM$PIPE_STATUS; stable values include RUNNING and PAUSED, dynamic variants follow STOPPED_* and STALLED_* patterns.
+      Raw execution state from ``SYSTEM$PIPE_STATUS``; stable values include RUNNING and PAUSED, dynamic variants follow STOPPED_* and
+      STALLED_* patterns.
     __enum:
       allow_custom_values: true
       members:
