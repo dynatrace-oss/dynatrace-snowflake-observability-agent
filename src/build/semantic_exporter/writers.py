@@ -247,6 +247,7 @@ class OutputWriter:
 
         # Metrics files
         paths.append("source/metrics/snowflake_metrics_**")
+        paths.append("source/metrics/model_group_snowflake_metrics.yaml")
         paths.append("source/metrics/interfaces_dsoa.yaml")
         paths.append("source/metrics/interfaces_snowflake.yaml")
 

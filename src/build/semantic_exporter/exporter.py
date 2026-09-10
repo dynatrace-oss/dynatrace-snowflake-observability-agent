@@ -285,7 +285,7 @@ class SemanticExporter:
                     **({} if not resolved_mg_dql.get("snowflake.metrics") else {"dql_queries": resolved_mg_dql["snowflake.metrics"]}),
                 }
             },
-            "metrics/snowflake_metrics_model_group.yaml",
+            "metrics/model_group_snowflake_metrics.yaml",
             self._counters,
         )
 

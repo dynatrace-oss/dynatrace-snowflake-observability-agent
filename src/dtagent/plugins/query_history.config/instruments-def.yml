@@ -114,10 +114,10 @@ attributes:
           value: "full"
           brief: Entire query text is replaced with `[OBFUSCATED]`.
     __is_defined_at_runtime: true
-    __description: |
-      Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`.
-      Possible values: `none` (no transformation), `literals` (replace string and numeric literals with `?`),
-      `full` (replace entire query text with `[OBFUSCATED]`).
+    __description: >
+      Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`. Possible values:
+      `none` (no transformation), `literals` (replace string and numeric literals with `?`), `full` (replace entire query text with
+      `[OBFUSCATED]`).
     __semdict_note: |
       Note: this is the SD-catalog attribute name; the actual config path read at runtime is
       `plugins.query_history.obfuscation_mode` (no `dsoa.` prefix) — see `050_f_get_query_history.sql`.
@@ -127,16 +127,12 @@ attributes:
     displayName: DSOA query history DDL change tracking indicator
     __example: false
     __is_defined_at_runtime: true
-    __description: |
-      EXPERIMENTAL. When `true`, the plugin surfaces DDL change attribution attributes
-      (`snowflake.object.type`, `.id`, `.name`, `snowflake.object.ddl.operation`,
-      `snowflake.object.ddl.properties`) on `query_history` events whose `ACCESS_HISTORY`
-      row carries an `OBJECT_MODIFIED_BY_DDL` payload. Covers database-object DDL only
-      (tables, views, schemas, procedures). Warehouse and resource-monitor DDL does not
-      populate `OBJECT_MODIFIED_BY_DDL` and is not affected by this setting — use
-      `db.operation.name` for warehouse change detection. Default `false` preserves
-      backward-compatible behavior. May be refactored into a dedicated plugin in a future
-      release.
+    __description: >
+      EXPERIMENTAL. When `true`, the plugin surfaces DDL change attribution attributes (`snowflake.object.type`, `.id`, `.name`,
+      `snowflake.object.ddl.operation`, `snowflake.object.ddl.properties`) on `query_history` events whose `ACCESS_HISTORY` row carries an
+      `OBJECT_MODIFIED_BY_DDL` payload. Covers database-object DDL only (tables, views, schemas, procedures). Warehouse and resource-monitor
+      DDL does not populate `OBJECT_MODIFIED_BY_DDL` and is not affected by this setting — use `db.operation.name` for warehouse change
+      detection. Default `false` preserves backward-compatible behavior. May be refactored into a dedicated plugin in a future release.
     __semdict_note: |
       Note: this is the SD-catalog attribute name; the actual config path is
       `plugins.query_history.track_ddl_changes` (no `dsoa.` prefix). Not currently wired up
@@ -146,13 +142,11 @@ attributes:
     displayName: Snowflake object type
     __stability: stable
     __example: Table
-    __description: |
-      Type of object modified by the DDL operation captured for this query, as recorded by
-      Snowflake in `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.objectDomain` (e.g. `Table`,
-      `View`, `Schema`, `Database`). Populated only when
-      `plugins.query_history.track_ddl_changes=true` and Snowflake recorded a structured
-      DDL payload for the query. Does not apply to warehouse or resource-monitor DDL —
-      use `db.operation.name` for warehouse change detection.
+    __description: >
+      Type of object modified by the DDL operation captured for this query, as recorded by Snowflake in
+      `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.objectDomain` (e.g. `Table`, `View`, `Schema`, `Database`). Populated only when
+      `plugins.query_history.track_ddl_changes=true` and Snowflake recorded a structured DDL payload for the query. Does not apply to
+      warehouse or resource-monitor DDL — use `db.operation.name` for warehouse change detection.
     __enum:
       allow_custom_values: true
       members:
@@ -178,31 +172,28 @@ attributes:
     __type: long
     displayName: Snowflake object ID
     __example: 1234567890
-    __description: |
-      Internal Snowflake identifier of the object modified by the DDL operation. Populated
-      only when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`.
-      Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for
-      warehouse change detection.
+    __description: >
+      Internal Snowflake identifier of the object modified by the DDL operation. Populated only when
+      `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`. Does not apply to warehouse or resource-monitor DDL —
+      use `db.operation.name` for warehouse change detection.
   snowflake.object.name:
     __type: string
     displayName: Snowflake object name
     __stability: stable
     __example: DTAGENT_WH
-    __description: |
-      Fully-qualified name of the object modified by the DDL operation. Populated only
-      when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`.
-      Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for
-      warehouse change detection.
+    __description: >
+      Fully-qualified name of the object modified by the DDL operation. Populated only when `plugins.query_history.track_ddl_changes=true` —
+      see `snowflake.object.type`. Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for warehouse change
+      detection.
   snowflake.object.ddl.operation:
     __type: string
     displayName: Snowflake DDL operation
     __stability: stable
     __example: ALTER
-    __description: |
-      DDL operation type (`CREATE`, `ALTER`, `DROP`, `UNDROP`, `REPLACE`). Populated only
-      when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`.
-      Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for
-      warehouse change detection.
+    __description: >
+      DDL operation type (`CREATE`, `ALTER`, `DROP`, `UNDROP`, `REPLACE`). Populated only when
+      `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`. Does not apply to warehouse or resource-monitor DDL —
+      use `db.operation.name` for warehouse change detection.
     __enum:
       allow_custom_values: true
       members:
@@ -227,12 +218,10 @@ attributes:
     displayName: Snowflake DDL property changes
     __semdict_note: "Serialized JSON object stored as string in Grail. Contains DDL object property changes. Parse with parseJson() in DQL."
     __example: '{"WAREHOUSE_SIZE": {"value": "LARGE"}, "AUTO_SUSPEND": {"value": 600}}'
-    __description: |
-      JSON object describing the property delta recorded by Snowflake for the DDL
-      operation. Keys are sensitive property identifiers (e.g. `WAREHOUSE_SIZE`,
-      `MIN_CLUSTER_COUNT`, `MAX_CLUSTER_COUNT`, `SCALING_POLICY`, `RESOURCE_MONITOR`,
-      `AUTO_SUSPEND`). Populated only when `plugins.query_history.track_ddl_changes=true` —
-      see `snowflake.object.type`. Does not apply to warehouse or resource-monitor DDL —
+    __description: >
+      JSON object describing the property delta recorded by Snowflake for the DDL operation. Keys are sensitive property identifiers (e.g.
+      `WAREHOUSE_SIZE`, `MIN_CLUSTER_COUNT`, `MAX_CLUSTER_COUNT`, `SCALING_POLICY`, `RESOURCE_MONITOR`, `AUTO_SUSPEND`). Populated only when
+      `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`. Does not apply to warehouse or resource-monitor DDL —
       use `db.operation.name` for warehouse change detection.
   snowflake.cluster_number:
     __type: long
@@ -639,21 +628,9 @@ dimensions:
         - id: fail
           value: FAIL
           brief: Query failed due to a user-actionable error (e.g. syntax error, insufficient privileges).
-        - id: failed_with_error
-          value: FAILED_WITH_ERROR
-          brief: Query failed due to an internal Snowflake error unrelated to user input; retrying the statement may succeed.
         - id: incident
           value: INCIDENT
           brief: Query was aborted or interrupted by a Snowflake platform incident; not caused by user error or warehouse load.
-        - id: queued
-          value: QUEUED
-          brief: Query is waiting in the warehouse queue due to concurrency limits or cluster provisioning.
-        - id: resuming_warehouse
-          value: RESUMING_WAREHOUSE
-          brief: Query is waiting for the warehouse to resume from a suspended state before execution can begin.
-        - id: running
-          value: RUNNING
-          brief: Query is actively executing on the warehouse compute resources.
   snowflake.role.name:
     __type: string
     displayName: Snowflake role name

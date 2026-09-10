@@ -892,7 +892,7 @@ def emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_display
         Dict with all required semconv attribute fields.
     """
     attr_type = build_type_node(entry, no_display_name=no_display_name)
-    description = str(entry["__description"]).strip()
+    description = str(entry["__description"]).strip().replace("\n", "<br/>")
     field_type = str(entry.get("__type") or "").strip().lower()
     example_raw = entry.get("__example", "")
     if example_raw is None:
@@ -1020,7 +1020,7 @@ def emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
         Dict representing a semconv metric definition.
     """
     instrument = map_metric_instrument(entry.get("__type"))
-    description = str(entry.get("__description", "")).strip()
+    description = str(entry.get("__description", "")).strip().replace("\n", "<br/>")
     raw_unit = entry.get("unit") or entry.get("__unit")
     if not raw_unit:
         log.warning("Metric '%s' has no unit; omitting unit field", key)

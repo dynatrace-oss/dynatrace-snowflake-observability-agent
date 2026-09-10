@@ -258,9 +258,8 @@ dimensions:
     __context_names:
       - snowpipes
     __example: RUNNING
-    __description: |
-      Pipe execution state as original string:
-      RUNNING, PAUSED, STOPPED_*, STALLED_*.
+    __description: >
+      Pipe execution state as original string: RUNNING, PAUSED, STOPPED_*, STALLED_*.
 event_timestamps:
   snowflake.event.trigger:
     __type: string

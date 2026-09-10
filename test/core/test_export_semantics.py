@@ -1284,10 +1284,10 @@ class TestSemanticExporterIntegration:
         assert fi.exists(), "interfaces_dsoa.yaml not found"
 
     def test_metrics_model_group_file_exists(self, export_output):
-        """metrics/snowflake_metrics_model_group.yaml is created."""
+        """metrics/model_group_snowflake_metrics.yaml is created."""
         out_dir, _ = export_output
-        mg = out_dir / "metrics" / "snowflake_metrics_model_group.yaml"
-        assert mg.exists(), "snowflake_metrics_model_group.yaml not found"
+        mg = out_dir / "metrics" / "model_group_snowflake_metrics.yaml"
+        assert mg.exists(), "model_group_snowflake_metrics.yaml not found"
 
     def test_warehouse_usage_metrics_file_exists(self, export_output):
         """metrics/snowflake_metrics_warehouse_usage.yaml has model: envelope with interfaces."""

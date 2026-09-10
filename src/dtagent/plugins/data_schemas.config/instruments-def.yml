@@ -54,6 +54,7 @@ attributes:
     __example: "Table"
     __description: |
       The domain of the object defined or modified by the DDL operation, which includes all objects that can be tagged and:
+
       - MASKING POLICY,
       - ROW ACCESS POLICY,
       - TAG.
@@ -76,6 +77,7 @@ attributes:
     __example: "REPLACE"
     __description: |
       The SQL keyword that specifies the operation on the table, view, or column:
+
       - ALTER,
       - CREATE,
       - DROP,
@@ -87,9 +89,9 @@ attributes:
     displayName: Snowflake DDL property changes
     __example: '{"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}}'
     __semdict_note: "Stored as a serialized JSON string, not plain text."
-    __description: |
-      A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column.
-      There are two types of properties: atomic and compound.
+    __description: >
+      A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column. There are
+      two types of properties: atomic and compound.
 dql_queries:
   - query_string: |
       fetch logs

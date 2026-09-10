@@ -27,8 +27,20 @@ dimensions:
     __stability: stable
     __context_names: ["metering"]
     __example: AUTO_CLUSTERING
-    __description: >-
-      Snowflake service type that consumed credits (e.g. AUTO_CLUSTERING, PIPE, SERVERLESS_TASK, TELEMETRY_DATA_INGEST).
+    __description: |
+      Type of service that is consuming credits, which can be one of the following:
+
+      - AUTO_CLUSTERING,
+      - HYBRID_TABLE_REQUESTS,
+      - MATERIALIZED_VIEW,
+      - PIPE,
+      - QUERY_ACCELERATION,
+      - SEARCH_OPTIMIZATION,
+      - SERVERLESS_ALERTS,
+      - SERVERLESS_TASK,
+      - SNOWPIPE_STREAMING,
+      - WAREHOUSE_METERING,
+      - WAREHOUSE_METERING_READER
     __enum:
       allow_custom_values: true
       members:

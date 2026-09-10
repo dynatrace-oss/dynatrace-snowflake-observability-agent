@@ -235,6 +235,7 @@ dimensions:
     displayName: Event name
     __description: |
       The type of event that occurred, such as:
+
       - LOGIN,
       - LOGOUT.
 metrics:

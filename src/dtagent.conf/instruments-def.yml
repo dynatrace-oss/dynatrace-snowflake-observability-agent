@@ -103,7 +103,7 @@ dimensions:
   telemetry.exporter.version:
     __semdict: ref
     displayName: Telemetry exporter version
-    __interface_note: "The installed DSOA agent version in '<major>.<minor>.<patch>.<build>' format."
+    __interface_note: "The installed Dynatrace Snowflake Observability Agent version in `<major>.<minor>.<patch>.<build>` format."
     __semdict_note: >-
       Dynatrace-proprietary field; no equivalent exists in OpenTelemetry Semantic Conventions. This field carries the full DSOA build
       identity including CI pipeline run number.
@@ -168,7 +168,7 @@ attributes:
     __description: >-
       High-level category classifying the anomaly subject within its detector. Specific values are defined per workflow (e.g., ``login`` /
       ``session`` / ``query_count`` / ``data_scan`` for security anomaly detection; ``unavailable`` / ``disappeared`` / ``volume_drop`` for
-      shares broken detection).
+      broken shares detection).
     __example: "login"
     __enum:
       allow_custom_values: true

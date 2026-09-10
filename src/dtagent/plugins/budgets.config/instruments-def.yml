@@ -85,8 +85,8 @@ dimensions:
       - spendings
     __example: WAREHOUSE_METERING
     __description: |
-      Type of service that is consuming credits, which can be one
-      of the following:
+      Type of service that is consuming credits, which can be one of the following:
+
       - AUTO_CLUSTERING,
       - HYBRID_TABLE_REQUESTS,
       - MATERIALIZED_VIEW,
