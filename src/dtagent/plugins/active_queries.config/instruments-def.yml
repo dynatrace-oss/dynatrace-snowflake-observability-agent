@@ -130,8 +130,8 @@ dimensions:
         - id: failed_with_error
           value: FAILED_WITH_ERROR
           brief:
-            Query failed due to a user-actionable error (e.g. syntax error, insufficient privileges). Only reported by the active_queries
-            plugin.
+            Query failed due to a user-actionable error (for example, syntax error, insufficient privileges). Only reported by the
+            active_queries plugin.
         - id: failed_with_incident
           value: FAILED_WITH_INCIDENT
           brief:

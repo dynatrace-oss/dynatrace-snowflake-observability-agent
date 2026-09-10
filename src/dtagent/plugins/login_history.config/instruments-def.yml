@@ -125,7 +125,7 @@ attributes:
     __type: string
     displayName: Snowflake error code
     __semdict_note: >-
-      In DSOA, used exclusively for Snowflake login failures as a string error code (e.g. "390100"). Diverges from the Dynatrace SD
+      In DSOA, used exclusively for Snowflake login failures as a string error code (for example, "390100"). Diverges from the Dynatrace SD
       error.code field (type: long, iOS/mobile numeric codes) — semantics and type are incompatible.
     __context_names:
       - login_history

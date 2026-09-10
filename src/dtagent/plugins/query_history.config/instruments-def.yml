@@ -142,7 +142,7 @@ attributes:
     __example: Table
     __description: >
       Type of object modified by the DDL operation captured for this query, as recorded by Snowflake in
-      `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.objectDomain` (e.g. `Table`, `View`, `Schema`, `Database`). Populated only when
+      `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.objectDomain` (for example, `Table`, `View`, `Schema`, `Database`). Populated only when
       `plugins.query_history.track_ddl_changes=true` and Snowflake recorded a structured DDL payload for the query. Does not apply to
       warehouse or resource-monitor DDL — use `db.operation.name` for warehouse change detection.
     __enum:
@@ -189,9 +189,8 @@ attributes:
     __stability: stable
     __example: ALTER
     __description: >
-      DDL operation type. Populated only when
-      `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`. Does not apply to warehouse or resource-monitor DDL —
-      use `db.operation.name` for warehouse change detection.
+      DDL operation type. Populated only when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`. Does not apply
+      to warehouse or resource-monitor DDL — use `db.operation.name` for warehouse change detection.
     __enum:
       allow_custom_values: true
       members:
@@ -217,10 +216,10 @@ attributes:
     __semdict_note: "Serialized JSON object stored as string in Grail. Contains DDL object property changes. Parse with parseJson() in DQL."
     __example: '{"WAREHOUSE_SIZE": {"value": "LARGE"}, "AUTO_SUSPEND": {"value": 600}}'
     __description: >
-      JSON object describing the property delta recorded by Snowflake for the DDL operation. Keys are sensitive property identifiers (e.g.
-      `WAREHOUSE_SIZE`, `MIN_CLUSTER_COUNT`, `MAX_CLUSTER_COUNT`, `SCALING_POLICY`, `RESOURCE_MONITOR`, `AUTO_SUSPEND`). Populated only when
-      `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`. Does not apply to warehouse or resource-monitor DDL —
-      use `db.operation.name` for warehouse change detection.
+      JSON object describing the property delta recorded by Snowflake for the DDL operation. Keys are sensitive property identifiers (for
+      example, `WAREHOUSE_SIZE`, `MIN_CLUSTER_COUNT`, `MAX_CLUSTER_COUNT`, `SCALING_POLICY`, `RESOURCE_MONITOR`, `AUTO_SUSPEND`). Populated
+      only when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`. Does not apply to warehouse or
+      resource-monitor DDL — use `db.operation.name` for warehouse change detection.
   snowflake.cluster_number:
     __type: long
     displayName: Snowflake warehouse cluster number
@@ -355,8 +354,8 @@ attributes:
     __type: string
     displayName: Snowflake query execution operator attributes
     __semdict_note: >-
-      Serialized JSON object stored as string in Grail. Contains query operator specific attributes (e.g. join conditions). Parse with
-      parseJson() in DQL.
+      Serialized JSON object stored as string in Grail. Contains query operator specific attributes (for example, join conditions). Parse
+      with parseJson() in DQL.
     __example: '{ "equality_join_condition": "(T4.C = T1.C)",   "join_type": "INNER" }'
     __description: Information about the operator, depending on the operator type.
     __span_only: true
@@ -379,16 +378,16 @@ attributes:
     __type: string
     displayName: Snowflake query execution operator statistics
     __semdict_note: >-
-      Serialized JSON object stored as string in Grail. Contains query operator execution statistics (e.g. input_rows, output_rows). Parse
-      with parseJson() in DQL.
+      Serialized JSON object stored as string in Grail. Contains query operator execution statistics (for example, input_rows, output_rows).
+      Parse with parseJson() in DQL.
     __example: '{ "input_rows": 64, "output_rows": 64 }'
-    __description: Statistics about the operator (e.g., the number of output rows from the operator).
+    __description: Statistics about the operator (for example, the number of output rows from the operator).
     __span_only: true
   snowflake.query.step.operator.time_breakdown:
     __type: string
     displayName: Snowflake query execution operator time breakdown
     __semdict_note: >-
-      Serialized JSON object stored as string in Grail. Contains query operator time breakdown (e.g. overall_percentage). Parse with
+      Serialized JSON object stored as string in Grail. Contains query operator time breakdown (for example, overall_percentage). Parse with
       parseJson() in DQL.
     __example:
       '{ "overall_percentage": 50.0,"initialization": 0.5,"processing": 4.0,"synchronization": 0.5,"local_disk_io": 0.2,"remote_disk_io":
@@ -408,7 +407,7 @@ attributes:
     __type: string
     displayName: Snowflake query execution operator type
     __example: TableScan
-    __description: The type of query operator (e.g., TableScan or Filter).
+    __description: The type of query operator (for example, TableScan or Filter).
     __span_only: true
   snowflake.query.parametrized_hash:
     __type: string
@@ -625,7 +624,7 @@ dimensions:
           brief: Query completed without errors; result is available in the result cache.
         - id: fail
           value: FAIL
-          brief: Query failed due to a user-actionable error (e.g. syntax error, insufficient privileges).
+          brief: Query failed due to a user-actionable error (for example, syntax error, insufficient privileges).
         - id: incident
           value: INCIDENT
           brief: Query was aborted or interrupted by a Snowflake platform incident; not caused by user error or warehouse load.
@@ -777,7 +776,7 @@ metrics:
   snowflake.data.written:
     __type: long
     __example: 2097152
-    __description: Number of bytes written (e.g. when loading into a table).
+    __description: Number of bytes written (for example, when loading into a table).
     displayName: Snowflake bytes written
     unit: By
   snowflake.data.written_to_result:

@@ -155,7 +155,7 @@ dimensions:
       members:
         - id: alter_warehouse
           value: ALTER_WAREHOUSE
-          brief: A warehouse property was modified via ALTER WAREHOUSE (e.g. size, auto-suspend timeout, comment).
+          brief: A warehouse property was modified via ALTER WAREHOUSE (for example, size, auto-suspend timeout, comment).
         - id: create_warehouse
           value: CREATE_WAREHOUSE
           brief: A new virtual warehouse was created.

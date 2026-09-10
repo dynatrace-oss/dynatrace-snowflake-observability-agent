@@ -38,7 +38,7 @@ attributes:
     __description: If present, this represents the query ID of the refresh job that produced the results for the dynamic table.
   snowflake.table.dynamic.graph.alter_trigger:
     __type: string[]
-    __semdict_note: "Array of DDL operation names stored as string[] in Grail (e.g. CREATE_DYNAMIC_TABLE)."
+    __semdict_note: "Array of DDL operation names stored as string[] in Grail (for example, CREATE_DYNAMIC_TABLE)."
     __context_names:
       - dynamic_table_graph_history
     __example:
