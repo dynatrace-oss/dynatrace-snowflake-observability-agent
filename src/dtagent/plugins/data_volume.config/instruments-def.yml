@@ -35,8 +35,7 @@ dimensions:
     displayName: Snowflake table type
     __stability: stable
     __example: BASE TABLE
-    __description: >-
-      The type of the table. Possible values: BASE TABLE, TEMPORARY TABLE, EXTERNAL TABLE.
+    __description: The type of the table.
     __enum:
       allow_custom_values: true
       members:

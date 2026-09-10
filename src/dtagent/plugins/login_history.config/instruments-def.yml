@@ -233,11 +233,16 @@ dimensions:
     __example: LOGIN
     __type: string
     displayName: Event name
-    __description: |
-      The type of event that occurred, such as:
-
-      - LOGIN,
-      - LOGOUT.
+    __description: The type of event that occurred.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: login
+          value: LOGIN
+          brief: User authentication event; recorded when a session is established after a successful or failed login attempt.
+        - id: logout
+          value: LOGOUT
+          brief: Session termination event; recorded when a user or service explicitly closes their Snowflake session.
 metrics:
   snowflake.login.attempts.failed:
     __type: long

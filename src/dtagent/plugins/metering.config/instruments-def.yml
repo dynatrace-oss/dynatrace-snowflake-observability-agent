@@ -27,20 +27,7 @@ dimensions:
     __stability: stable
     __context_names: ["metering"]
     __example: AUTO_CLUSTERING
-    __description: |
-      Type of service that is consuming credits, which can be one of the following:
-
-      - AUTO_CLUSTERING,
-      - HYBRID_TABLE_REQUESTS,
-      - MATERIALIZED_VIEW,
-      - PIPE,
-      - QUERY_ACCELERATION,
-      - SEARCH_OPTIMIZATION,
-      - SERVERLESS_ALERTS,
-      - SERVERLESS_TASK,
-      - SNOWPIPE_STREAMING,
-      - WAREHOUSE_METERING,
-      - WAREHOUSE_METERING_READER
+    __description: Type of Snowflake service consuming credits.
     __enum:
       allow_custom_values: true
       members:
@@ -49,45 +36,57 @@ dimensions:
           brief: >-
             Credits consumed by the background service that continuously re-clusters micro-partitions of tables with an active clustering
             key.
+        - id: cloud_services
+          value: CLOUD_SERVICES
+          brief: Cloud services layer credits for metadata operations, query parsing, and transaction management.
+        - id: hybrid_table_requests
+          value: HYBRID_TABLE_REQUESTS
+          brief: Credits consumed by Unistore hybrid-table (row-store + columnar) request processing.
+        - id: materialized_view
+          value: MATERIALIZED_VIEW
+          brief: >-
+            Credits consumed by the background service that keeps materialized view results up to date as underlying table data changes.
         - id: pipe
           value: PIPE
           brief: >-
             Credits consumed by Snowpipe for continuous micro-batch ingestion of staged files into Snowflake tables via serverless compute.
+        - id: query_acceleration
+          value: QUERY_ACCELERATION
+          brief: >-
+            Credits consumed when the Query Acceleration Service offloads eligible query portions to auto-provisioned serverless compute to
+            reduce per-query latency.
+        - id: replication
+          value: REPLICATION
+          brief: >-
+            Credits consumed to replicate databases, schemas, or failover groups across regions or cloud providers for disaster recovery or
+            data proximity.
+        - id: search_optimization
+          value: SEARCH_OPTIMIZATION
+          brief: >-
+            Credits consumed to build and maintain the search access path that accelerates selective point-lookup and substring-search
+            queries.
+        - id: serverless_alerts
+          value: SERVERLESS_ALERTS
+          brief: Credits consumed by Snowflake Alerts running on serverless compute to evaluate alert conditions and send notifications.
         - id: serverless_task
           value: SERVERLESS_TASK
           brief: Credits consumed by tasks that run on Snowflake-managed serverless compute rather than a user-provisioned warehouse.
+        - id: snowpipe_streaming
+          value: SNOWPIPE_STREAMING
+          brief: Credits consumed by the Snowpipe Streaming SDK for low-latency row-level data ingestion without staging files.
+        - id: storage
+          value: STORAGE
+          brief: >-
+            Credits billed for bytes stored in Snowflake databases, internal stages, Time Travel history, and Fail-safe retention.
         - id: telemetry_data_ingest
           value: TELEMETRY_DATA_INGEST
           brief: Credits consumed for ingesting OpenTelemetry-compatible logs, traces, and metrics into a Snowflake event table.
         - id: warehouse_metering
           value: WAREHOUSE_METERING
           brief: Virtual warehouse compute credits.
-        - id: cloud_services
-          value: CLOUD_SERVICES
-          brief: Cloud services layer credits.
-        - id: replication
-          value: REPLICATION
-          brief: >-
-            Credits consumed to replicate databases, schemas, or failover groups across regions or cloud providers for disaster recovery or
-            data proximity.
-        - id: materialized_view
-          value: MATERIALIZED_VIEW
-          brief: >-
-            Credits consumed by the background service that keeps materialized view results up to date as underlying table data changes.
-        - id: search_optimization
-          value: SEARCH_OPTIMIZATION
-          brief: >-
-            Credits consumed to build and maintain the search access path that accelerates selective point-lookup and substring-search
-            queries.
-        - id: query_acceleration
-          value: QUERY_ACCELERATION
-          brief: >-
-            Credits consumed when the Query Acceleration Service offloads eligible query portions to auto-provisioned serverless compute to
-            reduce per-query latency.
-        - id: storage
-          value: STORAGE
-          brief: >-
-            Credits billed for bytes stored in Snowflake databases, internal stages, Time Travel history, and Fail-safe retention.
+        - id: warehouse_metering_reader
+          value: WAREHOUSE_METERING_READER
+          brief: Virtual warehouse compute credits consumed by reader accounts accessing shared data.
   snowflake.service.name:
     __type: string
     displayName: Snowflake service name

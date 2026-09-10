@@ -115,9 +115,7 @@ attributes:
           brief: Entire query text is replaced with `[OBFUSCATED]`.
     __is_defined_at_runtime: true
     __description: >
-      Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`. Possible values:
-      `none` (no transformation), `literals` (replace string and numeric literals with `?`), `full` (replace entire query text with
-      `[OBFUSCATED]`).
+      Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`.
     __semdict_note: |
       Note: this is the SD-catalog attribute name; the actual config path read at runtime is
       `plugins.query_history.obfuscation_mode` (no `dsoa.` prefix) — see `050_f_get_query_history.sql`.
@@ -191,7 +189,7 @@ attributes:
     __stability: stable
     __example: ALTER
     __description: >
-      DDL operation type (`CREATE`, `ALTER`, `DROP`, `UNDROP`, `REPLACE`). Populated only when
+      DDL operation type. Populated only when
       `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`. Does not apply to warehouse or resource-monitor DDL —
       use `db.operation.name` for warehouse change detection.
     __enum:
@@ -649,9 +647,7 @@ dimensions:
     __stability: stable
     __example: PERSON
     __description: >-
-      The type of user who executed the query. Possible values: PERSON (human interactive user), SERVICE (programmatic service user),
-      LEGACY_SERVICE (legacy service account), SNOWFLAKE_SERVICE (Snowpark Container Services). Useful for splitting workloads by human vs.
-      automated traffic.
+      The type of user who executed the query. Useful for splitting workloads by human vs. automated traffic.
     __enum:
       allow_custom_values: true
       members:

@@ -115,8 +115,7 @@ attributes:
     displayName: Snowflake resource monitor threshold alert band
     __is_defined_at_runtime: true
     __example: warn
-    __description: >-
-      Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)), ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
+    __description: Alert band for the threshold event.
     __enum:
       allow_custom_values: false
       members:

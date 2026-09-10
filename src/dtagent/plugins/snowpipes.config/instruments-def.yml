@@ -259,7 +259,16 @@ dimensions:
       - snowpipes
     __example: RUNNING
     __description: >
-      Pipe execution state as original string: RUNNING, PAUSED, STOPPED_*, STALLED_*.
+      Raw execution state from SYSTEM$PIPE_STATUS; stable values include RUNNING and PAUSED, dynamic variants follow STOPPED_* and STALLED_* patterns.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: running
+          value: RUNNING
+          brief: Pipe is active and processing staged files for ingestion.
+        - id: paused
+          value: PAUSED
+          brief: Pipe has been administratively paused; no files are ingested until resumed.
 event_timestamps:
   snowflake.event.trigger:
     __type: string
