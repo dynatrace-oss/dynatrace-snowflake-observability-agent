@@ -35,7 +35,6 @@ from build.semantic_exporter.field_emitters import (
     RES_NS,
     SIG_NS,
     emit_metric_entry,
-    make_display_name,
     make_title,
     ns_group,
     plugin_label,
@@ -535,7 +534,7 @@ class DocumentBuilder:
                     "id": f"snowflake.logs.{plugin_name}.fields",
                     "type": "attribute_group",
                     "title": f"{plugin_label(plugin_name, cap_first=True)} log record fields",
-                    "brief": f"Attribute fields for {make_display_name(plugin_name)} log records.",
+                    "brief": f"Attribute fields for {plugin_label(plugin_name)} log records.",
                     "attributes": attr_refs,
                 }
             ]
@@ -578,7 +577,7 @@ class DocumentBuilder:
                     "id": f"snowflake.spans.{plugin_name}.fields",
                     "type": "attribute_group",
                     "title": f"{plugin_label(plugin_name, cap_first=True)} span fields",
-                    "brief": f"Attribute fields for {make_display_name(plugin_name)} spans.",
+                    "brief": f"Attribute fields for {plugin_label(plugin_name)} spans.",
                     "attributes": attr_refs,
                 }
             ]

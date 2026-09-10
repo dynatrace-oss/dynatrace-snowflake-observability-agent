@@ -20,6 +20,7 @@ attributes:
     __semdict: ref
     __example: SELECT
     __type: string
+    displayName: Database operation name
     __description: |
       The type of operation performed by the query, such as:
       - SELECT,
@@ -29,11 +30,12 @@ attributes:
     __semdict: ref
     __example: SELECT * FROM sales_data
     __type: string
+    displayName: Database query text
     __description: The text of the SQL query.
   snowflake.session.id:
-    __semdict: otel-only
     __stability: experimental
     __type: string
+    displayName: Snowflake session ID
     __semdict_note: >-
       OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only;
       no global ref available. Emitting as new id: pending global semdict registration.
@@ -42,73 +44,80 @@ attributes:
   snowflake.error.code:
     __stability: stable
     __type: string
+    displayName: Snowflake error code
     __example: "1001"
-    __description: The error code if the query failed.
+    __description: The error code returned by the operation, if any.
   snowflake.error.message:
     __stability: stable
     __type: string
+    displayName: Snowflake error message
     __example: Syntax error in SQL statement
-    __description: The error message if the query failed.
+    __description: The error message returned by the operation, if any.
   snowflake.query.hash:
     __stability: stable
     __type: string
+    displayName: Snowflake query text hash
     __example: hash_abcdef
-    __description: The hash value of the query text.
+    __description: The hash of the query text.
   snowflake.query.hash_version:
     __type: long
+    displayName: Snowflake query hash version
     __example: 1
     __description: The version of the query hash logic.
   snowflake.query.id:
     __stability: stable
     __type: string
+    displayName: Snowflake query ID
     __example: b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
-    __description: The unique identifier for the query.
+    __description: The unique identifier for the SQL query.
   snowflake.query.parametrized_hash:
     __stability: stable
     __type: string
+    displayName: Snowflake parameterized query text hash
     __example: param_hash_abcdef
     __description: The hash value of the parameterized query text.
   snowflake.query.parametrized_hash_version:
     __type: long
+    displayName: Snowflake parameterized query hash version
     __example: 1
     __description: The version of the parameterized query hash logic.
   snowflake.query.tag:
     __stability: stable
     __type: string
+    displayName: Snowflake query tag
     __example: daily_report
-    __description: The tag associated with the query, if any.
+    __description: The query tag associated with the operation, if any.
   snowflake.schema.name:
     __stability: stable
     __type: string
+    displayName: Snowflake schema name
     __example: public
-    __description: The name of the schema in which the query was executed.
+    __description: The name of the schema.
   snowflake.warehouse.type:
     __stability: stable
     __type: string
+    displayName: Snowflake warehouse type
     __example: STANDARD
     __description: The type of warehouse used to execute the query.
 dimensions:
   db.namespace:
     __type: string
+    displayName: Database name
     __semdict: ref
     __stability: stable
-    __semdict_note: >-
-      Defined in OTel Semantic Conventions (db.namespace, stable since v1.28). Not yet present as a globally referenceable field in the
-      Dynatrace Semantic Dictionary. Emitting as id: pending global SD registration.
     __example: analytics_db
     __description: The name of the database in which the query was executed.
   db.user:
     __type: string
-    __semdict: otel-only
+    displayName: Database user
+    __semdict: otel-dsoa
     __stability: experimental
-    __semdict_note: >-
-      Defined in OTel Semantic Conventions (db.user, experimental). Not yet present as a globally referenceable field in the Dynatrace
-      Semantic Dictionary. Emitting as id: pending global SD registration.
     __example: john_doe
     __description: The name of the user who executed the query.
   snowflake.query.execution_status:
     __stability: stable
     __type: string
+    displayName: Snowflake query execution status
     __example: FAILED_WITH_ERROR
     __description: |
       The execution status of the query, such as:
@@ -122,13 +131,16 @@ dimensions:
   snowflake.role.name:
     __stability: stable
     __type: string
+    displayName: Snowflake role name
     __example: analyst_role
-    __description: The role that was active in the session at the time of the query.
+    __description: The name of the Snowflake role associated with the operation.
+    __interface_note: The role active in the session at the time the query was executed.
   snowflake.warehouse.name:
     __stability: stable
     __type: string
+    displayName: Snowflake warehouse name
     __example: compute_wh
-    __description: The name of the warehouse used to execute the query.
+    __description: The name of the Snowflake warehouse.
 
 #  * Metric definitions
 #  * KEY                    - will be matched against METRICS object with measurements prepared for sending
@@ -142,38 +154,38 @@ metrics:
     __example: 5000
     __description: |
       The total compilation time of the currently running query.
-    displayName: Query Compilation Time
+    displayName: Snowflake query compilation time
     unit: ms
   snowflake.time.running:
     __type: long
     __example: 120000
     __description: |
       The total running time of the currently running query.
-    displayName: Query Running Time
+    displayName: Snowflake query running time
     unit: ms
   snowflake.time.execution:
     __type: long
     __example: 100000
     __description: Execution time (in milliseconds)
-    displayName: Execution Time
+    displayName: Snowflake query execution time
     unit: ms
   snowflake.time.total_elapsed:
     __type: long
     __example: 120000
     __description: Elapsed time (in milliseconds).
-    displayName: Total Elapsed Time
+    displayName: Snowflake query total elapsed time
     unit: ms
   snowflake.data.written_to_result:
     __type: long
     __example: 1048576
     __description: Number of bytes written to a result object.
-    displayName: Bytes Written to Result
+    displayName: Snowflake bytes written to result
     unit: By
   snowflake.rows.written_to_result:
     __type: long
     __example: 1
     __description: Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;.
-    displayName: Rows Written to Result
+    displayName: Snowflake rows written to result
     unit: row
 dql_queries:
   - query_string: |

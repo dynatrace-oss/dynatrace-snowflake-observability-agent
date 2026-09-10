@@ -5,13 +5,13 @@ groups:
     brief: Signal-level fields for DSOA debug telemetry.
     attributes:
       - id: dsoa.debug.span.events.added
-        display_name: 'DSOA Debug Span Events Added'
+        display_name: 'DSOA debug span events added'
         type: long
         stability: stable
         brief: Internal debug field indicating the number of span events successfully added to the given span.
         examples: [ 5 ]
       - id: dsoa.debug.span.events.failed
-        display_name: 'DSOA Debug Span Events Failed'
+        display_name: 'DSOA debug span events failed'
         type: long
         stability: stable
         brief: Internal debug field indicating the number of span events that failed to be added to the given span.
@@ -22,7 +22,7 @@ groups:
     brief: Signal-level fields for DSOA plugins telemetry.
     attributes:
       - id: dsoa.plugins.query_history.obfuscation_mode
-        display_name: 'DSOA Plugins Query History Obfuscation Mode'
+        display_name: 'DSOA query history obfuscation mode'
         type:
           allow_custom_values: false
           members:
@@ -45,7 +45,7 @@ groups:
           Note: this is the SD-catalog attribute name; the actual config path read at runtime is
           `plugins.query_history.obfuscation_mode` (no `dsoa.` prefix) — see `050_f_get_query_history.sql`.
       - id: dsoa.plugins.query_history.track_ddl_changes
-        display_name: 'DSOA Plugins Query History Track DDL Changes'
+        display_name: 'DSOA query history DDL change tracking indicator'
         type: boolean
         stability: experimental
         brief: |-

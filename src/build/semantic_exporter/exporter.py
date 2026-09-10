@@ -91,6 +91,7 @@ class SemanticExporter:
             "new": 0,
             "deprecated_alias": 0,
             "otel_only": 0,
+            "otel_dsoa": 0,
             "resource_fields": 0,
             "signal_fields": 0,
             "metric_fields": 0,
@@ -177,7 +178,7 @@ class SemanticExporter:
 
         Returns:
             Dict with counter keys: ``files``, ``ref``, ``new``,
-            ``deprecated_alias``, ``otel_only``, ``resource_fields``,
+            ``deprecated_alias``, ``otel_only``, ``otel_dsoa``, ``resource_fields``,
             ``signal_fields``, ``metric_fields``, ``event_timestamp_fields``.
 
         Raises:

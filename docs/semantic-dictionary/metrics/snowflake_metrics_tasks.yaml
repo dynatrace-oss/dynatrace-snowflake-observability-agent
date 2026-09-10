@@ -29,19 +29,19 @@ model:
       metric_name: snowflake.task.run.cancelled
       instrument: gauge
       brief: Number of Snowflake task runs that ended in CANCELLED state within the collection window.
-      title: Snowflake Task Runs Cancelled
+      title: Snowflake task runs cancelled
       unit: count
     - id: snowflake.task.run.failed
       type: metric
       metric_name: snowflake.task.run.failed
       instrument: gauge
       brief: Number of Snowflake task runs that ended in FAILED state within the collection window.
-      title: Snowflake Task Runs Failed
+      title: Snowflake task runs failed
       unit: count
     - id: snowflake.task.run.successful
       type: metric
       metric_name: snowflake.task.run.successful
       instrument: gauge
       brief: Number of Snowflake task runs that ended in SUCCEEDED state within the collection window.
-      title: Snowflake Task Runs Successful
+      title: Snowflake task runs successful
       unit: count

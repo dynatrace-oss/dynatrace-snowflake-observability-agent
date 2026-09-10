@@ -25,7 +25,7 @@ model:
       metric_name: snowflake.trust_center.findings
       instrument: gauge
       brief: The total number of findings at risk identified by the scanner.
-      title: Trust Center Findings Count
+      title: Snowflake Trust Center findings count
       unit: count
       attributes:
         - ref: event.category

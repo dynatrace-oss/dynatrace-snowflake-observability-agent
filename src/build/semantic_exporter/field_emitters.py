@@ -261,7 +261,7 @@ ATTR_TYPE_MAP: Dict[str, str] = {
 }
 
 #: Valid semdict classification values.
-VALID_SEMDICT_FLAGS = {"ref", "new", "deprecated-alias", "otel-only"}
+VALID_SEMDICT_FLAGS = {"ref", "new", "deprecated-alias", "otel-only", "otel-dsoa"}
 
 # (prefix, group_id, group_type) for signal fields — order matters (longest prefix first).
 # All DSOA-owned signal groups use type: attribute_group — they appear on multiple signal
@@ -390,7 +390,9 @@ def make_display_name(key: str) -> str:
     """
     parts = key.replace("_", " ").replace("-", " ").replace(".", " ").split()
     parts = [_WORD_SUBS.get(p, p) for p in parts]
-    return _restore_acronyms(" ".join(p.title() for p in parts))
+    sentence = " ".join(p.lower() for p in parts)
+    sentence = sentence[0].upper() + sentence[1:] if sentence else sentence
+    return _restore_acronyms(sentence)
 
 
 def make_title(key: str) -> str:
@@ -915,7 +917,7 @@ def emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_display
         deprecated_msg = f"Use {entry['__otel_replacement']} instead." if entry.get("__otel_replacement") else "Deprecated."
         node: Dict[str, Any] = {
             "id": key,
-            **({} if no_display_name else {"display_name": SingleQuotedStr(make_display_name(key))}),
+            **({} if no_display_name else {"display_name": SingleQuotedStr(entry.get("displayName") or make_display_name(key))}),
             "type": attr_type,
             "deprecated": deprecated_msg,
             "brief": description,
@@ -924,7 +926,7 @@ def emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_display
     else:
         node = {
             "id": key,
-            **({} if no_display_name else {"display_name": SingleQuotedStr(make_display_name(key))}),
+            **({} if no_display_name else {"display_name": SingleQuotedStr(entry.get("displayName") or make_display_name(key))}),
             "type": attr_type,
             "stability": stability,
             "brief": description,

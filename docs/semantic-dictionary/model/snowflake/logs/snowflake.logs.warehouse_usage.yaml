@@ -38,7 +38,7 @@ model:
     - id: snowflake.logs.warehouse_usage.fields
       type: attribute_group
       title: Warehouse usage log record fields
-      brief: Attribute fields for Warehouse Usage log records.
+      brief: Attribute fields for warehouse usage log records.
       attributes:
         - ref: snowflake.warehouse.clusters.count
         - ref: snowflake.warehouse.event.reason

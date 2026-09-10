@@ -38,7 +38,7 @@ model:
     - id: snowflake.logs.shares.fields
       type: attribute_group
       title: Shares log record fields
-      brief: Attribute fields for Shares log records.
+      brief: Attribute fields for shares log records.
       attributes:
         - ref: snowflake.grant.by
         - ref: snowflake.grant.grantee

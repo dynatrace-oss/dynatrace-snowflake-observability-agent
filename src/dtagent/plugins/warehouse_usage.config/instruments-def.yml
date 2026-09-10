@@ -16,14 +16,18 @@
 
 attributes:
   db.user:
+    __semdict: otel-dsoa
+    __stability: experimental
     __type: string
-    __stability: stable
+    displayName: Database user
     __context_names:
       - warehouse_usage
     __example: admin
-    __description: The user who initiated the event.
+    __description: The name of the database user associated with the operation.
+    __interface_note: The Snowflake user whose warehouse usage is recorded.
   snowflake.query.id:
     __type: string
+    displayName: Snowflake query ID
     __stability: stable
     __context_names:
       - warehouse_usage
@@ -31,14 +35,17 @@ attributes:
     __description: The unique identifier for the query associated with the event.
   snowflake.role.name:
     __type: string
+    displayName: Snowflake role name
     __stability: stable
     __context_names:
       - warehouse_usage
     __example: SYSADMIN
-    __description: The role name associated with the event.
+    __description: The name of the Snowflake role associated with the operation.
+    __interface_note: The role associated with the warehouse usage event.
   snowflake.warehouse.cluster.number:
     __stability: stable
     __type: long
+    displayName: Snowflake warehouse cluster number
     __field_type: resource
     __context_names:
       - warehouse_usage
@@ -50,6 +57,7 @@ attributes:
     __context_names:
       - warehouse_usage
     __type: long
+    displayName: Snowflake warehouse cluster count
     __example: 2
     __description: The number of clusters in the warehouse.
     __semdict_note: >-
@@ -57,6 +65,7 @@ attributes:
       namespace; using the bare plural snowflake.warehouse.clusters as a scalar would be ambiguous alongside them.
   snowflake.warehouse.event.reason:
     __type: string
+    displayName: Snowflake warehouse event reason
     __context_names:
       - warehouse_usage
     __example: USER_REQUEST
@@ -81,6 +90,7 @@ attributes:
           brief: Warehouse was suspended explicitly via ALTER WAREHOUSE SUSPEND or a user-initiated action.
   snowflake.warehouse.id:
     __type: long
+    displayName: Snowflake warehouse ID
     __field_type: resource
     __context_names:
       - warehouse_usage
@@ -90,6 +100,7 @@ attributes:
     __description: The unique identifier for the warehouse.
   snowflake.warehouse.size:
     __type: string
+    displayName: Snowflake warehouse size
     __stability: stable
     __field_type: resource
     __context_names:
@@ -132,6 +143,7 @@ attributes:
 dimensions:
   snowflake.warehouse.event.name:
     __type: string
+    displayName: Snowflake warehouse event name
     __stability: stable
     __field_type: signal
     __context_names:
@@ -167,6 +179,7 @@ dimensions:
           brief: All pending state changes for the warehouse have settled; emitted as the final event in a multi-step operation sequence.
   snowflake.warehouse.event.state:
     __type: string
+    displayName: Snowflake warehouse event state
     __stability: stable
     __field_type: signal
     __context_names:
@@ -184,13 +197,14 @@ dimensions:
           brief: The warehouse operation completed atomically with no further pending state changes.
   snowflake.warehouse.name:
     __type: string
+    displayName: Snowflake warehouse name
     __stability: stable
     __context_names:
       - warehouse_usage
       - warehouse_usage_load
       - warehouse_usage_metering
     __example: COMPUTE_WH
-    __description: The name of the warehouse.
+    __description: The name of the Snowflake warehouse.
 metrics:
   snowflake.credits.cloud_services:
     __type: double
@@ -198,7 +212,7 @@ metrics:
       - warehouse_usage_metering
     __example: 2
     __description: The number of credits used for cloud services.
-    displayName: Cloud Services Credits Used
+    displayName: Snowflake cloud services credits used
     unit: credit
   snowflake.credits.compute:
     __type: double
@@ -206,15 +220,16 @@ metrics:
       - warehouse_usage_metering
     __example: 8
     __description: The number of credits used for compute.
-    displayName: Compute Credits Used
+    displayName: Snowflake compute credits used
     unit: credit
   snowflake.credits.used:
     __type: double
     __context_names:
       - warehouse_usage_metering
     __example: 10
-    __description: The total number of credits used by the warehouse.
-    displayName: Snowflake Credits Used
+    __description: The number of credits consumed.
+    __interface_note: Total credits used by the warehouse.
+    displayName: Snowflake credits used
     unit: credit
   snowflake.load.blocked:
     __type: long
@@ -222,7 +237,7 @@ metrics:
       - warehouse_usage_load
     __example: 0
     __description: The average number of queries blocked by a transaction lock.
-    displayName: Average Blocked Queries
+    displayName: Snowflake average blocked queries
     unit: count
   snowflake.load.queued.overloaded:
     __type: long
@@ -230,7 +245,7 @@ metrics:
       - warehouse_usage_load
     __example: 2
     __description: The average number of queries queued due to load.
-    displayName: Average Queued Queries (Load)
+    displayName: Snowflake queries queued due to overload
     unit: count
   snowflake.load.queued.provisioning:
     __type: long
@@ -238,7 +253,7 @@ metrics:
       - warehouse_usage_load
     __example: 1
     __description: The average number of queries queued due to provisioning.
-    displayName: Average Queued Queries (Provisioning)
+    displayName: Snowflake queries queued during provisioning
     unit: count
   snowflake.load.running:
     __type: double
@@ -246,7 +261,7 @@ metrics:
       - warehouse_usage_load
     __example: 5
     __description: The average number of running queries.
-    displayName: Average Running Queries
+    displayName: Snowflake queries running
     unit: count
 dql_queries:
   - query_string: |

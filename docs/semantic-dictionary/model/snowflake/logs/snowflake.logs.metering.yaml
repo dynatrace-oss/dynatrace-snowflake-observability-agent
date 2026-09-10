@@ -38,6 +38,6 @@ model:
     - id: snowflake.logs.metering.fields
       type: attribute_group
       title: Metering log record fields
-      brief: Attribute fields for Metering log records.
+      brief: Attribute fields for metering log records.
       attributes:
         - ref: snowflake.service.entity_id

@@ -5,37 +5,37 @@ groups:
     brief: Signal-level fields for Client telemetry.
     attributes:
       - id: client.application.id
-        display_name: 'Client Application ID'
+        display_name: 'Client application ID'
         type: string
         stability: stable
         brief: The ID of the client application used for the session.
         examples: [ 'SnowflakeJDBCDriver' ]
       - id: client.application.version
-        display_name: 'Client Application Version'
+        display_name: 'Client application version'
         type: string
         stability: experimental
         brief: The version of the client application used for the session.
         examples: [ '1.0.0' ]
       - id: client.build_id
-        display_name: 'Client Build ID'
+        display_name: 'Client build ID'
         type: string
         stability: experimental
         brief: The build ID of the client application.
         examples: [ 'build123' ]
       - id: client.environment
-        display_name: 'Client Environment'
+        display_name: 'Client environment'
         type: string
         stability: stable
         brief: The environment of the client application.
         examples: [ 'PRODUCTION' ]
       - id: client.type
-        display_name: 'Client Type'
+        display_name: 'Client type'
         type: string
         stability: stable
         brief: The type of client used to connect to Snowflake, such as JDBC_DRIVER or ODBC_DRIVER.
         examples: [ 'JDBC_DRIVER' ]
       - id: client.version
-        display_name: 'Client Version'
+        display_name: 'Client version'
         type: string
         stability: experimental
         brief: The version of the client software used to connect to Snowflake.

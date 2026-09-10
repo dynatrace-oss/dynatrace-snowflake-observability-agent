@@ -29,7 +29,7 @@ model:
       metric_name: snowflake.credits.compute
       instrument: gauge
       brief: The number of credits used for compute.
-      title: Compute Credits Used
+      title: Snowflake compute credits used
       unit: count
       note: 'Original unit: credit.'
     - id: snowflake.load.blocked
@@ -37,26 +37,26 @@ model:
       metric_name: snowflake.load.blocked
       instrument: gauge
       brief: The average number of queries blocked by a transaction lock.
-      title: Average Blocked Queries
+      title: Snowflake average blocked queries
       unit: count
     - id: snowflake.load.queued.overloaded
       type: metric
       metric_name: snowflake.load.queued.overloaded
       instrument: gauge
       brief: The average number of queries queued due to load.
-      title: Average Queued Queries (Load)
+      title: Snowflake queries queued due to overload
       unit: count
     - id: snowflake.load.queued.provisioning
       type: metric
       metric_name: snowflake.load.queued.provisioning
       instrument: gauge
       brief: The average number of queries queued due to provisioning.
-      title: Average Queued Queries (Provisioning)
+      title: Snowflake queries queued during provisioning
       unit: count
     - id: snowflake.load.running
       type: metric
       metric_name: snowflake.load.running
       instrument: gauge
       brief: The average number of running queries.
-      title: Average Running Queries
+      title: Snowflake queries running
       unit: count

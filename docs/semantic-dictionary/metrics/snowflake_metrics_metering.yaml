@@ -25,7 +25,7 @@ model:
       metric_name: snowflake.credits.used.cloud_services
       instrument: gauge
       brief: Cloud services credits consumed by the service in the metering window.
-      title: Snowflake Cloud Services Credits Used
+      title: Snowflake cloud services credits used
       unit: count
       note: 'Original unit: credit.'
       attributes:
@@ -36,7 +36,7 @@ model:
       metric_name: snowflake.credits.used.compute
       instrument: gauge
       brief: Compute credits consumed by the service in the metering window.
-      title: Snowflake Compute Credits Used
+      title: Snowflake compute credits used
       unit: count
       note: 'Original unit: credit.'
       attributes:
@@ -47,7 +47,7 @@ model:
       metric_name: snowflake.data.files
       instrument: gauge
       brief: Number of files processed by the service in the metering window.
-      title: Files Processed
+      title: Snowflake data files processed
       unit: count
       note: 'Original unit: file.'
       attributes:
@@ -58,7 +58,7 @@ model:
       metric_name: snowflake.metering.data.rows
       instrument: gauge
       brief: Number of rows processed by the service in the metering window.
-      title: Rows Processed
+      title: Snowflake metered rows
       unit: count
       note: 'Original unit: row.'
       attributes:
@@ -69,7 +69,7 @@ model:
       metric_name: snowflake.metering.data.size
       instrument: gauge
       brief: Number of bytes processed by the service in the metering window.
-      title: Bytes Processed
+      title: Snowflake metered data
       unit: By
       attributes:
         - ref: snowflake.service.name

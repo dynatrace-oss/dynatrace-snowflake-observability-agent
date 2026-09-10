@@ -19,6 +19,7 @@ dimensions:
   db.namespace:
     __semdict: ref
     __type: string
+    displayName: Snowflake database name
     __example: PROD_DB
     __description: The name of the database that was specified in the context of the query at compilation.
     __context_names:
@@ -26,33 +27,37 @@ dimensions:
       - event_log_spans
   snowflake.schema.name:
     __type: string
+    displayName: Snowflake schema name
     __stability: stable
     __example: public
-    __description: The name of the schema in which the query was executed.
+    __description: The name of the schema.
     __context_names:
       - event_log_metrics
       - event_log_spans
   snowflake.role.name:
     __type: string
+    displayName: Snowflake role name
     __stability: stable
     __example: SYSADMIN
-    __description: The role used to execute the query.
+    __description: The name of the Snowflake role associated with the operation.
     __context_names:
       - event_log_metrics
       - event_log_spans
   snowflake.warehouse.name:
     __type: string
+    displayName: Snowflake warehouse name
     __stability: stable
     __example: COMPUTE_WH
-    __description: The warehouse used to execute the query.
+    __description: The name of the Snowflake warehouse.
     __context_names:
       - event_log_metrics
       - event_log_spans
   snowflake.query.id:
     __type: string
+    displayName: Snowflake query ID
     __stability: stable
     __example: b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
-    __description: The unique identifier for the query.
+    __description: The unique identifier for the SQL query.
     __context_names:
       - event_log_metrics
       - event_log_spans
@@ -60,7 +65,7 @@ dimensions:
 metrics:
   process.cpu.utilization:
     __type: double
-    displayName: "Process CPU Utilization"
+    displayName: "Process CPU utilization"
     unit: "%"
     __context_names:
       - event_log_metrics
@@ -69,7 +74,7 @@ metrics:
     __is_defined_at_runtime: true
   process.memory.usage:
     __type: double
-    displayName: "Process Memory Usage"
+    displayName: "Process memory usage"
     unit: By
     __context_names:
       - event_log_metrics

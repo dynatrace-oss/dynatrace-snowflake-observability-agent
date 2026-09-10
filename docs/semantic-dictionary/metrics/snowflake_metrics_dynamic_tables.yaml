@@ -30,7 +30,7 @@ model:
       metric_name: snowflake.partitions.added
       instrument: gauge
       brief: The number of partitions added during the refresh.
-      title: Partitions Added
+      title: Snowflake partitions added
       unit: count
       note: 'Original unit: partition.'
       attributes:
@@ -41,7 +41,7 @@ model:
       metric_name: snowflake.partitions.removed
       instrument: gauge
       brief: The number of partitions removed during the refresh.
-      title: Partitions Removed
+      title: Snowflake partitions removed
       unit: count
       note: 'Original unit: partition.'
       attributes:
@@ -52,7 +52,7 @@ model:
       metric_name: snowflake.rows.copied
       instrument: gauge
       brief: The number of rows copied during the refresh.
-      title: Rows Copied
+      title: Snowflake rows copied
       unit: count
       note: 'Original unit: row.'
       attributes:
@@ -63,7 +63,7 @@ model:
       metric_name: snowflake.rows.deleted
       instrument: gauge
       brief: The number of rows deleted during the refresh.
-      title: Rows Deleted
+      title: Snowflake rows deleted
       unit: count
       note: 'Original unit: row.'
       attributes:
@@ -74,7 +74,7 @@ model:
       metric_name: snowflake.rows.inserted
       instrument: gauge
       brief: The number of rows inserted during the refresh.
-      title: Rows Inserted
+      title: Snowflake rows inserted
       unit: count
       note: 'Original unit: row.'
       attributes:
@@ -85,7 +85,7 @@ model:
       metric_name: snowflake.table.dynamic.lag.max
       instrument: gauge
       brief: The maximum lag time in seconds of refreshes for this dynamic table.
-      title: Maximum Lag Time
+      title: Snowflake dynamic table maximum lag
       unit: s
       attributes:
         - ref: db.collection.name
@@ -95,7 +95,7 @@ model:
       metric_name: snowflake.table.dynamic.lag.mean
       instrument: gauge
       brief: The mean lag time (in seconds) of refreshes for this dynamic table.
-      title: Mean Lag Time
+      title: Snowflake dynamic table mean lag
       unit: s
       attributes:
         - ref: db.collection.name
@@ -105,7 +105,7 @@ model:
       metric_name: snowflake.table.dynamic.lag.target.time_above
       instrument: gauge
       brief: The time in seconds when the actual lag was more than the defined target lag.
-      title: Time Above Target Lag
+      title: Snowflake dynamic table time above target lag
       unit: s
       attributes:
         - ref: db.collection.name
@@ -115,7 +115,7 @@ model:
       metric_name: snowflake.table.dynamic.lag.target.value
       instrument: gauge
       brief: The time in seconds in the retention period or since the last configuration change, when the actual lag was more than the defined target lag.
-      title: Target Lag Time
+      title: Snowflake dynamic table target lag
       unit: s
       attributes:
         - ref: db.collection.name
@@ -125,7 +125,7 @@ model:
       metric_name: snowflake.table.dynamic.lag.target.within_ratio
       instrument: gauge
       brief: The ratio of time in the retention period or since the last configuration change, when actual lag is within the target lag.
-      title: Time Within Target Lag Ratio
+      title: Snowflake dynamic table within-target lag ratio
       unit: ratio
       attributes:
         - ref: db.collection.name

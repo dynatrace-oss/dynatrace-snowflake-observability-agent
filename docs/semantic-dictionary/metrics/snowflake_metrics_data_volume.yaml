@@ -24,8 +24,8 @@ model:
       type: metric
       metric_name: snowflake.data.rows
       instrument: gauge
-      brief: Sum of all rows in all objects in this scope.
-      title: Row Count
+      brief: Number of rows in the Snowflake object.
+      title: Snowflake data row count
       unit: count
       note: 'Original unit: row.'
       attributes:
@@ -35,8 +35,8 @@ model:
       type: metric
       metric_name: snowflake.data.size
       instrument: gauge
-      brief: Total size (in bytes) of all objects in this scope.
-      title: Table Size in Bytes
+      brief: Size in bytes of the Snowflake object.
+      title: Snowflake table size
       unit: By
       attributes:
         - ref: db.collection.name
@@ -46,7 +46,7 @@ model:
       metric_name: snowflake.table.time_since.last_ddl
       instrument: gauge
       brief: Time (in minutes) since last time given objects structure was altered.
-      title: Time Since Last DDL
+      title: Snowflake time since last DDL
       unit: min
       attributes:
         - ref: db.collection.name
@@ -56,7 +56,7 @@ model:
       metric_name: snowflake.table.time_since.last_update
       instrument: gauge
       brief: Time (in minutes) since last time content of given objects was updated.
-      title: Time Since Last Update
+      title: Snowflake time since last update
       unit: min
       attributes:
         - ref: db.collection.name

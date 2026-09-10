@@ -21,15 +21,18 @@ dimensions:
   db.collection.name:
     __semdict: ref
     __type: string
+    displayName: Snowflake table full name
     __example: analytics_db.public.sales_data
     __description: The full name of the table, including the catalog, schema, and table name.
   db.namespace:
     __semdict: ref
     __type: string
+    displayName: Snowflake database name
     __example: analytics_db
     __description: The name of the database that contains the table.
   snowflake.table.type:
     __type: string
+    displayName: Snowflake table type
     __stability: stable
     __example: BASE TABLE
     __description: >-
@@ -67,41 +70,46 @@ metrics:
   snowflake.data.rows:
     __type: long
     __example: 1000000
-    __description: Sum of all rows in all objects in this scope.
-    displayName: Row Count
+    __description: Number of rows in the Snowflake object.
+    __interface_note: Represents the sum of rows across all objects in the current scope.
+    displayName: Snowflake data row count
     unit: row
   snowflake.data.size:
     __type: long
     __example: 1073741824
-    __description: Total size (in bytes) of all objects in this scope.
-    displayName: Table Size in Bytes
+    __description: Size in bytes of the Snowflake object.
+    __interface_note: Represents the total size across all objects in the current scope.
+    displayName: Snowflake table size
     unit: By
   snowflake.table.time_since.last_ddl:
     __type: long
     __example: 2880
     __description: Time (in minutes) since last time given objects structure was altered.
-    displayName: Time Since Last DDL
+    displayName: Snowflake time since last DDL
     unit: min
   snowflake.table.time_since.last_update:
     __type: long
     __example: 1440
     __description: Time (in minutes) since last time content of given objects was updated.
-    displayName: Time Since Last Update
+    displayName: Snowflake time since last update
     unit: min
 
 event_timestamps:
   snowflake.event.trigger:
     __type: string
+    displayName: Snowflake event trigger
     __example: "snowflake.table.update"
     __description:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.table.ddl:
     __type: long
+    displayName: Snowflake table last DDL time
     __example: 1730458800000000000
     __description: The timestamp of the last DDL operation performed on the table or view, including CREATE, ALTER, DROP, or UNDROP.
   snowflake.table.update:
     __type: long
+    displayName: Snowflake table last update time
     __stability: stable
     __example: 1731256700000000000
     __description: The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation.

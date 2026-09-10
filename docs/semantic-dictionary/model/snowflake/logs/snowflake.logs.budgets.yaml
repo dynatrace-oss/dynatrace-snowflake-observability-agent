@@ -37,7 +37,7 @@ model:
     - id: snowflake.logs.budgets.fields
       type: attribute_group
       title: Budgets log record fields
-      brief: Attribute fields for Budgets log records.
+      brief: Attribute fields for budgets log records.
       attributes:
         - ref: snowflake.budget.owner.name
         - ref: snowflake.budget.owner.role_type

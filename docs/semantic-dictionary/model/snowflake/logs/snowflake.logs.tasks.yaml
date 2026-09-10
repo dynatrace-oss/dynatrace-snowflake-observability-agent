@@ -38,7 +38,7 @@ model:
     - id: snowflake.logs.tasks.fields
       type: attribute_group
       title: Tasks log record fields
-      brief: Attribute fields for Tasks log records.
+      brief: Attribute fields for tasks log records.
       attributes:
         - ref: snowflake.task.condition
         - ref: snowflake.task.config.allow_overlap

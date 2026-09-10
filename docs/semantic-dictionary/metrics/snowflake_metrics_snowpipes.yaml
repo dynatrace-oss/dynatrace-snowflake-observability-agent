@@ -26,7 +26,7 @@ model:
       metric_name: snowflake.copy.bytes_billed
       instrument: gauge
       brief: Bytes billed for this copy operation.
-      title: Copy Bytes Billed
+      title: Snowflake copy bytes billed
       unit: By
       attributes:
         - ref: db.collection.name
@@ -39,7 +39,7 @@ model:
       metric_name: snowflake.copy.errors
       instrument: gauge
       brief: Error count in this load.
-      title: Copy Errors
+      title: Snowflake copy errors
       unit: count
       attributes:
         - ref: db.collection.name
@@ -52,7 +52,7 @@ model:
       metric_name: snowflake.copy.file_size
       instrument: gauge
       brief: Observed size of the source file before loading.
-      title: File Size
+      title: Snowflake copy file size
       unit: By
       attributes:
         - ref: db.collection.name
@@ -65,7 +65,7 @@ model:
       metric_name: snowflake.pipe.cost.bytes_billed
       instrument: gauge
       brief: Bytes billed for Snowpipe usage.
-      title: Bytes Billed
+      title: Snowflake pipe bytes billed
       unit: By
       attributes:
         - ref: snowflake.pipe.catalog
@@ -77,7 +77,7 @@ model:
       metric_name: snowflake.pipe.cost.credits_used
       instrument: gauge
       brief: Serverless credits consumed.
-      title: Credits Used
+      title: Snowflake pipe credits used
       unit: count
       attributes:
         - ref: snowflake.pipe.catalog
@@ -89,7 +89,7 @@ model:
       metric_name: snowflake.pipe.data.ingested
       instrument: gauge
       brief: Bytes inserted.
-      title: Data Ingested
+      title: Snowflake pipe data ingested
       unit: By
       attributes:
         - ref: snowflake.pipe.catalog
@@ -101,7 +101,7 @@ model:
       metric_name: snowflake.pipe.errors
       instrument: gauge
       brief: Files with load errors.
-      title: Load Errors
+      title: Snowflake pipe load errors
       unit: count
       attributes:
         - ref: db.collection.name
@@ -114,7 +114,7 @@ model:
       metric_name: snowflake.pipe.files.ingested
       instrument: gauge
       brief: Files successfully loaded in this interval.
-      title: Files Ingested
+      title: Snowflake pipe files ingested
       unit: count
       attributes:
         - ref: db.collection.name
@@ -127,7 +127,7 @@ model:
       metric_name: snowflake.pipe.files.inserted
       instrument: gauge
       brief: Files inserted (from PIPE_USAGE_HISTORY).
-      title: Files Inserted
+      title: Snowflake pipe files inserted
       unit: count
       attributes:
         - ref: snowflake.pipe.catalog
@@ -139,7 +139,7 @@ model:
       metric_name: snowflake.pipe.files.pending
       instrument: gauge
       brief: Files queued awaiting ingestion.
-      title: Pending Files
+      title: Snowflake pipe pending files
       unit: count
       attributes:
         - ref: db.collection.name
@@ -155,7 +155,7 @@ model:
       metric_name: snowflake.pipe.ingest.latency
       instrument: gauge
       brief: Per-file latency from PIPE_RECEIVED_TIME to LAST_LOAD_TIME (enabled by ACCOUNT_USAGE view).
-      title: Ingest Latency
+      title: Snowflake pipe ingest latency
       unit: ms
       attributes:
         - ref: db.collection.name
@@ -168,7 +168,7 @@ model:
       metric_name: snowflake.pipe.latency.oldest_file
       instrument: gauge
       brief: Milliseconds since oldest pending file timestamp.
-      title: Oldest File Latency
+      title: Snowflake pipe oldest file latency
       unit: ms
       attributes:
         - ref: db.collection.name
@@ -184,7 +184,7 @@ model:
       metric_name: snowflake.pipe.rows.loaded
       instrument: gauge
       brief: Rows inserted.
-      title: Rows Loaded
+      title: Snowflake pipe rows loaded
       unit: count
       attributes:
         - ref: db.collection.name
@@ -197,7 +197,7 @@ model:
       metric_name: snowflake.pipe.rows.parsed
       instrument: gauge
       brief: Rows parsed.
-      title: Rows Parsed
+      title: Snowflake pipe rows parsed
       unit: count
       attributes:
         - ref: db.collection.name
