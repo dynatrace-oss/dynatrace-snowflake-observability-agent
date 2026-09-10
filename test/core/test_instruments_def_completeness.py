@@ -826,12 +826,35 @@ class TestDisplayNameCasing:
     _ALLOWED_CAPS: frozenset = frozenset(
         {
             # Acronyms
-            "DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID", "IDs", "DB", "QA", "SQL", "DQL", "UTC",
-            "IP", "MFA", "RSA", "UID", "CPU", "COPY",
+            "DSOA",
+            "OTel",
+            "DDL",
+            "DML",
+            "RSS",
+            "URL",
+            "API",
+            "ID",
+            "IDs",
+            "DB",
+            "QA",
+            "SQL",
+            "DQL",
+            "UTC",
+            "IP",
+            "MFA",
+            "RSA",
+            "UID",
+            "CPU",
+            "COPY",
             # Proper nouns (individual words from multi-word product/feature names)
-            "Snowflake", "Dynatrace", "Iceberg", "Snowpipe", "Snowpipes",
+            "Snowflake",
+            "Dynatrace",
+            "Iceberg",
+            "Snowpipe",
+            "Snowpipes",
             "Duo",  # Duo Security (MFA product)
-            "Trust", "Center",  # Snowflake Trust Center
+            "Trust",
+            "Center",  # Snowflake Trust Center
             "Travel",  # Snowflake Time Travel
         }
     )
@@ -842,8 +865,7 @@ class TestDisplayNameCasing:
             return False
         return any(
             # For hyphenated compounds (e.g. DDL-modified), check the first segment
-            (w.split("-")[0] if "-" in w else w)[0].isupper()
-            and (w.split("-")[0] if "-" in w else w) not in self._ALLOWED_CAPS
+            (w.split("-")[0] if "-" in w else w)[0].isupper() and (w.split("-")[0] if "-" in w else w) not in self._ALLOWED_CAPS
             for w in words[1:]
         )
 
