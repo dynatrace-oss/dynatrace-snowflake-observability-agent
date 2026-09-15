@@ -168,37 +168,35 @@ attributes:
           value: below
           brief: Metric value dropped below the expected lower threshold.
   anomaly.subject:
-    __type: string
+    __type: string[]
     displayName: Anomaly subject
     __description: >-
-      High-level category classifying the anomaly subject within its detector. Specific values are defined per workflow (for example,
-      ``login`` / ``session`` / ``query_count`` / ``data_scan`` for security anomaly detection; ``unavailable`` / ``disappeared`` /
-      ``volume_drop`` for broken shares detection).
+      High-level category classifying the anomaly subject within its detector.
     __example: "login"
     __enum:
       allow_custom_values: true
       members:
         - id: login
           value: login
-          brief: Anomaly in login attempt counts.
+          brief: Anomaly in login attempt counts (security anomaly detection workflow).
         - id: session
           value: session
-          brief: Anomaly in active session counts.
+          brief: Anomaly in active session counts (security anomaly detection workflow).
         - id: query_count
           value: query_count
-          brief: Anomaly in query execution counts.
+          brief: Anomaly in query execution counts (security anomaly detection workflow).
         - id: data_scan
           value: data_scan
-          brief: Anomaly in data volume scanned.
+          brief: Anomaly in data volume scanned (security anomaly detection workflow).
         - id: volume_drop
           value: volume_drop
-          brief: Detected drop in data rows for a share.
+          brief: Detected drop in data rows for a share (broken shares detection workflow).
         - id: unavailable
           value: unavailable
-          brief: Share object no longer accessible.
+          brief: Share object no longer accessible (broken shares detection workflow).
         - id: disappeared
           value: disappeared
-          brief: Share object no longer present in the account.
+          brief: Share object no longer present in the account (broken shares detection workflow).
   metric.key:
     __semdict: ref
     displayName: Dynatrace metric key
@@ -210,8 +208,7 @@ attributes:
   dsoa.run.id:
     __stability: stable
     displayName: Dynatrace Snowflake Observability Agent execution unique identifier
-    __interface_note:
-      "Unique identifier for a single Dynatrace Snowflake Observability Agent execution run. Changes on every invocation."
+    __interface_note: "Unique identifier for a single Dynatrace Snowflake Observability Agent execution run. Changes on every invocation."
     __description:
       "Unique ID of each execution of the Dynatrace Snowflake Observability Agent plugin. It can be used to differentiate between telemetry
       produced between two executions, for example, to calculate the change in the system."

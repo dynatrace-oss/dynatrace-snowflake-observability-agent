@@ -53,6 +53,30 @@ attributes:
       - RESUME,
       - REPLICATION_REFRESH,
       - ALTER_WAREHOUSE.
+    # __enum:
+    #   allow_custom_values: false
+    #   members:
+    #     - id: none
+    #       value: NONE
+    #       brief: Backwards-compatible default for entries created before this column was introduced.
+    #     - id: create_dynamic_table
+    #       value: CREATE_DYNAMIC_TABLE
+    #       brief: Dynamic table was created via a CREATE DYNAMIC TABLE DDL statement.
+    #     - id: alter_target_lag
+    #       value: ALTER_TARGET_LAG
+    #       brief: Target lag of the dynamic table was changed via ALTER DYNAMIC TABLE … TARGET_LAG.
+    #     - id: suspend
+    #       value: SUSPEND
+    #       brief: Dynamic table was suspended via ALTER DYNAMIC TABLE … SUSPEND.
+    #     - id: resume
+    #       value: RESUME
+    #       brief: Dynamic table was resumed via ALTER DYNAMIC TABLE … RESUME.
+    #     - id: replication_refresh
+    #       value: REPLICATION_REFRESH
+    #       brief: Entry was created as a result of a replication or database refresh operation.
+    #     - id: alter_warehouse
+    #       value: ALTER_WAREHOUSE
+    #       brief: Virtual warehouse assigned to the dynamic table was changed via ALTER DYNAMIC TABLE … WAREHOUSE.
     displayName: Snowflake dynamic table graph alter trigger
   snowflake.table.dynamic.graph.inputs:
     __type: string[]
