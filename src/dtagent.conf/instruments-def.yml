@@ -211,7 +211,7 @@ attributes:
     __stability: stable
     displayName: Dynatrace Snowflake Observability Agent execution unique identifier
     __interface_note:
-      "Unique identifier for a single Dynatrace Snowflake Observability Agent agent execution run. Changes on every invocation."
+      "Unique identifier for a single Dynatrace Snowflake Observability Agent execution run. Changes on every invocation."
     __description:
       "Unique ID of each execution of the Dynatrace Snowflake Observability Agent plugin. It can be used to differentiate between telemetry
       produced between two executions, for example, to calculate the change in the system."
