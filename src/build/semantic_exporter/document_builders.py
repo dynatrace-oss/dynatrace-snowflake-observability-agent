@@ -115,8 +115,8 @@ class DocumentBuilder:
                     {
                         "id": "dsoa",
                         "type": "resource",
-                        "title": "DSOA resource fields",
-                        "brief": "Resource-level DSOA execution metadata and deployment context.",
+                        "title": "Dynatrace Snowflake Observability Agent resource fields",
+                        "brief": "Resource-level Dynatrace Snowflake Observability Agent execution metadata and deployment context.",
                         "attributes": dsoa_attrs,
                     }
                 ]
@@ -169,7 +169,7 @@ class DocumentBuilder:
         # convention this dsoa consolidation now also follows).
         docs: Dict[str, Dict[str, Any]] = {}
         for gid in sorted(groups_map):
-            brief_subject = "observed timestamp" if gid == "observed_timestamp" else make_title(gid)
+            brief_subject = "observed timestamp" if gid == "observed_timestamp" else (GROUP_TITLE_OVERRIDES.get(gid) or make_title(gid))
             group_entry = {
                 "id": gid,
                 "type": groups_map[gid]["type"],
@@ -224,8 +224,8 @@ class DocumentBuilder:
                 {
                     "id": "i.dsoa_resource",
                     "type": "interface",
-                    "title": "DSOA resource fields",
-                    "brief": "Fields present on all DSOA telemetry records. Synced with config.py RESOURCE_ATTRIBUTES.",
+                    "title": "Dynatrace Snowflake Observability Agent resource fields",
+                    "brief": "Fields present on all Dynatrace Snowflake Observability Agent telemetry records. Synced with config.py RESOURCE_ATTRIBUTES.",
                     "attributes": [_ref_entry(k) for k in sorted(RESOURCE_ATTRIBUTE_KEYS)],
                 },
             ]
@@ -387,7 +387,7 @@ class DocumentBuilder:
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.metrics.{plugin_name}",
             "title": f"Snowflake {plugin_label(plugin_name)} metrics",
-            "brief": f"Metrics collected by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
+            "brief": f"Metrics collected by the Dynatrace Snowflake Observability Agent {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
             "model_group_id": "snowflake.metrics",
             "data_object": "metric",
             "interfaces": interfaces,
@@ -424,7 +424,7 @@ class DocumentBuilder:
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.events.{plugin_name}",
             "title": f"Snowflake {plugin_label(plugin_name)} lifecycle events",
-            "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
+            "brief": f"Timestamp-based state-change events emitted by the Dynatrace Snowflake Observability Agent {plugin_name} plugin via the OpenPipeline Events API.",
             "model_group_id": "snowflake.events",
             "data_object": "events",
             "interfaces": ["i.dsoa_resource"],
@@ -521,7 +521,7 @@ class DocumentBuilder:
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.logs.{plugin_name}",
             "title": f"Snowflake {plugin_label(plugin_name)} log records",
-            "brief": f"Log records emitted by the DSOA {plugin_name} plugin.",
+            "brief": f"Log records emitted by the Dynatrace Snowflake Observability Agent {plugin_name} plugin.",
             "model_group_id": "snowflake.logs",
             "data_object": "logs",
             "interfaces": ["i.dsoa_resource"],
@@ -564,7 +564,7 @@ class DocumentBuilder:
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.spans.{plugin_name}",
             "title": f"Snowflake {plugin_label(plugin_name)} spans",
-            "brief": f"Span records emitted by the DSOA {plugin_name} plugin.",
+            "brief": f"Span records emitted by the Dynatrace Snowflake Observability Agent {plugin_name} plugin.",
             "model_group_id": "snowflake.spans",
             "data_object": "spans",
             "interfaces": ["i.dsoa_resource"],

@@ -155,7 +155,7 @@ class TestMakeTitle:
 
     def test_acronym_preserved(self):
         """Known acronyms (e.g. DSOA, SQL) are kept ALL-CAPS."""
-        assert make_title("dsoa.run.plugin") == "DSOA run plugin"
+        assert make_title("dsoa.run.plugin") == "Dynatrace Snowflake Observability Agent run plugin"
         assert make_title("snowflake.sql.query") == "Snowflake SQL query"
 
     def test_proper_noun_trust_center(self):
@@ -408,7 +408,7 @@ class TestNamespaceGrouping:
 
         gid, gtype = ns_group("snowflake.warehouse.name", SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "snowflake.warehouse"
-        assert gtype == "attribute_group", "All DSOA signal groups use attribute_group per IA guidance"
+        assert gtype == "attribute_group", "All Dynatrace Snowflake Observability Agent signal groups use attribute_group per IA guidance"
 
     def test_warehouse_resource_group(self):
         """snowflake.warehouse.* resource fields → snowflake.warehouse.resource group (avoids collision with signal group)."""
@@ -627,7 +627,7 @@ class TestIdEmission:
         assert "display_name" in node
 
     def test_deprecated_alias_stability(self):
-        """deprecated-alias entry stays experimental — OTel renamed it, DSOA still emits it."""
+        """deprecated-alias entry stays experimental — OTel renamed it, Dynatrace Snowflake Observability Agent still emits it."""
         entry = {
             "__semdict": "deprecated-alias",
             "__otel_replacement": "deployment.environment.name",
@@ -637,7 +637,7 @@ class TestIdEmission:
         }
         node = emit_id_entry("deployment.environment", entry, "deprecated-alias")
         assert node["stability"] == "experimental", "deprecated-alias must stay experimental"
-        assert "deprecated" not in node, "deprecated key must not appear for active DSOA fields"
+        assert "deprecated" not in node, "deprecated key must not appear for active Dynatrace Snowflake Observability Agent fields"
         assert "note" in node, "deprecated-alias must produce a note about the OTel rename"
 
     def test_deprecated_alias_has_note(self):
@@ -970,7 +970,7 @@ class TestSemanticExporterMock:
         dep_meta = entries["deployment.environment"]
         node = exporter._build_attribute_node("deployment.environment", dep_meta)
         assert node.get("stability") == "experimental", "deprecated-alias must be experimental"
-        assert "deprecated" not in node, "deprecated key must not appear for active DSOA fields"
+        assert "deprecated" not in node, "deprecated key must not appear for active Dynatrace Snowflake Observability Agent fields"
         assert "note" in node, "deprecated-alias must have a note about OTel rename"
 
     def test_enum_field_emits_type_dict(self, tmp_path):
@@ -1607,8 +1607,8 @@ class TestMergeIntoRuamelModelEnvelope:
             "groups:\n"
             "  - id: dsoa.debug\n"
             "    type: attribute_group\n"
-            "    title: Dynatrace Snowflake Observability Agent (DSOA) debug signal fields\n"
-            "    brief: Signal-level fields for DSOA debug telemetry.\n"
+            "    title: Dynatrace Snowflake Observability Agent debug signal fields\n"
+            "    brief: Signal-level fields for Dynatrace Snowflake Observability Agent debug telemetry.\n"
             "    attributes:\n"
             "      - id: dsoa.debug.span.events.added\n"
             "        type: long\n"
@@ -1617,14 +1617,14 @@ class TestMergeIntoRuamelModelEnvelope:
             "groups:\n"
             "  - id: dsoa.debug\n"
             "    type: attribute_group\n"
-            "    title: DSOA debug signal fields\n"
-            "    brief: Signal-level fields for DSOA debug telemetry.\n"
+            "    title: Dynatrace Snowflake Observability Agent debug signal fields\n"
+            "    brief: Signal-level fields for Dynatrace Snowflake Observability Agent debug telemetry.\n"
             "    attributes:\n"
             "      - id: dsoa.debug.span.events.added\n"
             "        type: long\n"
         )
         merge_into_ruamel(existing, new)
-        assert existing["groups"][0]["title"] == "DSOA debug signal fields"
+        assert existing["groups"][0]["title"] == "Dynatrace Snowflake Observability Agent debug signal fields"
 
     def test_observed_timestamp_group_brief_propagates_on_existing_file(self):
         """The exact observed_timestamp regression: brief casing fix reaches an existing group."""
@@ -1652,14 +1652,14 @@ class TestMergeIntoRuamelModelEnvelope:
         assert existing["groups"][0]["brief"] == "Signal-level fields for observed timestamp telemetry."
 
     def test_shared_non_dsoa_owned_group_title_brief_not_clobbered(self):
-        """A shared SD-owned group (e.g. 'authentication') that DSOA only contributes
-        attributes into must NOT have its title/brief overwritten by DSOA's generic
+        """A shared SD-owned group (e.g. 'authentication') that Dynatrace Snowflake Observability Agent only contributes
+        attributes into must NOT have its title/brief overwritten by Dynatrace Snowflake Observability Agent's generic
         computed placeholder.
 
         Regression coverage: the first pass of the group-level title/brief propagation
         fix (added for Fix 2/Fix 3) applied to ALL groups unconditionally, which silently
         overwrote real SD-team-owned titles/briefs for shared groups (authentication,
-        client, db, event) with DSOA's own generic "<Title> signal fields" / "Signal-level
+        client, db, event) with Dynatrace Snowflake Observability Agent's own generic "<Title> signal fields" / "Signal-level
         fields for <Title> telemetry." placeholder text — discovered when regenerating the
         real SD repo and finding those 4 unrelated files unexpectedly modified. Propagation
         must be scoped to SD_OWNED_GROUP_PREFIXES (snowflake, dsoa, anomaly,

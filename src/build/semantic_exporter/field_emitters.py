@@ -191,9 +191,9 @@ FIELD_STUB_H2_OVERRIDES: Dict[str, str] = {
 #: above, which intentionally keeps the full product name per PR #1964 review
 #: feedback). Keyed by group_id the same way as FIELD_STUB_H2_OVERRIDES.
 GROUP_TITLE_OVERRIDES: Dict[str, str] = {
-    "dsoa": "DSOA",
-    "dsoa.debug": "DSOA debug",
-    "dsoa.plugins": "DSOA plugins",
+    "dsoa": "Dynatrace Snowflake Observability Agent",
+    "dsoa.debug": "Dynatrace Snowflake Observability Agent debug",
+    "dsoa.plugins": "Dynatrace Snowflake Observability Agent plugins",
 }
 
 #: instruments-def.yml unit: value -> Semantic Dictionary unit abbreviation.
@@ -395,12 +395,22 @@ def make_display_name(key: str) -> str:
     return _restore_acronyms(sentence)
 
 
+#: Acronym-to-full-name expansions applied only in :func:`make_title` (not in
+#: :func:`make_display_name`). Used where an ALL-CAPS acronym produced by
+#: :func:`_restore_acronyms` should be spelled out as the full product name in
+#: SD ``title:`` and ``brief:`` fields.
+_TITLE_TOKEN_EXPANSIONS: Dict[str, str] = {
+    "DSOA": "Dynatrace Snowflake Observability Agent",
+}
+
+
 def make_title(key: str) -> str:
     """Convert dot-notation key to sentence-case title for SD group ``title:`` fields.
 
     Sentence case means only the first word is capitalised; subsequent words are
     lowercase unless they are acronyms restored by :func:`_restore_acronyms` or
-    multi-word proper nouns listed in :data:`TITLE_PROPER_NOUNS`.
+    multi-word proper nouns listed in :data:`TITLE_PROPER_NOUNS`.  Acronym tokens
+    listed in :data:`_TITLE_TOKEN_EXPANSIONS` are then expanded to their full names.
     This matches the SD convention documented in
     ``juno_docs/define-data-in-grail/definition/yaml/common/title.md``.
 
@@ -419,6 +429,8 @@ def make_title(key: str) -> str:
     result = _restore_acronyms(" ".join(titled))
     for noun in TITLE_PROPER_NOUNS:
         result = result.replace(noun.lower(), noun)
+    for token, expansion in _TITLE_TOKEN_EXPANSIONS.items():
+        result = result.replace(token, expansion)
     return result
 
 
@@ -935,7 +947,7 @@ def emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_display
     if semdict_flag == "deprecated-alias":
         replacement = entry.get("__otel_replacement", "")
         otel_note = entry.get("__semdict_note", "")
-        boilerplate = "DSOA continues to emit it for backward compatibility."
+        boilerplate = "Dynatrace Snowflake Observability Agent continues to emit it for backward compatibility."
         if otel_note:
             note_text = str(otel_note).strip()
             # Avoid double-appending the boilerplate sentence when the authored note already
