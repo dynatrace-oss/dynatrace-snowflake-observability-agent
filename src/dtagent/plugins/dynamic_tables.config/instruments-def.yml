@@ -488,7 +488,7 @@ dql_queries:
       | filter dsoa.run.plugin == "dynamic_tables"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA dynamic_tables plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent dynamic_tables plugin log entries from Grail.
     description_copilot: Search for all dynamic_tables plugin logs from the Snowflake observability agent.
     context:
       - logs
@@ -521,7 +521,9 @@ dql_queries:
       | filter dsoa.run.plugin == "dynamic_tables"
       | sort timestamp desc
       | limit 50
-    description: Fetch the most recent DSOA dynamic_tables lifecycle events (scheduling suspend/resume, graph version).
+    description:
+      Fetch the most recent Dynatrace Snowflake Observability Agent dynamic_tables lifecycle events (scheduling suspend/resume, graph
+      version).
     description_copilot: Search for Snowflake dynamic table scheduling and graph lifecycle events.
     context:
       - events
@@ -531,7 +533,7 @@ dql_queries:
       | filter dsoa.run.plugin == "dynamic_tables"
       | summarize { events = count() }, by: { snowflake.event.type }
       | sort events desc
-    description: Count DSOA dynamic_tables lifecycle events grouped by event type.
+    description: Count Dynatrace Snowflake Observability Agent dynamic_tables lifecycle events grouped by event type.
     description_copilot: Break down Snowflake dynamic table lifecycle events by their event type.
     context:
       - events

@@ -238,7 +238,7 @@ dql_queries:
       | filter dsoa.run.plugin == "active_queries"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA active_queries plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent active_queries plugin log entries from Grail.
     description_copilot: Search for all active_queries plugin logs from the Snowflake observability agent.
     context:
       - logs

@@ -205,7 +205,7 @@ dql_queries:
       | filter dsoa.run.plugin == "budgets"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA budgets plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent budgets plugin log entries from Grail.
     description_copilot: Search for all budgets plugin logs from the Snowflake observability agent.
     context:
       - logs
@@ -238,7 +238,7 @@ dql_queries:
       | filter dsoa.run.plugin == "budgets"
       | sort timestamp desc
       | limit 50
-    description: Fetch the most recent DSOA budgets lifecycle events from Grail.
+    description: Fetch the most recent Dynatrace Snowflake Observability Agent budgets lifecycle events from Grail.
     description_copilot: Search for Snowflake budget lifecycle events emitted by the observability agent.
     context:
       - events
@@ -248,7 +248,7 @@ dql_queries:
       | filter dsoa.run.plugin == "budgets"
       | summarize { events = count() }, by: { snowflake.event.type }
       | sort events desc
-    description: Count DSOA budgets lifecycle events grouped by event type.
+    description: Count Dynatrace Snowflake Observability Agent budgets lifecycle events grouped by event type.
     description_copilot: Break down Snowflake budget lifecycle events by their event type.
     context:
       - events

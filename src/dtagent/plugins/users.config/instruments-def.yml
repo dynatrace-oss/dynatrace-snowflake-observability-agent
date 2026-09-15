@@ -389,7 +389,7 @@ dql_queries:
       | filter dsoa.run.plugin == "users"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA users plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent users plugin log entries from Grail.
     description_copilot: Search for all users plugin logs from the Snowflake observability agent.
     context:
       - logs
@@ -421,7 +421,7 @@ dql_queries:
       | filter dsoa.run.plugin == "users"
       | sort timestamp desc
       | limit 20
-    description: Fetch recent DSOA users lifecycle events.
+    description: Fetch recent Dynatrace Snowflake Observability Agent users lifecycle events.
     description_copilot: Search for recent Snowflake users lifecycle events from the users plugin.
     context:
       - events
@@ -431,7 +431,8 @@ dql_queries:
       | filter dsoa.run.plugin == "users"
       | sort timestamp desc
       | limit 50
-    description: Fetch the most recent DSOA users lifecycle events (creation, deletion and role-change anchors).
+    description:
+      Fetch the most recent Dynatrace Snowflake Observability Agent users lifecycle events (creation, deletion and role-change anchors).
     description_copilot: Search for Snowflake user lifecycle events from the users plugin.
     context:
       - events
@@ -441,7 +442,7 @@ dql_queries:
       | filter dsoa.run.plugin == "users"
       | summarize { events = count() }, by: { snowflake.event.type }
       | sort events desc
-    description: Count DSOA users lifecycle events grouped by event type.
+    description: Count Dynatrace Snowflake Observability Agent users lifecycle events grouped by event type.
     description_copilot: Break down Snowflake user lifecycle events by their event type.
     context:
       - events

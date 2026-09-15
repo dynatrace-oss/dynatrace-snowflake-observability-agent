@@ -117,7 +117,8 @@ dql_queries:
       | filter dsoa.run.plugin == "data_schemas"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA data_schemas plugin log entries (DDL change inventory) from Grail.
+    description:
+      Fetch the 100 most recent Dynatrace Snowflake Observability Agent data_schemas plugin log entries (DDL change inventory) from Grail.
     description_copilot: Search for all data_schemas plugin logs from the Snowflake observability agent.
     context:
       - logs

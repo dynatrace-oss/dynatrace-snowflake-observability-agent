@@ -180,7 +180,7 @@ dql_queries:
       | filter dsoa.run.plugin == "metering"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA metering plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent metering plugin log entries from Grail.
     description_copilot: Search for all metering plugin logs from the Snowflake observability agent.
     context:
       - logs

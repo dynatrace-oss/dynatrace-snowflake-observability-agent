@@ -481,7 +481,7 @@ dql_queries:
       | filter dsoa.run.plugin == "resource_monitors"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA resource_monitors plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent resource_monitors plugin log entries from Grail.
     description_copilot: Search for all resource_monitors plugin logs from the Snowflake observability agent.
     context:
       - logs
@@ -514,7 +514,9 @@ dql_queries:
       | filter dsoa.run.plugin == "resource_monitors"
       | sort timestamp desc
       | limit 50
-    description: Fetch the most recent DSOA resource_monitors lifecycle events (monitor and warehouse state changes).
+    description:
+      Fetch the most recent Dynatrace Snowflake Observability Agent resource_monitors lifecycle events (monitor and warehouse state
+      changes).
     description_copilot: Search for Snowflake resource monitor and warehouse lifecycle events.
     context:
       - events
@@ -524,7 +526,7 @@ dql_queries:
       | filter dsoa.run.plugin == "resource_monitors"
       | summarize { events = count() }, by: { snowflake.event.type }
       | sort events desc
-    description: Count DSOA resource_monitors lifecycle events grouped by event type.
+    description: Count Dynatrace Snowflake Observability Agent resource_monitors lifecycle events grouped by event type.
     description_copilot: Break down Snowflake resource monitor lifecycle events by their event type.
     context:
       - events

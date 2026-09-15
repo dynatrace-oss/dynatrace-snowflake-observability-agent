@@ -20,8 +20,8 @@ attributes:
     displayName: Snowflake session authentication type
     __semdict: ref
     __semdict_note: >-
-      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE). DSOA also emits PASSWORD for Snowflake password auth;
-      this is flagged as an open enum extension request.
+      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE). Dynatrace Snowflake Observability Agent also emits
+      PASSWORD for Snowflake password auth; this is flagged as an open enum extension request.
     __example: PASSWORD
     __description: The authentication method used for the session.
   client.application.id:
@@ -85,14 +85,14 @@ attributes:
   dsoa.debug.span.events.added:
     __stability: stable
     __type: long
-    displayName: DSOA debug span events added
+    displayName: Dynatrace Snowflake Observability Agent debug span events added
     __example: 5
     __description: Internal debug field indicating the number of span events successfully added to the given span.
     __span_only: true
   dsoa.debug.span.events.failed:
     __stability: stable
     __type: long
-    displayName: DSOA debug span events failed
+    displayName: Dynatrace Snowflake Observability Agent debug span events failed
     __example: 1
     __description: Internal debug field indicating the number of span events that failed to be added to the given span.
     __span_only: true
@@ -100,7 +100,7 @@ attributes:
     __stability: experimental
     __example: "none"
     __type: string
-    displayName: DSOA query history obfuscation mode
+    displayName: Dynatrace Snowflake Observability Agent query history obfuscation mode
     __enum:
       allow_custom_values: false
       members:
@@ -122,7 +122,7 @@ attributes:
   dsoa.plugins.query_history.track_ddl_changes:
     __stability: experimental
     __type: boolean
-    displayName: DSOA query history DDL change tracking indicator
+    displayName: Dynatrace Snowflake Observability Agent query history DDL change tracking indicator
     __example: false
     __is_defined_at_runtime: true
     __description: >
@@ -957,7 +957,7 @@ dql_queries:
       | filter dsoa.run.plugin == "query_history"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA query_history plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent query_history plugin log entries from Grail.
     description_copilot: Search for all query_history plugin logs from the Snowflake observability agent.
     context:
       - logs
@@ -997,7 +997,8 @@ dql_queries:
       | filter dsoa.run.plugin == "query_history"
       | sort timestamp desc
       | limit 50
-    description: Fetch the 50 most recent DSOA query_history spans (individual Snowflake query executions).
+    description:
+      Fetch the 50 most recent Dynatrace Snowflake Observability Agent query_history spans (individual Snowflake query executions).
     description_copilot: Find query_history span traces produced by the Snowflake observability agent.
     context:
       - spans
@@ -1009,7 +1010,9 @@ dql_queries:
       | fields trace.id, span.id, request.is_root_span, snowflake.query.id, start_time, end_time
       | sort start_time desc
       | limit 50
-    description: Correlate DSOA query_history spans by trace.id/span.id to inspect the root span and timing for a Snowflake query execution.
+    description:
+      Correlate Dynatrace Snowflake Observability Agent query_history spans by trace.id/span.id to inspect the root span and timing for a
+      Snowflake query execution.
     description_copilot: Find the trace and span identifiers for Snowflake query execution spans, including whether each is the root span.
     context:
       - spans
