@@ -1,10 +1,10 @@
 model:
   id: snowflake.metrics.active_queries
   title: Snowflake active queries metrics
-  brief: Metrics collected by the DSOA active_queries plugin from Snowflake ACCOUNT_USAGE views.
+  brief: Metrics collected by the Dynatrace Snowflake Observability Agent active_queries plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [ i.dsoa_resource, i.snowflake_warehouse, i.snowflake_database ]
+  interfaces: [i.dsoa_resource, i.snowflake_warehouse, i.snowflake_database]
   dql_queries:
     - query_string: >
         timeseries val = avg(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
@@ -43,7 +43,7 @@ model:
       brief: Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;.
       title: Snowflake rows written to result
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.user
         - ref: snowflake.query.execution_status

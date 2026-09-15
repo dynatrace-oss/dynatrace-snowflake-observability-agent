@@ -1,10 +1,10 @@
 model:
   id: snowflake.logs.dynamic_tables
   title: Snowflake dynamic tables log records
-  brief: Log records emitted by the DSOA dynamic_tables plugin.
+  brief: Log records emitted by the Dynatrace Snowflake Observability Agent dynamic_tables plugin.
   model_group_id: snowflake.logs
   data_object: logs
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch logs
@@ -12,7 +12,7 @@ model:
         | filter dsoa.run.plugin == "dynamic_tables"
         | sort timestamp desc
         | limit 100
-      description: Fetch the 100 most recent DSOA dynamic_tables plugin log entries from Grail.
+      description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent dynamic_tables plugin log entries from Grail.
       description_copilot: Search for all dynamic_tables plugin logs from the Snowflake observability agent.
     - query_string: |
         fetch logs

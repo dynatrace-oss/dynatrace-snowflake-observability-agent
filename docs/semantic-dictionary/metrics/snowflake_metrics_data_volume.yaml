@@ -1,10 +1,10 @@
 model:
   id: snowflake.metrics.data_volume
   title: Snowflake data volume metrics
-  brief: Metrics collected by the DSOA data_volume plugin from Snowflake ACCOUNT_USAGE views.
+  brief: Metrics collected by the Dynatrace Snowflake Observability Agent data_volume plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [ i.dsoa_resource, i.snowflake_database ]
+  interfaces: [i.dsoa_resource, i.snowflake_database]
   dql_queries:
     - query_string: >
         timeseries val = sum(snowflake.data.size), by: { db.collection.name, deployment.environment.name }
@@ -27,7 +27,7 @@ model:
       brief: Number of rows in the Snowflake object.
       title: Snowflake data row count
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.type

@@ -1,10 +1,10 @@
 model:
   id: snowflake.logs.users
   title: Snowflake users log records
-  brief: Log records emitted by the DSOA users plugin.
+  brief: Log records emitted by the Dynatrace Snowflake Observability Agent users plugin.
   model_group_id: snowflake.logs
   data_object: logs
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch logs
@@ -12,7 +12,7 @@ model:
         | filter dsoa.run.plugin == "users"
         | sort timestamp desc
         | limit 100
-      description: Fetch the 100 most recent DSOA users plugin log entries from Grail.
+      description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent users plugin log entries from Grail.
       description_copilot: Search for all users plugin logs from the Snowflake observability agent.
     - query_string: |
         fetch logs

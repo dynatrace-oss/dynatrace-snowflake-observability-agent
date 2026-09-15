@@ -1,7 +1,7 @@
 model_group:
   id: snowflake.metrics
   title: Snowflake metrics
-  brief: Metrics collected by the DSOA from Snowflake ACCOUNT_USAGE views.
+  brief: Metrics collected by the Dynatrace Snowflake Observability Agent from Snowflake ACCOUNT_USAGE views.
   dql_queries:
     - query_string: >
         timeseries credits = sum(snowflake.credits.used), by: { snowflake.service.name, deployment.environment.name }

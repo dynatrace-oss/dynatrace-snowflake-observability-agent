@@ -1,10 +1,10 @@
 model:
   id: snowflake.logs.warehouse_usage
   title: Snowflake warehouse usage log records
-  brief: Log records emitted by the DSOA warehouse_usage plugin.
+  brief: Log records emitted by the Dynatrace Snowflake Observability Agent warehouse_usage plugin.
   model_group_id: snowflake.logs
   data_object: logs
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch logs
@@ -12,7 +12,7 @@ model:
         | filter dsoa.run.plugin == "warehouse_usage"
         | sort timestamp desc
         | limit 100
-      description: Fetch the 100 most recent DSOA warehouse_usage plugin log entries from Grail.
+      description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent warehouse_usage plugin log entries from Grail.
       description_copilot: Search for all warehouse_usage plugin logs from the Snowflake observability agent.
     - query_string: |
         fetch logs

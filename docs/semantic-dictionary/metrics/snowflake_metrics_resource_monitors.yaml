@@ -1,10 +1,10 @@
 model:
   id: snowflake.metrics.resource_monitors
   title: Snowflake Resource Monitors metrics
-  brief: Metrics collected by the DSOA resource_monitors plugin from Snowflake ACCOUNT_USAGE views.
+  brief: Metrics collected by the Dynatrace Snowflake Observability Agent resource_monitors plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [ i.dsoa_resource, i.snowflake_warehouse ]
+  interfaces: [i.dsoa_resource, i.snowflake_warehouse]
   dql_queries:
     - query_string: >
         timeseries pct = avg(snowflake.credits.quota.used_pct), by: { snowflake.resource_monitor.name, deployment.environment.name }
@@ -27,7 +27,7 @@ model:
       instrument: gauge
       brief: Percentage of available resources in given warehouse.
       title: Snowflake available compute resources percentage
-      unit: '%'
+      unit: "%"
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.compute.other
@@ -36,7 +36,7 @@ model:
       instrument: gauge
       brief: Percentage of other resources in given warehouse
       title: Snowflake other compute resources percentage
-      unit: '%'
+      unit: "%"
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.compute.provisioning
@@ -45,7 +45,7 @@ model:
       instrument: gauge
       brief: Percentage of provisioning resources in given warehouse.
       title: Snowflake provisioning compute resources percentage
-      unit: '%'
+      unit: "%"
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.compute.quiescing
@@ -54,7 +54,7 @@ model:
       instrument: gauge
       brief: Percentage of quiescing resources in given warehouse.
       title: Snowflake quiescing compute resources percentage
-      unit: '%'
+      unit: "%"
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.credits.quota.remaining
@@ -64,7 +64,7 @@ model:
       brief: Number of credits remaining for the given resource monitor
       title: Snowflake credits quota remaining
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.credits.quota.used
@@ -74,7 +74,7 @@ model:
       brief: Number of credits used by the given resource monitor
       title: Snowflake credits quota used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.credits.quota.used_pct
@@ -83,7 +83,7 @@ model:
       instrument: gauge
       brief: Percentage of quota used by given resource monitor
       title: Snowflake quota used percentage
-      unit: '%'
+      unit: "%"
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.credits.quota.value
@@ -93,7 +93,7 @@ model:
       brief: Total number of credits allowed for the given resource monitor
       title: Snowflake credits quota
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.queries.queued
@@ -103,7 +103,7 @@ model:
       brief: Current number of queued queries in the given warehouse
       title: Snowflake queued queries
       unit: count
-      note: 'Original unit: query.'
+      note: "Original unit: query."
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.queries.running
@@ -113,7 +113,7 @@ model:
       brief: Current number of running queries in the given warehouse
       title: Snowflake running queries
       unit: count
-      note: 'Original unit: query.'
+      note: "Original unit: query."
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.resource_monitor.warehouses.count
@@ -123,14 +123,16 @@ model:
       brief: Number of warehouses monitored by the given resource monitor
       title: Snowflake resource monitor warehouse count
       unit: count
-      note: 'Original unit: warehouse.'
+      note: "Original unit: warehouse."
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.warehouse.auto_suspend
       type: metric
       metric_name: snowflake.warehouse.auto_suspend
       instrument: gauge
-      brief: The number of seconds after which an idle warehouse is automatically suspended. A value of null or 0 indicates auto-suspend is disabled.
+      brief:
+        The number of seconds after which an idle warehouse is automatically suspended. A value of null or 0 indicates auto-suspend is
+        disabled.
       title: Snowflake warehouse auto-suspend timeout
       unit: s
       attributes:
@@ -142,7 +144,7 @@ model:
       brief: Maximal number of clusters in the given warehouse
       title: Snowflake warehouse maximum cluster count
       unit: count
-      note: 'Original unit: cluster.'
+      note: "Original unit: cluster."
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.warehouse.clusters.min
@@ -152,7 +154,7 @@ model:
       brief: Minimal number of clusters in the given warehouse
       title: Snowflake warehouse minimum cluster count
       unit: count
-      note: 'Original unit: cluster.'
+      note: "Original unit: cluster."
       attributes:
         - ref: snowflake.resource_monitor.name
     - id: snowflake.warehouse.clusters.started
@@ -162,6 +164,6 @@ model:
       brief: Current number of started clusters in the given warehouse
       title: Snowflake warehouse started clusters
       unit: count
-      note: 'Original unit: cluster.'
+      note: "Original unit: cluster."
       attributes:
         - ref: snowflake.resource_monitor.name

@@ -1,10 +1,10 @@
 model:
   id: snowflake.logs.query_history
   title: Snowflake query history log records
-  brief: Log records emitted by the DSOA query_history plugin.
+  brief: Log records emitted by the Dynatrace Snowflake Observability Agent query_history plugin.
   model_group_id: snowflake.logs
   data_object: logs
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch logs
@@ -12,7 +12,7 @@ model:
         | filter dsoa.run.plugin == "query_history"
         | sort timestamp desc
         | limit 100
-      description: Fetch the 100 most recent DSOA query_history plugin log entries from Grail.
+      description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent query_history plugin log entries from Grail.
       description_copilot: Search for all query_history plugin logs from the Snowflake observability agent.
     - query_string: |
         fetch logs

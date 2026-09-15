@@ -1,10 +1,10 @@
 model:
   id: snowflake.metrics.event_log
   title: Snowflake event log metrics
-  brief: Metrics collected by the DSOA event_log plugin from Snowflake ACCOUNT_USAGE views.
+  brief: Metrics collected by the Dynatrace Snowflake Observability Agent event_log plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [ i.dsoa_resource, i.snowflake_warehouse, i.snowflake_database ]
+  interfaces: [i.dsoa_resource, i.snowflake_warehouse, i.snowflake_database]
   dql_queries:
     - query_string: >
         timeseries mem = avg(process.memory.usage), by: { snowflake.warehouse.name, deployment.environment.name }
@@ -26,7 +26,7 @@ model:
       instrument: gauge
       brief: The percentage of CPU utilization by the process.
       title: Process CPU Utilization
-      unit: '%'
+      unit: "%"
       attributes:
         - ref: snowflake.query.id
         - ref: snowflake.role.name

@@ -1,10 +1,10 @@
 model:
   id: snowflake.metrics.warehouse_usage
   title: Snowflake warehouse usage metrics
-  brief: Metrics collected by the DSOA warehouse_usage plugin from Snowflake ACCOUNT_USAGE views.
+  brief: Metrics collected by the Dynatrace Snowflake Observability Agent warehouse_usage plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [ i.dsoa_resource, i.snowflake_warehouse ]
+  interfaces: [i.dsoa_resource, i.snowflake_warehouse]
   dql_queries:
     - query_string: >
         timeseries credits = sum(snowflake.credits.compute), by: { snowflake.warehouse.name, deployment.environment.name }
@@ -31,7 +31,7 @@ model:
       brief: The number of credits used for compute.
       title: Snowflake compute credits used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
     - id: snowflake.load.blocked
       type: metric
       metric_name: snowflake.load.blocked
