@@ -14,8 +14,12 @@ BATS_FILES = sorted(BATS_DIR.glob("*.bats"))
 SLOW_BATS_FILES = {"test_build_scripts"}
 
 # Resolve bats executable path once at import time (handles Homebrew on macOS where
-# /opt/homebrew/bin may not be in the subprocess PATH inherited by pytest)
-BATS_EXECUTABLE = shutil.which("bats")
+# /opt/homebrew/bin may not be in the subprocess PATH inherited by pytest, e.g. when
+# launched from an IDE test runner that doesn't source the user's shell profile)
+BATS_EXECUTABLE = shutil.which("bats") or next(
+    (p for p in ("/opt/homebrew/bin/bats", "/usr/local/bin/bats") if os.path.isfile(p)),
+    None,
+)
 
 
 def _is_slow(bats_file: Path) -> bool:
@@ -38,6 +42,12 @@ def test_bash_script(request, bats_file):
         pytest.skip("slow build/package integration test — pass --run-slow to enable")
 
     env = os.environ.copy()
+    # Ensure Homebrew bin dirs are on PATH for the bats subprocess and anything it
+    # shells out to (e.g. `timeout`, `gsed`), since IDE test runners may inherit a
+    # sparse PATH that doesn't include them.
+    homebrew_bins = [p for p in ("/opt/homebrew/bin", "/usr/local/bin") if os.path.isdir(p)]
+    existing_path_entries = env.get("PATH", "").split(os.pathsep)
+    env["PATH"] = os.pathsep.join(dict.fromkeys(homebrew_bins + existing_path_entries))
     if run_slow and _is_slow(bats_file):
         env["BATS_SLOW_TESTS"] = "1"
 

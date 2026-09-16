@@ -71,9 +71,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          python -m venv .venv && .venv/bin/pip install -r requirements.txt
 
       - name: Run TestDocumentation tests
-        run: pytest test/core/test_documentation.py -k "TestDocumentation"
+        run: pytest test/core/test_documentation.py -k "TestDocumentation" --skip-semdict-regen
 
   test-bash:
     runs-on: ubuntu-latest
@@ -90,6 +91,7 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pytest-mock flake8 black==26.3.1 pylint
+          python -m venv .venv && .venv/bin/pip install -r requirements.txt
 
       - name: Install system dependencies
         run: |
@@ -98,6 +100,33 @@ jobs:
 
       - name: Run bash tests
         run: pytest test/core/test_bash_scripts.py -v
+
+  test-semdict:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          python -m venv .venv && .venv/bin/pip install -r requirements.txt
+
+      - name: Run semdict tests
+        run: |
+          pytest test/core/test_export_semantics.py test/core/test_semdict_export_completeness.py test/core/test_semdict_output_compliance.py -v
+          pytest "test/core/test_bash_scripts.py::test_bash_script[test_ci_export]" -v
+
+      - name: Check docs/semantic-dictionary freshness
+        run: |
+          ./scripts/dev/build_semantic_export.sh --output-dir docs/semantic-dictionary
+          git diff --exit-code docs/semantic-dictionary/ || \
+            (echo "docs/semantic-dictionary/ is stale — run 'make semantic-dictionary' and commit" && exit 1)
 
   test-core:
     runs-on: ubuntu-latest
@@ -128,11 +157,11 @@ jobs:
 
       - name: Run core tests
         run: |
-          pytest test/core/test_config.py -k "TestConfig"
-          pytest test/core/test_util.py -k "TestUtil"
-          pytest test/core/test_views_structure.py -k "TestViews"
-          pytest test/core/test_connector.py -k "TestTelemetrySender"
-          pytest test/core/test_performance.py -k "TestIsNanOrNone"
+          pytest test/core/test_config.py -k "TestConfig" --skip-semdict-regen
+          pytest test/core/test_util.py -k "TestUtil" --skip-semdict-regen
+          pytest test/core/test_views_structure.py -k "TestViews" --skip-semdict-regen
+          pytest test/core/test_connector.py -k "TestTelemetrySender" --skip-semdict-regen
+          pytest test/core/test_performance.py -k "TestIsNanOrNone" --skip-semdict-regen
       - name: Run OTEL tests
         run: |
           pytest test/otel/test_events.py -k "TestEvents"

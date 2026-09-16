@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell build docs package test test-documentation test-bash test-bash-slow test-core test-plugins docker-build docker-clean docker-test
+.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell build docs semantic-dictionary semantic-dictionary-full gen-metric-fixture package test test-documentation test-bash test-bash-slow test-core test-instruments-def test-plugins docker-build docker-clean docker-test
 
 # Linting targets
 lint-python:
@@ -55,6 +55,18 @@ build:
 docs:
 	./scripts/dev/build_docs.sh
 
+semantic-dictionary:
+	./scripts/dev/build_semantic_export.sh --output-dir docs/semantic-dictionary
+
+semantic-dictionary-full:
+	./scripts/dev/build_semantic_export.sh --output-dir docs/semantic-dictionary --generate-docs
+
+gen-metric-fixture:
+	.venv/bin/python scripts/dev/gen_metric_fixture.py
+
+verify-metric-units: gen-metric-fixture
+	./scripts/test/verify_metric_units.sh
+
 package:
 	./scripts/dev/package.sh
 
@@ -63,7 +75,11 @@ test-documentation:
 	.venv/bin/pytest test/core/test_documentation.py -k "TestDocumentation"
 
 test-bash:
-	.venv/bin/pytest test/core/test_bash_scripts.py -v
+	.venv/bin/pytest test/core/test_bash_scripts.py -v --skip-semdict-regen
+
+test-semdict:
+	.venv/bin/pytest test/core/test_export_semantics.py test/core/test_semdict_export_completeness.py test/core/test_semdict_output_compliance.py -v
+	.venv/bin/pytest "test/core/test_bash_scripts.py::test_bash_script[test_ci_export]" -v
 
 test-bash-slow:
 	.venv/bin/pytest test/core/test_bash_scripts.py -v --run-slow
@@ -75,6 +91,9 @@ test-core:
 	.venv/bin/pytest test/core/test_connector.py -k "TestTelemetrySender"
 	.venv/bin/pytest test/otel/test_events.py -k "TestEvents"
 	.venv/bin/pytest test/otel/test_otel_manager.py -k "TestOtelManager"
+
+test-instruments-def:
+	.venv/bin/pytest test/core/test_instruments_def_schema.py test/core/test_instruments_def_completeness.py test/core/test_semantics_quality.py test/core/test_metric_ingest_fixture.py -v
 
 test-plugins:
 	.venv/bin/pytest test/plugins/

@@ -10,3 +10,4 @@ ignore=.git,__pycache__,build,dist,.venv,test
 [DESIGN]
 max-args=10
 max-positional-arguments=10
+max-module-lines=1650

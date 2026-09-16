@@ -1,6 +1,10 @@
 ---
 name: dsoa-context
 description: Load when working in the Dynatrace Snowflake Observability Agent (DSOA / SnowAgent) codebase or planning DSOA work. Provides full project context: plugin architecture, tech stack, code style mandates (pylint 10.00/10, black, sqlfluff), testing patterns (mock/live dual mode), documentation rules, build pipeline, delivery process (4-phase), and anti-patterns. Required before writing any DSOA code, tests, SQL, or docs.
+license: MIT
+compatibility: opencode
+metadata:
+  audience: developers
 ---
 
 # DSOA — Dynatrace Snowflake Observability Agent

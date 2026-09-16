@@ -103,6 +103,7 @@ class EventLogPlugin(Plugin):
             lambda: self._get_table_rows(t_event_log_metrics_instrumented),
             context_name="event_log_metrics",
             run_uuid=run_id,
+            report_logs=False,
             start_time="TIMESTAMP",
             log_completion=run_proc,
         )

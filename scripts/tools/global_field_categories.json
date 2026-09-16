@@ -1,0 +1,380 @@
+{
+  "_comment": "Maps every Global Fields group to a category. Used to split global fields into per-category lookup tables. Sanity check F036 in the generator acts as a safety net to warn about groups missing from this file. Maintained by the tooling team---add new group IDs here when they are introduced in source/fields/. Each category entry has: display_name (human-readable label), description (short summary), signal_groups (IDs from source/fields/signal_fields/), resource_groups (IDs from source/fields/resource_fields/).",
+  "general": {
+    "display_name": "General",
+    "description": "Foundation fields for all data types",
+    "signal_groups": [
+      "base",
+      "code",
+      "dt",
+      "otel.scope",
+      "url",
+      "server",
+      "endpoint",
+      "sampling",
+      "time_correction",
+      "observable",
+      "captured_attribute"
+    ],
+    "resource_groups": [
+      "app",
+      "cloud",
+      "deployment",
+      "detection",
+      "service",
+      "telemetry",
+      "primary_tags",
+      "geo"
+    ]
+  },
+  "span": {
+    "display_name": "Span",
+    "description": "Distributed tracing span attributes",
+    "signal_groups": [
+      "span",
+      "span_event",
+      "subtrace"
+    ],
+    "resource_groups": []
+  },
+  "log": {
+    "display_name": "Log",
+    "description": "Log severity and structured metadata",
+    "signal_groups": [
+      "log",
+      "journald",
+      "winlog"
+    ],
+    "resource_groups": []
+  },
+  "trace": {
+    "display_name": "Trace",
+    "description": "Trace context and correlation",
+    "signal_groups": [
+      "dt.tracing",
+      "trace"
+    ],
+    "resource_groups": []
+  },
+  "metric": {
+    "display_name": "Metric",
+    "description": "Metric aggregation and timeseries",
+    "signal_groups": [
+      "aggregation",
+      "metric",
+      "timeframe"
+    ],
+    "resource_groups": []
+  },
+  "events": {
+    "display_name": "Events",
+    "description": "System events, notifications and alerts",
+    "signal_groups": [
+      "event",
+      "artifact",
+      "failure_detection",
+      "event.feature_flag.evaluation",
+      "availability",
+      "problem",
+      "annotation"
+    ],
+    "resource_groups": []
+  },
+  "cloud_providers": {
+    "display_name": "Cloud Providers",
+    "description": "Cloud provider-specific fields",
+    "signal_groups": [
+      "aws_span",
+      "aws_log",
+      "cloud_span_target",
+      "cloud_span_origin",
+      "azure_span",
+      "faas_span"
+    ],
+    "resource_groups": [
+      "aws_resource",
+      "azure_resource",
+      "gcp",
+      "openstack_resource",
+      "faas_resource",
+      "cloudfoundry",
+      "bosh"
+    ]
+  },
+  "mainframe": {
+    "display_name": "Mainframe",
+    "description": "z/OS and mainframe integration",
+    "signal_groups": [
+      "ctg",
+      "zos.transaction.general",
+      "cics.transaction",
+      "ims.transaction",
+      "ims.execution.transaction",
+      "ims.connect.transaction",
+      "ims.tm.resource.adapter.transaction",
+      "cics.file",
+      "zosconnect"
+    ],
+    "resource_groups": [
+      "zos"
+    ]
+  },
+  "container_orchestration": {
+    "display_name": "Container Orchestration",
+    "description": "Kubernetes and container platforms",
+    "signal_groups": [],
+    "resource_groups": [
+      "k8s",
+      "k8s.custom_labels_and_annotations",
+      "container",
+      "container_image"
+    ]
+  },
+  "programming_languages": {
+    "display_name": "Programming Languages",
+    "description": "Language runtime attributes",
+    "signal_groups": [
+      "compilation_timings"
+    ],
+    "resource_groups": [
+      "go",
+      "java",
+      "nodejs",
+      "php",
+      "dotnet",
+      "aspnetcore"
+    ]
+  },
+  "application_servers": {
+    "display_name": "Application Servers",
+    "description": "Application server definitions",
+    "signal_groups": [],
+    "resource_groups": [
+      "apache.httpd",
+      "apache.spark",
+      "apache.tomcat",
+      "jboss",
+      "weblogic",
+      "websphere",
+      "websphere_liberty",
+      "glassfish",
+      "iis"
+    ]
+  },
+  "databases": {
+    "display_name": "Databases",
+    "description": "Database query and operation fields",
+    "signal_groups": [
+      "db",
+      "db.dli",
+      "jdbc",
+      "postgresql",
+      "redis",
+      "opensearch"
+    ],
+    "resource_groups": [
+      "cassandra",
+      "elasticsearch"
+    ]
+  },
+  "middleware": {
+    "display_name": "Middleware",
+    "description": "Message brokers and ESB platforms",
+    "signal_groups": [
+      "kafka",
+      "messaging",
+      "messaging.akka",
+      "messaging.kafka",
+      "rabbitmq"
+    ],
+    "resource_groups": [
+      "tibco",
+      "softwareag",
+      "esb",
+      "equinox",
+      "hybris"
+    ]
+  },
+  "infrastructure": {
+    "display_name": "Infrastructure",
+    "description": "OS, network, and infrastructure data",
+    "signal_groups": [
+      "network",
+      "network_flow",
+      "os_service",
+      "process_activity",
+      "thread",
+      "tls",
+      "websocket",
+      "device"
+    ],
+    "resource_groups": [
+      "host",
+      "os",
+      "network_interface",
+      "network_device",
+      "disk",
+      "process",
+      "hypervisor",
+      "storage.disk",
+      "storage.partition",
+      "storage.software-raid",
+      "storage.volume",
+      "os_service.resource",
+      "vmware_resource",
+      "ibm",
+      "snmp",
+      "device_resource"
+    ]
+  },
+  "dynatrace": {
+    "display_name": "Dynatrace",
+    "description": "Dynatrace platform fields",
+    "signal_groups": [
+      "dt.alert_group",
+      "dt.automation_engine",
+      "dt.da",
+      "dt.davis.system",
+      "dt.endpoint_detection",
+      "dt.enrichment",
+      "dt.forwarding",
+      "dt.ingest",
+      "dt.osservice",
+      "dt.retain",
+      "dt.security",
+      "dt.settings",
+      "dt.support.user_events",
+      "dt.synthetic_engine",
+      "dt.synthetic",
+      "dt.system",
+      "supportability",
+      "supportability.span_sensor"
+    ],
+    "resource_groups": [
+      "dt.active_gate",
+      "dt.active_gate.log_ingest",
+      "dt.active_gate.api_connector",
+      "dt.agent",
+      "dt.app",
+      "dt.bindplane",
+      "dt.entity",
+      "dt.extension",
+      "dt.processgrouping",
+      "dt.openpipeline",
+      "dt.osservice_resource",
+      "dt.service",
+      "dt.smartscape",
+      "dt_resource"
+    ]
+  },
+  "rum": {
+    "display_name": "Real User Monitoring",
+    "description": "Real User Monitoring fields",
+    "signal_groups": [
+      "dt.rum",
+      "browser",
+      "frontend"
+    ],
+    "resource_groups": [
+      "browser_resource",
+      "dt.rum_resource"
+    ]
+  },
+  "security_compliance": {
+    "display_name": "Security & Compliance",
+    "description": "Security and compliance fields",
+    "signal_groups": [
+      "audit",
+      "authentication",
+      "compliance",
+      "finding",
+      "threat.attack",
+      "user_controlled_input",
+      "vulnerability"
+    ],
+    "resource_groups": []
+  },
+  "application": {
+    "display_name": "Application",
+    "description": "Application-level request and response fields",
+    "signal_groups": [
+      "actor",
+      "argocd",
+      "bizflow",
+      "cicd",
+      "client",
+      "component",
+      "custom_service",
+      "entry_point",
+      "error",
+      "exception",
+      "gen_ai",
+      "http",
+      "module_insights",
+      "origin",
+      "request",
+      "request_attribute",
+      "rpc",
+      "rpc.grpc",
+      "rpc.rmi",
+      "software_component",
+      "user",
+      "vcs"
+    ],
+    "resource_groups": [
+      "adobe",
+      "coldfusion",
+      "http.resource",
+      "servlet",
+      "spring"
+    ]
+  },
+  "data_observability": {
+    "display_name": "Data Observability",
+    "description": "Snowflake observability fields (DSOA)",
+    "signal_groups": [
+      "anomaly",
+      "authentication",
+      "client",
+      "db",
+      "dsoa.debug",
+      "dsoa.plugins",
+      "event",
+      "observed_timestamp",
+      "snowflake.account",
+      "snowflake.budget",
+      "snowflake.cluster",
+      "snowflake.copy",
+      "snowflake.cost_attribution",
+      "snowflake.database",
+      "snowflake.entity",
+      "snowflake.error",
+      "snowflake.event",
+      "snowflake.grant",
+      "snowflake.object",
+      "snowflake.org",
+      "snowflake.pipe",
+      "snowflake.query",
+      "snowflake.release",
+      "snowflake.resource_monitor",
+      "snowflake.role",
+      "snowflake.schema",
+      "snowflake.secondary",
+      "snowflake.service",
+      "snowflake.session",
+      "snowflake.share",
+      "snowflake.status",
+      "snowflake.table",
+      "snowflake.table.dynamic.graph",
+      "snowflake.task",
+      "snowflake.trust_center",
+      "snowflake.user",
+      "snowflake.warehouse"
+    ],
+    "resource_groups": [
+      "dsoa",
+      "snowflake.resource_monitor.resource",
+      "snowflake.warehouse.resource"
+    ]
+  }
+}
