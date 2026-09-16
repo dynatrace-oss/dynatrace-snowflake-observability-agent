@@ -35,8 +35,7 @@ dimensions:
     displayName: Snowflake table type
     __stability: stable
     __example: BASE TABLE
-    __description: >-
-      The type of the table. Possible values: BASE TABLE, TEMPORARY TABLE, EXTERNAL TABLE.
+    __description: The type of the table.
     __enum:
       allow_custom_values: true
       members:
@@ -139,7 +138,7 @@ dql_queries:
       | filter dsoa.run.plugin == "data_volume"
       | sort timestamp desc
       | limit 20
-    description: Fetch recent DSOA data_volume lifecycle events.
+    description: Fetch recent Dynatrace Snowflake Observability Agent data_volume lifecycle events.
     description_copilot: Search for recent Snowflake data_volume lifecycle events from the data_volume plugin.
     context:
       - events
@@ -149,7 +148,8 @@ dql_queries:
       | filter dsoa.run.plugin == "data_volume"
       | sort timestamp desc
       | limit 50
-    description: Fetch the most recent DSOA data_volume lifecycle events (table DDL and data-update anchors).
+    description:
+      Fetch the most recent Dynatrace Snowflake Observability Agent data_volume lifecycle events (table DDL and data-update anchors).
     description_copilot: Search for Snowflake table DDL and data-update lifecycle events from the data_volume plugin.
     context:
       - events
@@ -159,7 +159,7 @@ dql_queries:
       | filter dsoa.run.plugin == "data_volume"
       | summarize { events = count() }, by: { snowflake.event.type }
       | sort events desc
-    description: Count DSOA data_volume lifecycle events grouped by event type.
+    description: Count Dynatrace Snowflake Observability Agent data_volume lifecycle events grouped by event type.
     description_copilot: Break down Snowflake data_volume lifecycle events by their event type.
     context:
       - events

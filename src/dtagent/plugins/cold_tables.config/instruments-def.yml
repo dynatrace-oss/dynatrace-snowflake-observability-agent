@@ -120,7 +120,7 @@ dql_queries:
       | filter dsoa.run.plugin == "cold_tables"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA cold_tables plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent cold_tables plugin log entries from Grail.
     description_copilot: Search for all cold_tables plugin logs from the Snowflake observability agent.
     context:
       - logs

@@ -281,11 +281,11 @@ class SemanticExporter:
                 "model_group": {
                     "id": "snowflake.metrics",
                     "title": "Snowflake metrics",
-                    "brief": "Metrics collected by the DSOA from Snowflake ACCOUNT_USAGE views.",
+                    "brief": "Metrics collected by the Dynatrace Snowflake Observability Agent from Snowflake ACCOUNT_USAGE views.",
                     **({} if not resolved_mg_dql.get("snowflake.metrics") else {"dql_queries": resolved_mg_dql["snowflake.metrics"]}),
                 }
             },
-            "metrics/snowflake_metrics_model_group.yaml",
+            "metrics/model_group_snowflake_metrics.yaml",
             self._counters,
         )
 
@@ -316,7 +316,7 @@ class SemanticExporter:
                     "model_group": {
                         "id": "snowflake.events",
                         "title": "Snowflake lifecycle events",
-                        "brief": "Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API.",
+                        "brief": "Timestamp-based state-change events emitted by Dynatrace Snowflake Observability Agent plugins via the Dynatrace OpenPipeline Events API.",
                         "parent_model_group_id": "snowflake",
                         **({} if not resolved_mg_dql.get("snowflake.events") else {"dql_queries": resolved_mg_dql["snowflake.events"]}),
                     }
@@ -345,7 +345,7 @@ class SemanticExporter:
                     "model_group": {
                         "id": "snowflake.logs",
                         "title": "Snowflake log records",
-                        "brief": "Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views.",
+                        "brief": "Log records emitted by Dynatrace Snowflake Observability Agent plugins from Snowflake ACCOUNT_USAGE and system views.",
                         "parent_model_group_id": "snowflake",
                         **({} if not resolved_mg_dql.get("snowflake.logs") else {"dql_queries": resolved_mg_dql["snowflake.logs"]}),
                     }
@@ -370,7 +370,7 @@ class SemanticExporter:
                     "model_group": {
                         "id": "snowflake.spans",
                         "title": "Snowflake spans",
-                        "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
+                        "brief": "Span records emitted by Dynatrace Snowflake Observability Agent plugins from Snowflake ACCOUNT_USAGE views.",
                         "parent_model_group_id": "snowflake",
                         **({} if not resolved_mg_dql.get("snowflake.spans") else {"dql_queries": resolved_mg_dql["snowflake.spans"]}),
                     }
@@ -396,7 +396,7 @@ class SemanticExporter:
                         "model_group": {
                             "id": "snowflake.spans",
                             "title": "Snowflake spans",
-                            "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
+                            "brief": "Span records emitted by Dynatrace Snowflake Observability Agent plugins from Snowflake ACCOUNT_USAGE views.",
                             "parent_model_group_id": "snowflake",
                             **({} if not resolved_mg_dql.get("snowflake.spans") else {"dql_queries": resolved_mg_dql["snowflake.spans"]}),
                         }
@@ -435,7 +435,7 @@ class SemanticExporter:
                         "id": "snowflake",
                         "title": "Snowflake",
                         "brief": (
-                            "DSOA (Dynatrace Snowflake Observability Agent) telemetry models, organized by signal type:\n\n" + bullets
+                            "Dynatrace Snowflake Observability Agent telemetry models, organized by signal type:\n\n" + bullets
                         ),
                         **({} if not resolved_mg_dql.get("snowflake") else {"dql_queries": resolved_mg_dql["snowflake"]}),
                     }
@@ -466,7 +466,7 @@ class SemanticExporter:
                     {
                         "id": f"snowflake.logs.{plugin_name}",
                         "title": f"Snowflake {plugin_label(plugin_name)} log records",
-                        "brief": f"Log records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE and system views.",
+                        "brief": f"Log records emitted by the Dynatrace Snowflake Observability Agent {plugin_name} plugin from Snowflake ACCOUNT_USAGE and system views.",
                         "signal_type": "logs",
                         "has_fields": True,
                     }
@@ -476,7 +476,7 @@ class SemanticExporter:
                     {
                         "id": f"snowflake.events.{plugin_name}",
                         "title": f"Snowflake {plugin_label(plugin_name)} lifecycle events",
-                        "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
+                        "brief": f"Timestamp-based state-change events emitted by the Dynatrace Snowflake Observability Agent {plugin_name} plugin via the OpenPipeline Events API.",
                         "signal_type": "events",
                         "has_fields": True,
                     }
@@ -487,7 +487,7 @@ class SemanticExporter:
                     {
                         "id": f"snowflake.spans.{plugin_name}",
                         "title": f"Snowflake {plugin_label(plugin_name)} spans",
-                        "brief": f"Span records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
+                        "brief": f"Span records emitted by the Dynatrace Snowflake Observability Agent {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
                         "signal_type": "spans",
                         # A span model has an inner <plugin>.fields attribute_group only when it
                         # has attribute refs (span_model_plugins). event_log is added even without

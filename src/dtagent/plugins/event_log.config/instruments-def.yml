@@ -107,7 +107,8 @@ dql_queries:
       | filter dsoa.run.plugin == "event_log"
       | sort timestamp desc
       | limit 50
-    description: Fetch the 50 most recent DSOA event_log spans (traced records from the Snowflake event table).
+    description:
+      Fetch the 50 most recent Dynatrace Snowflake Observability Agent event_log spans (traced records from the Snowflake event table).
     description_copilot: Find event_log span traces produced by the Snowflake observability agent.
     context:
       - spans

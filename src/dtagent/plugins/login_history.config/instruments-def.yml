@@ -68,8 +68,8 @@ attributes:
   authentication.type:
     __semdict: ref
     __semdict_note: >-
-      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE). DSOA also emits PASSWORD for Snowflake password auth;
-      this is flagged as an open enum extension request.
+      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE). Dynatrace Snowflake Observability Agent also emits
+      PASSWORD for Snowflake password auth; this is flagged as an open enum extension request.
     __context_names:
       - sessions
     __example: PASSWORD
@@ -125,8 +125,9 @@ attributes:
     __type: string
     displayName: Snowflake error code
     __semdict_note: >-
-      In DSOA, used exclusively for Snowflake login failures as a string error code (e.g. "390100"). Diverges from the Dynatrace SD
-      error.code field (type: long, iOS/mobile numeric codes) — semantics and type are incompatible.
+      In Dynatrace Snowflake Observability Agent, used exclusively for Snowflake login failures as a string error code (for example,
+      "390100"). Diverges from the Dynatrace SD error.code field (type: long, iOS/mobile numeric codes) — semantics and type are
+      incompatible.
     __context_names:
       - login_history
     __example: "390100"
@@ -201,8 +202,8 @@ dimensions:
     __context_names:
       - login_history
     __semdict_note: >-
-      OTel semconv uses client.address (stable). DSOA emits client.ip to match Snowflake LOGIN_HISTORY.CLIENT_IP column naming. The name is
-      intentionally preserved to make the column origin self-evident.
+      OTel semconv uses client.address (stable). Dynatrace Snowflake Observability Agent emits client.ip to match Snowflake
+      LOGIN_HISTORY.CLIENT_IP column naming. The name is intentionally preserved to make the column origin self-evident.
     __example: 192.168.1.1
     __type: string
     displayName: Client IP address
@@ -233,10 +234,16 @@ dimensions:
     __example: LOGIN
     __type: string
     displayName: Event name
-    __description: |
-      The type of event that occurred, such as:
-      - LOGIN,
-      - LOGOUT.
+    __description: The type of event that occurred.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: login
+          value: LOGIN
+          brief: User authentication event; recorded when a session is established after a successful or failed login attempt.
+        - id: logout
+          value: LOGOUT
+          brief: Session termination event; recorded when a user or service explicitly closes their Snowflake session.
 metrics:
   snowflake.login.attempts.failed:
     __type: long
@@ -289,7 +296,7 @@ dql_queries:
       | filter dsoa.run.plugin == "login_history"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA login_history plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent login_history plugin log entries from Grail.
     description_copilot: Search for all login_history plugin logs from the Snowflake observability agent.
     context:
       - logs

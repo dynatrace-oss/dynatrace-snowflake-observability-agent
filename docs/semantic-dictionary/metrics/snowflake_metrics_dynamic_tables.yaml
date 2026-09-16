@@ -1,10 +1,10 @@
 model:
   id: snowflake.metrics.dynamic_tables
   title: Snowflake dynamic tables metrics
-  brief: Metrics collected by the DSOA dynamic_tables plugin from Snowflake ACCOUNT_USAGE views.
+  brief: Metrics collected by the Dynatrace Snowflake Observability Agent dynamic_tables plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [ i.dsoa_resource, i.snowflake_database ]
+  interfaces: [i.dsoa_resource, i.snowflake_database]
   dql_queries:
     - query_string: >
         timeseries val = avg(snowflake.table.dynamic.lag.mean), by: { db.collection.name, deployment.environment.name }
@@ -32,7 +32,7 @@ model:
       brief: The number of partitions added during the refresh.
       title: Snowflake partitions added
       unit: count
-      note: 'Original unit: partition.'
+      note: "Original unit: partition."
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -43,7 +43,7 @@ model:
       brief: The number of partitions removed during the refresh.
       title: Snowflake partitions removed
       unit: count
-      note: 'Original unit: partition.'
+      note: "Original unit: partition."
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -54,7 +54,7 @@ model:
       brief: The number of rows copied during the refresh.
       title: Snowflake rows copied
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -65,7 +65,7 @@ model:
       brief: The number of rows deleted during the refresh.
       title: Snowflake rows deleted
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -76,7 +76,7 @@ model:
       brief: The number of rows inserted during the refresh.
       title: Snowflake rows inserted
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -114,7 +114,9 @@ model:
       type: metric
       metric_name: snowflake.table.dynamic.lag.target.value
       instrument: gauge
-      brief: The time in seconds in the retention period or since the last configuration change, when the actual lag was more than the defined target lag.
+      brief:
+        The time in seconds in the retention period or since the last configuration change, when the actual lag was more than the defined
+        target lag.
       title: Snowflake dynamic table target lag
       unit: s
       attributes:

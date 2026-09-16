@@ -1,7 +1,7 @@
 model_group:
   id: snowflake.spans
   title: Snowflake spans
-  brief: Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.
+  brief: Span records emitted by Dynatrace Snowflake Observability Agent plugins from Snowflake ACCOUNT_USAGE views.
   parent_model_group_id: snowflake
   dql_queries:
     - query_string: |
@@ -10,7 +10,8 @@ model_group:
         | filter dsoa.run.plugin == "event_log"
         | sort timestamp desc
         | limit 50
-      description: Fetch the 50 most recent DSOA event_log spans (traced records from the Snowflake event table).
+      description:
+        Fetch the 50 most recent Dynatrace Snowflake Observability Agent event_log spans (traced records from the Snowflake event table).
       description_copilot: Find event_log span traces produced by the Snowflake observability agent.
     - query_string: |
         fetch spans

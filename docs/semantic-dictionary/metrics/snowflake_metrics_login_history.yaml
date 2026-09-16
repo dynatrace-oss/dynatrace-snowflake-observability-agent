@@ -1,10 +1,10 @@
 model:
   id: snowflake.metrics.login_history
   title: Snowflake login history metrics
-  brief: Metrics collected by the DSOA login_history plugin from Snowflake ACCOUNT_USAGE views.
+  brief: Metrics collected by the Dynatrace Snowflake Observability Agent login_history plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: >
         timeseries failed = sum(snowflake.login.attempts.failed), by: { db.user, deployment.environment.name }

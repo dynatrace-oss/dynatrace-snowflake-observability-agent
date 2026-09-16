@@ -99,7 +99,7 @@ Additionally, you can decide to monitor details for queries only with selected e
 fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.context == "active_queries"
-| filter deployment.environment.name == "YOUR_ENV"
+| filter coalesce(deployment.environment.name, deployment.environment) == "YOUR_ENV"
 | sort timestamp asc
 | summarize {
   timestamp = takeFirst(timestamp),
@@ -883,6 +883,7 @@ plugins:
     is_disabled: false
     telemetry:
       - logs
+      - events
       - biz_events
 ```
 

@@ -342,7 +342,8 @@ dql_queries:
       | filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA shares plugin log entries (inbound and outbound shares) from Grail.
+    description:
+      Fetch the 100 most recent Dynatrace Snowflake Observability Agent shares plugin log entries (inbound and outbound shares) from Grail.
     description_copilot: Search for all shares plugin logs from the Snowflake observability agent.
     context:
       - logs
@@ -376,7 +377,7 @@ dql_queries:
       | filter dsoa.run.plugin == "shares"
       | sort timestamp desc
       | limit 20
-    description: Fetch recent DSOA shares lifecycle events.
+    description: Fetch recent Dynatrace Snowflake Observability Agent shares lifecycle events.
     description_copilot: Search for recent Snowflake shares lifecycle events from the shares plugin.
     context:
       - events
@@ -386,7 +387,8 @@ dql_queries:
       | filter dsoa.run.plugin == "shares"
       | sort timestamp desc
       | limit 50
-    description: Fetch the most recent DSOA shares lifecycle events (share, grant and table creation anchors).
+    description:
+      Fetch the most recent Dynatrace Snowflake Observability Agent shares lifecycle events (share, grant and table creation anchors).
     description_copilot: Search for Snowflake share and grant lifecycle events from the shares plugin.
     context:
       - events
@@ -396,7 +398,7 @@ dql_queries:
       | filter dsoa.run.plugin == "shares"
       | summarize { events = count() }, by: { snowflake.event.type }
       | sort events desc
-    description: Count DSOA shares lifecycle events grouped by event type.
+    description: Count Dynatrace Snowflake Observability Agent shares lifecycle events grouped by event type.
     description_copilot: Break down Snowflake share lifecycle events by their event type.
     context:
       - events

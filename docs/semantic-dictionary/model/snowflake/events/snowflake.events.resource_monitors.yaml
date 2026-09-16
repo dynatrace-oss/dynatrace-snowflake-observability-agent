@@ -1,10 +1,12 @@
 model:
   id: snowflake.events.resource_monitors
   title: Snowflake Resource Monitors lifecycle events
-  brief: Timestamp-based state-change events emitted by the DSOA resource_monitors plugin via the OpenPipeline Events API.
+  brief:
+    Timestamp-based state-change events emitted by the Dynatrace Snowflake Observability Agent resource_monitors plugin via the OpenPipeline
+    Events API.
   model_group_id: snowflake.events
   data_object: events
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch events
@@ -12,7 +14,9 @@ model:
         | filter dsoa.run.plugin == "resource_monitors"
         | sort timestamp desc
         | limit 50
-      description: Fetch the most recent DSOA resource_monitors lifecycle events (monitor and warehouse state changes).
+      description:
+        Fetch the most recent Dynatrace Snowflake Observability Agent resource_monitors lifecycle events (monitor and warehouse state
+        changes).
       description_copilot: Search for Snowflake resource monitor and warehouse lifecycle events.
     - query_string: |
         fetch events
@@ -20,7 +24,7 @@ model:
         | filter dsoa.run.plugin == "resource_monitors"
         | summarize { events = count() }, by: { snowflake.event.type }
         | sort events desc
-      description: Count DSOA resource_monitors lifecycle events grouped by event type.
+      description: Count Dynatrace Snowflake Observability Agent resource_monitors lifecycle events grouped by event type.
       description_copilot: Break down Snowflake resource monitor lifecycle events by their event type.
     - query_string: |
         fetch events

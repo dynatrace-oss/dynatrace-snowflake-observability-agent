@@ -155,7 +155,7 @@ dimensions:
       members:
         - id: alter_warehouse
           value: ALTER_WAREHOUSE
-          brief: A warehouse property was modified via ALTER WAREHOUSE (e.g. size, auto-suspend timeout, comment).
+          brief: A warehouse property was modified via ALTER WAREHOUSE (for example, size, auto-suspend timeout, comment).
         - id: create_warehouse
           value: CREATE_WAREHOUSE
           brief: A new virtual warehouse was created.
@@ -293,7 +293,7 @@ dql_queries:
       | filter dsoa.run.plugin == "warehouse_usage"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA warehouse_usage plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent warehouse_usage plugin log entries from Grail.
     description_copilot: Search for all warehouse_usage plugin logs from the Snowflake observability agent.
     context:
       - logs

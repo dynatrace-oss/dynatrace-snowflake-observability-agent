@@ -52,11 +52,19 @@ attributes:
     displayName: Snowflake object type
     __stability: stable
     __example: "Table"
-    __description: |
-      The domain of the object defined or modified by the DDL operation, which includes all objects that can be tagged and:
-      - MASKING POLICY,
-      - ROW ACCESS POLICY,
-      - TAG.
+    __description: The domain of the object defined or modified by the DDL operation.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: masking_policy
+          value: MASKING POLICY
+          brief: Column-level data masking policy that transforms sensitive column values at query time for unauthorized roles.
+        - id: row_access_policy
+          value: ROW ACCESS POLICY
+          brief: Row-level security policy that filters rows returned by a query based on the querying role or user.
+        - id: tag
+          value: TAG
+          brief: Schema-level metadata label that can be attached to Snowflake objects or columns for governance and classification.
   snowflake.object.id:
     __stability: stable
     __type: long
@@ -74,22 +82,34 @@ attributes:
     displayName: Snowflake DDL operation
     __stability: stable
     __example: "REPLACE"
-    __description: |
-      The SQL keyword that specifies the operation on the table, view, or column:
-      - ALTER,
-      - CREATE,
-      - DROP,
-      - REPLACE,
-      - UNDROP.
+    __description: The SQL keyword that specifies the operation on the table, view, or column.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: create
+          value: CREATE
+          brief: Creates a new database object; when used as CREATE OR REPLACE, atomically drops and recreates.
+        - id: alter
+          value: ALTER
+          brief: Modifies the properties or definition of an existing database object without recreating it.
+        - id: drop
+          value: DROP
+          brief: Removes a database object; for tables, data enters Fail-safe and can be recovered via UNDROP within the retention period.
+        - id: undrop
+          value: UNDROP
+          brief: Restores a previously dropped table, schema, or database from Fail-safe within the Time Travel retention window.
+        - id: replace
+          value: REPLACE
+          brief: Equivalent to CREATE OR REPLACE; atomically drops and recreates the object, resetting its definition.
   snowflake.object.ddl.properties:
     __stability: stable
     __type: string
     displayName: Snowflake DDL property changes
     __example: '{"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}}'
     __semdict_note: "Stored as a serialized JSON string, not plain text."
-    __description: |
-      A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column.
-      There are two types of properties: atomic and compound.
+    __description: >
+      A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column. There are
+      two types of properties: atomic and compound.
 dql_queries:
   - query_string: |
       fetch logs
@@ -97,7 +117,8 @@ dql_queries:
       | filter dsoa.run.plugin == "data_schemas"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA data_schemas plugin log entries (DDL change inventory) from Grail.
+    description:
+      Fetch the 100 most recent Dynatrace Snowflake Observability Agent data_schemas plugin log entries (DDL change inventory) from Grail.
     description_copilot: Search for all data_schemas plugin logs from the Snowflake observability agent.
     context:
       - logs

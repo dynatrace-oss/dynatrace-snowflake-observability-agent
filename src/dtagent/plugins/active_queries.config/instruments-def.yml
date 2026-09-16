@@ -23,6 +23,7 @@ attributes:
     displayName: Database operation name
     __description: |
       The type of operation performed by the query, such as:
+
       - SELECT,
       - INSERT,
       - UPDATE.
@@ -119,15 +120,36 @@ dimensions:
     __type: string
     displayName: Snowflake query execution status
     __example: FAILED_WITH_ERROR
-    __description: |
-      The execution status of the query, such as:
-      - RESUMING_WAREHOUSE,
-      - RUNNING,
-      - QUEUED,
-      - BLOCKED,
-      - SUCCESS,
-      - FAILED_WITH_ERROR,
-      - FAILED_WITH_INCIDENT.
+    __description: The execution status of the query.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: success
+          value: SUCCESS
+          brief: Query completed without errors; result is available in the result cache. Only reported by the query_history plugin.
+        - id: failed_with_error
+          value: FAILED_WITH_ERROR
+          brief:
+            Query failed due to a user-actionable error (for example, syntax error, insufficient privileges). Only reported by the
+            active_queries plugin.
+        - id: failed_with_incident
+          value: FAILED_WITH_INCIDENT
+          brief:
+            Query was aborted or interrupted by a Snowflake platform incident; not caused by user error or warehouse load.  Only reported by
+            the active_queries plugin.
+        - id: queued
+          value: QUEUED
+          brief:
+            Query is waiting in the warehouse queue due to concurrency limits or cluster provisioning. Only reported by the active_queries
+            plugin.
+        - id: resuming_warehouse
+          value: RESUMING_WAREHOUSE
+          brief:
+            Query is waiting for the warehouse to resume from a suspended state before execution can begin. Only reported by the
+            active_queries plugin.
+        - id: running
+          value: RUNNING
+          brief: Query is actively executing on the warehouse compute resources. Only reported by the active_queries plugin.
   snowflake.role.name:
     __stability: stable
     __type: string
@@ -152,15 +174,13 @@ metrics:
   snowflake.time.compilation:
     __type: long
     __example: 5000
-    __description: |
-      The total compilation time of the currently running query.
+    __description: The total compilation time of the currently running query.
     displayName: Snowflake query compilation time
     unit: ms
   snowflake.time.running:
     __type: long
     __example: 120000
-    __description: |
-      The total running time of the currently running query.
+    __description: The total running time of the currently running query.
     displayName: Snowflake query running time
     unit: ms
   snowflake.time.execution:
@@ -218,7 +238,7 @@ dql_queries:
       | filter dsoa.run.plugin == "active_queries"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA active_queries plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent active_queries plugin log entries from Grail.
     description_copilot: Search for all active_queries plugin logs from the Snowflake observability agent.
     context:
       - logs

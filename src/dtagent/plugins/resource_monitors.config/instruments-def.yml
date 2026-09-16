@@ -115,8 +115,7 @@ attributes:
     displayName: Snowflake resource monitor threshold alert band
     __is_defined_at_runtime: true
     __example: warn
-    __description: >-
-      Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)), ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
+    __description: Alert band for the threshold event.
     __enum:
       allow_custom_values: false
       members:
@@ -141,8 +140,9 @@ attributes:
       Alert band the resource monitor's credit usage fell into when the event was emitted: one of ``info``, ``warn``, ``critical``, or
       ``exhausted`` (increasing severity). The percentage boundaries for each band are configurable via
       ``plugins.resource_monitors.credits_quota_thresholds`` (default ``[50, 80, 90, 100]``); the specific crossed percentage is reported in
-      ``snowflake.resource_monitor.threshold.value``. The configured threshold percentage at which this crossing event was triggered (e.g.,
-      80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures live consumption at emit time.
+      ``snowflake.resource_monitor.threshold.value``. The configured threshold percentage at which this crossing event was triggered (for
+      example, 80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures live consumption at
+      emit time.
   snowflake.warehouse.event.trigger:
     __type: string
     displayName: Snowflake warehouse event trigger
@@ -481,7 +481,7 @@ dql_queries:
       | filter dsoa.run.plugin == "resource_monitors"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA resource_monitors plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent resource_monitors plugin log entries from Grail.
     description_copilot: Search for all resource_monitors plugin logs from the Snowflake observability agent.
     context:
       - logs
@@ -514,7 +514,9 @@ dql_queries:
       | filter dsoa.run.plugin == "resource_monitors"
       | sort timestamp desc
       | limit 50
-    description: Fetch the most recent DSOA resource_monitors lifecycle events (monitor and warehouse state changes).
+    description:
+      Fetch the most recent Dynatrace Snowflake Observability Agent resource_monitors lifecycle events (monitor and warehouse state
+      changes).
     description_copilot: Search for Snowflake resource monitor and warehouse lifecycle events.
     context:
       - events
@@ -524,7 +526,7 @@ dql_queries:
       | filter dsoa.run.plugin == "resource_monitors"
       | summarize { events = count() }, by: { snowflake.event.type }
       | sort events desc
-    description: Count DSOA resource_monitors lifecycle events grouped by event type.
+    description: Count Dynatrace Snowflake Observability Agent resource_monitors lifecycle events grouped by event type.
     description_copilot: Break down Snowflake resource monitor lifecycle events by their event type.
     context:
       - events

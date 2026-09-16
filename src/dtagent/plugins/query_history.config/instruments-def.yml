@@ -20,8 +20,8 @@ attributes:
     displayName: Snowflake session authentication type
     __semdict: ref
     __semdict_note: >-
-      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE). DSOA also emits PASSWORD for Snowflake password auth;
-      this is flagged as an open enum extension request.
+      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE). Dynatrace Snowflake Observability Agent also emits
+      PASSWORD for Snowflake password auth; this is flagged as an open enum extension request.
     __example: PASSWORD
     __description: The authentication method used for the session.
   client.application.id:
@@ -85,14 +85,14 @@ attributes:
   dsoa.debug.span.events.added:
     __stability: stable
     __type: long
-    displayName: DSOA debug span events added
+    displayName: Dynatrace Snowflake Observability Agent debug span events added
     __example: 5
     __description: Internal debug field indicating the number of span events successfully added to the given span.
     __span_only: true
   dsoa.debug.span.events.failed:
     __stability: stable
     __type: long
-    displayName: DSOA debug span events failed
+    displayName: Dynatrace Snowflake Observability Agent debug span events failed
     __example: 1
     __description: Internal debug field indicating the number of span events that failed to be added to the given span.
     __span_only: true
@@ -100,7 +100,7 @@ attributes:
     __stability: experimental
     __example: "none"
     __type: string
-    displayName: DSOA query history obfuscation mode
+    displayName: Dynatrace Snowflake Observability Agent query history obfuscation mode
     __enum:
       allow_custom_values: false
       members:
@@ -114,29 +114,23 @@ attributes:
           value: "full"
           brief: Entire query text is replaced with `[OBFUSCATED]`.
     __is_defined_at_runtime: true
-    __description: |
+    __description: >
       Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`.
-      Possible values: `none` (no transformation), `literals` (replace string and numeric literals with `?`),
-      `full` (replace entire query text with `[OBFUSCATED]`).
     __semdict_note: |
       Note: this is the SD-catalog attribute name; the actual config path read at runtime is
       `plugins.query_history.obfuscation_mode` (no `dsoa.` prefix) — see `050_f_get_query_history.sql`.
   dsoa.plugins.query_history.track_ddl_changes:
     __stability: experimental
     __type: boolean
-    displayName: DSOA query history DDL change tracking indicator
+    displayName: Dynatrace Snowflake Observability Agent query history DDL change tracking indicator
     __example: false
     __is_defined_at_runtime: true
-    __description: |
-      EXPERIMENTAL. When `true`, the plugin surfaces DDL change attribution attributes
-      (`snowflake.object.type`, `.id`, `.name`, `snowflake.object.ddl.operation`,
-      `snowflake.object.ddl.properties`) on `query_history` events whose `ACCESS_HISTORY`
-      row carries an `OBJECT_MODIFIED_BY_DDL` payload. Covers database-object DDL only
-      (tables, views, schemas, procedures). Warehouse and resource-monitor DDL does not
-      populate `OBJECT_MODIFIED_BY_DDL` and is not affected by this setting — use
-      `db.operation.name` for warehouse change detection. Default `false` preserves
-      backward-compatible behavior. May be refactored into a dedicated plugin in a future
-      release.
+    __description: >
+      EXPERIMENTAL. When `true`, the plugin surfaces DDL change attribution attributes (`snowflake.object.type`, `.id`, `.name`,
+      `snowflake.object.ddl.operation`, `snowflake.object.ddl.properties`) on `query_history` events whose `ACCESS_HISTORY` row carries an
+      `OBJECT_MODIFIED_BY_DDL` payload. Covers database-object DDL only (tables, views, schemas, procedures). Warehouse and resource-monitor
+      DDL does not populate `OBJECT_MODIFIED_BY_DDL` and is not affected by this setting — use `db.operation.name` for warehouse change
+      detection. Default `false` preserves backward-compatible behavior. May be refactored into a dedicated plugin in a future release.
     __semdict_note: |
       Note: this is the SD-catalog attribute name; the actual config path is
       `plugins.query_history.track_ddl_changes` (no `dsoa.` prefix). Not currently wired up
@@ -146,13 +140,11 @@ attributes:
     displayName: Snowflake object type
     __stability: stable
     __example: Table
-    __description: |
-      Type of object modified by the DDL operation captured for this query, as recorded by
-      Snowflake in `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.objectDomain` (e.g. `Table`,
-      `View`, `Schema`, `Database`). Populated only when
-      `plugins.query_history.track_ddl_changes=true` and Snowflake recorded a structured
-      DDL payload for the query. Does not apply to warehouse or resource-monitor DDL —
-      use `db.operation.name` for warehouse change detection.
+    __description: >
+      Type of object modified by the DDL operation captured for this query, as recorded by Snowflake in
+      `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.objectDomain` (for example, `Table`, `View`, `Schema`, `Database`). Populated only when
+      `plugins.query_history.track_ddl_changes=true` and Snowflake recorded a structured DDL payload for the query. Does not apply to
+      warehouse or resource-monitor DDL — use `db.operation.name` for warehouse change detection.
     __enum:
       allow_custom_values: true
       members:
@@ -178,31 +170,27 @@ attributes:
     __type: long
     displayName: Snowflake object ID
     __example: 1234567890
-    __description: |
-      Internal Snowflake identifier of the object modified by the DDL operation. Populated
-      only when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`.
-      Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for
-      warehouse change detection.
+    __description: >
+      Internal Snowflake identifier of the object modified by the DDL operation. Populated only when
+      `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`. Does not apply to warehouse or resource-monitor DDL —
+      use `db.operation.name` for warehouse change detection.
   snowflake.object.name:
     __type: string
     displayName: Snowflake object name
     __stability: stable
     __example: DTAGENT_WH
-    __description: |
-      Fully-qualified name of the object modified by the DDL operation. Populated only
-      when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`.
-      Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for
-      warehouse change detection.
+    __description: >
+      Fully-qualified name of the object modified by the DDL operation. Populated only when `plugins.query_history.track_ddl_changes=true` —
+      see `snowflake.object.type`. Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for warehouse change
+      detection.
   snowflake.object.ddl.operation:
     __type: string
     displayName: Snowflake DDL operation
     __stability: stable
     __example: ALTER
-    __description: |
-      DDL operation type (`CREATE`, `ALTER`, `DROP`, `UNDROP`, `REPLACE`). Populated only
-      when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`.
-      Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for
-      warehouse change detection.
+    __description: >
+      DDL operation type. Populated only when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`. Does not apply
+      to warehouse or resource-monitor DDL — use `db.operation.name` for warehouse change detection.
     __enum:
       allow_custom_values: true
       members:
@@ -227,13 +215,11 @@ attributes:
     displayName: Snowflake DDL property changes
     __semdict_note: "Serialized JSON object stored as string in Grail. Contains DDL object property changes. Parse with parseJson() in DQL."
     __example: '{"WAREHOUSE_SIZE": {"value": "LARGE"}, "AUTO_SUSPEND": {"value": 600}}'
-    __description: |
-      JSON object describing the property delta recorded by Snowflake for the DDL
-      operation. Keys are sensitive property identifiers (e.g. `WAREHOUSE_SIZE`,
-      `MIN_CLUSTER_COUNT`, `MAX_CLUSTER_COUNT`, `SCALING_POLICY`, `RESOURCE_MONITOR`,
-      `AUTO_SUSPEND`). Populated only when `plugins.query_history.track_ddl_changes=true` —
-      see `snowflake.object.type`. Does not apply to warehouse or resource-monitor DDL —
-      use `db.operation.name` for warehouse change detection.
+    __description: >
+      JSON object describing the property delta recorded by Snowflake for the DDL operation. Keys are sensitive property identifiers (for
+      example, `WAREHOUSE_SIZE`, `MIN_CLUSTER_COUNT`, `MAX_CLUSTER_COUNT`, `SCALING_POLICY`, `RESOURCE_MONITOR`, `AUTO_SUSPEND`). Populated
+      only when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`. Does not apply to warehouse or
+      resource-monitor DDL — use `db.operation.name` for warehouse change detection.
   snowflake.cluster_number:
     __type: long
     displayName: Snowflake warehouse cluster number
@@ -368,8 +354,8 @@ attributes:
     __type: string
     displayName: Snowflake query execution operator attributes
     __semdict_note: >-
-      Serialized JSON object stored as string in Grail. Contains query operator specific attributes (e.g. join conditions). Parse with
-      parseJson() in DQL.
+      Serialized JSON object stored as string in Grail. Contains query operator specific attributes (for example, join conditions). Parse
+      with parseJson() in DQL.
     __example: '{ "equality_join_condition": "(T4.C = T1.C)",   "join_type": "INNER" }'
     __description: Information about the operator, depending on the operator type.
     __span_only: true
@@ -392,16 +378,16 @@ attributes:
     __type: string
     displayName: Snowflake query execution operator statistics
     __semdict_note: >-
-      Serialized JSON object stored as string in Grail. Contains query operator execution statistics (e.g. input_rows, output_rows). Parse
-      with parseJson() in DQL.
+      Serialized JSON object stored as string in Grail. Contains query operator execution statistics (for example, input_rows, output_rows).
+      Parse with parseJson() in DQL.
     __example: '{ "input_rows": 64, "output_rows": 64 }'
-    __description: Statistics about the operator (e.g., the number of output rows from the operator).
+    __description: Statistics about the operator (for example, the number of output rows from the operator).
     __span_only: true
   snowflake.query.step.operator.time_breakdown:
     __type: string
     displayName: Snowflake query execution operator time breakdown
     __semdict_note: >-
-      Serialized JSON object stored as string in Grail. Contains query operator time breakdown (e.g. overall_percentage). Parse with
+      Serialized JSON object stored as string in Grail. Contains query operator time breakdown (for example, overall_percentage). Parse with
       parseJson() in DQL.
     __example:
       '{ "overall_percentage": 50.0,"initialization": 0.5,"processing": 4.0,"synchronization": 0.5,"local_disk_io": 0.2,"remote_disk_io":
@@ -421,7 +407,7 @@ attributes:
     __type: string
     displayName: Snowflake query execution operator type
     __example: TableScan
-    __description: The type of query operator (e.g., TableScan or Filter).
+    __description: The type of query operator (for example, TableScan or Filter).
     __span_only: true
   snowflake.query.parametrized_hash:
     __type: string
@@ -638,22 +624,10 @@ dimensions:
           brief: Query completed without errors; result is available in the result cache.
         - id: fail
           value: FAIL
-          brief: Query failed due to a user-actionable error (e.g. syntax error, insufficient privileges).
-        - id: failed_with_error
-          value: FAILED_WITH_ERROR
-          brief: Query failed due to an internal Snowflake error unrelated to user input; retrying the statement may succeed.
+          brief: Query failed due to a user-actionable error (for example, syntax error, insufficient privileges).
         - id: incident
           value: INCIDENT
           brief: Query was aborted or interrupted by a Snowflake platform incident; not caused by user error or warehouse load.
-        - id: queued
-          value: QUEUED
-          brief: Query is waiting in the warehouse queue due to concurrency limits or cluster provisioning.
-        - id: resuming_warehouse
-          value: RESUMING_WAREHOUSE
-          brief: Query is waiting for the warehouse to resume from a suspended state before execution can begin.
-        - id: running
-          value: RUNNING
-          brief: Query is actively executing on the warehouse compute resources.
   snowflake.role.name:
     __type: string
     displayName: Snowflake role name
@@ -672,9 +646,7 @@ dimensions:
     __stability: stable
     __example: PERSON
     __description: >-
-      The type of user who executed the query. Possible values: PERSON (human interactive user), SERVICE (programmatic service user),
-      LEGACY_SERVICE (legacy service account), SNOWFLAKE_SERVICE (Snowpark Container Services). Useful for splitting workloads by human vs.
-      automated traffic.
+      The type of user who executed the query. Useful for splitting workloads by human vs. automated traffic.
     __enum:
       allow_custom_values: true
       members:
@@ -804,7 +776,7 @@ metrics:
   snowflake.data.written:
     __type: long
     __example: 2097152
-    __description: Number of bytes written (e.g. when loading into a table).
+    __description: Number of bytes written (for example, when loading into a table).
     displayName: Snowflake bytes written
     unit: By
   snowflake.data.written_to_result:
@@ -985,7 +957,7 @@ dql_queries:
       | filter dsoa.run.plugin == "query_history"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA query_history plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent query_history plugin log entries from Grail.
     description_copilot: Search for all query_history plugin logs from the Snowflake observability agent.
     context:
       - logs
@@ -1025,7 +997,8 @@ dql_queries:
       | filter dsoa.run.plugin == "query_history"
       | sort timestamp desc
       | limit 50
-    description: Fetch the 50 most recent DSOA query_history spans (individual Snowflake query executions).
+    description:
+      Fetch the 50 most recent Dynatrace Snowflake Observability Agent query_history spans (individual Snowflake query executions).
     description_copilot: Find query_history span traces produced by the Snowflake observability agent.
     context:
       - spans
@@ -1037,7 +1010,9 @@ dql_queries:
       | fields trace.id, span.id, request.is_root_span, snowflake.query.id, start_time, end_time
       | sort start_time desc
       | limit 50
-    description: Correlate DSOA query_history spans by trace.id/span.id to inspect the root span and timing for a Snowflake query execution.
+    description:
+      Correlate Dynatrace Snowflake Observability Agent query_history spans by trace.id/span.id to inspect the root span and timing for a
+      Snowflake query execution.
     description_copilot: Find the trace and span identifiers for Snowflake query execution spans, including whether each is the root span.
     context:
       - spans

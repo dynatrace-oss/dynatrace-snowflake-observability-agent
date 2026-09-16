@@ -298,7 +298,7 @@ dimensions:
     __context_names:
       - serverless_tasks
     __example: false
-    __description: Whether the task is an internal DSOA scheduler task (measurement or finalizer).
+    __description: Whether the task is an internal Dynatrace Snowflake Observability Agent scheduler task (measurement or finalizer).
   snowflake.task.name:
     __type: string
     displayName: Snowflake task name
@@ -399,7 +399,7 @@ dql_queries:
       | filter dsoa.run.plugin == "tasks"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA tasks plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent tasks plugin log entries from Grail.
     description_copilot: Search for all tasks plugin logs from the Snowflake observability agent.
     context:
       - logs
@@ -433,7 +433,7 @@ dql_queries:
       | filter dsoa.run.plugin == "tasks"
       | sort timestamp desc
       | limit 50
-    description: Fetch the most recent DSOA tasks lifecycle events (task graph version anchors).
+    description: Fetch the most recent Dynatrace Snowflake Observability Agent tasks lifecycle events (task graph version anchors).
     description_copilot: Search for Snowflake task graph lifecycle events from the tasks plugin.
     context:
       - events
@@ -443,7 +443,7 @@ dql_queries:
       | filter dsoa.run.plugin == "tasks"
       | summarize { events = count() }, by: { snowflake.event.type }
       | sort events desc
-    description: Count DSOA tasks lifecycle events grouped by event type.
+    description: Count Dynatrace Snowflake Observability Agent tasks lifecycle events grouped by event type.
     description_copilot: Break down Snowflake task lifecycle events by their event type.
     context:
       - events

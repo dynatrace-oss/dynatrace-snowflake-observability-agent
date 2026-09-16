@@ -38,14 +38,43 @@ attributes:
     __description: If present, this represents the query ID of the refresh job that produced the results for the dynamic table.
   snowflake.table.dynamic.graph.alter_trigger:
     __type: string[]
-    __semdict_note: "Array of DDL operation names stored as string[] in Grail (e.g. CREATE_DYNAMIC_TABLE)."
+    __semdict_note: "Array of DDL operation names stored as string[] in Grail (for example, CREATE_DYNAMIC_TABLE)."
     __context_names:
       - dynamic_table_graph_history
     __example:
+      - ["NONE"] # backwards-compatible
       - ["CREATE_DYNAMIC_TABLE"]
-    __description: >-
-      Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY function. Possible values: NONE (backwards-compatible),
-      CREATE_DYNAMIC_TABLE, ALTER_TARGET_LAG, SUSPEND, RESUME, REPLICATION_REFRESH, ALTER_WAREHOUSE.
+      - ["ALTER_TARGET_LAG"]
+      - ["SUSPEND"]
+      - ["RESUME"]
+      - ["REPLICATION_REFRESH"]
+      - ["ALTER_WAREHOUSE"]
+    __description: |
+      Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY function.
+    # __enum:
+    #   allow_custom_values: false
+    #   members:
+    #     - id: none
+    #       value: NONE
+    #       brief: Backwards-compatible default for entries created before this column was introduced.
+    #     - id: create_dynamic_table
+    #       value: CREATE_DYNAMIC_TABLE
+    #       brief: Dynamic table was created via a CREATE DYNAMIC TABLE DDL statement.
+    #     - id: alter_target_lag
+    #       value: ALTER_TARGET_LAG
+    #       brief: Target lag of the dynamic table was changed via ALTER DYNAMIC TABLE … TARGET_LAG.
+    #     - id: suspend
+    #       value: SUSPEND
+    #       brief: Dynamic table was suspended via ALTER DYNAMIC TABLE … SUSPEND.
+    #     - id: resume
+    #       value: RESUME
+    #       brief: Dynamic table was resumed via ALTER DYNAMIC TABLE … RESUME.
+    #     - id: replication_refresh
+    #       value: REPLICATION_REFRESH
+    #       brief: Entry was created as a result of a replication or database refresh operation.
+    #     - id: alter_warehouse
+    #       value: ALTER_WAREHOUSE
+    #       brief: Virtual warehouse assigned to the dynamic table was changed via ALTER DYNAMIC TABLE … WAREHOUSE.
     displayName: Snowflake dynamic table graph alter trigger
   snowflake.table.dynamic.graph.inputs:
     __type: string[]
@@ -481,7 +510,7 @@ dql_queries:
       | filter dsoa.run.plugin == "dynamic_tables"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA dynamic_tables plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent dynamic_tables plugin log entries from Grail.
     description_copilot: Search for all dynamic_tables plugin logs from the Snowflake observability agent.
     context:
       - logs
@@ -514,7 +543,9 @@ dql_queries:
       | filter dsoa.run.plugin == "dynamic_tables"
       | sort timestamp desc
       | limit 50
-    description: Fetch the most recent DSOA dynamic_tables lifecycle events (scheduling suspend/resume, graph version).
+    description:
+      Fetch the most recent Dynatrace Snowflake Observability Agent dynamic_tables lifecycle events (scheduling suspend/resume, graph
+      version).
     description_copilot: Search for Snowflake dynamic table scheduling and graph lifecycle events.
     context:
       - events
@@ -524,7 +555,7 @@ dql_queries:
       | filter dsoa.run.plugin == "dynamic_tables"
       | summarize { events = count() }, by: { snowflake.event.type }
       | sort events desc
-    description: Count DSOA dynamic_tables lifecycle events grouped by event type.
+    description: Count Dynatrace Snowflake Observability Agent dynamic_tables lifecycle events grouped by event type.
     description_copilot: Break down Snowflake dynamic table lifecycle events by their event type.
     context:
       - events

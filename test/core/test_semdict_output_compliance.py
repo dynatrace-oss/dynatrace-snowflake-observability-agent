@@ -741,7 +741,7 @@ class TestDqlQueriesOnModels:
         require_semdict_source()
 
         model_group_files = [
-            (SEMDICT_SOURCE / "metrics" / "snowflake_metrics_model_group.yaml", "snowflake.metrics"),
+            (SEMDICT_SOURCE / "metrics" / "model_group_snowflake_metrics.yaml", "snowflake.metrics"),
             (SEMDICT_SOURCE / "model" / "snowflake" / "events" / "model_group_snowflake_events.yaml", "snowflake.events"),
             (SEMDICT_SOURCE / "model" / "snowflake" / "logs" / "model_group_snowflake_logs.yaml", "snowflake.logs"),
             (SEMDICT_SOURCE / "model" / "snowflake" / "spans" / "model_group_snowflake_spans.yaml", "snowflake.spans"),

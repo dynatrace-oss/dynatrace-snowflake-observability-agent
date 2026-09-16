@@ -1,10 +1,12 @@
 model:
   id: snowflake.events.shares
   title: Snowflake shares lifecycle events
-  brief: Timestamp-based state-change events emitted by the DSOA shares plugin via the OpenPipeline Events API.
+  brief:
+    Timestamp-based state-change events emitted by the Dynatrace Snowflake Observability Agent shares plugin via the OpenPipeline Events
+    API.
   model_group_id: snowflake.events
   data_object: events
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch events
@@ -12,7 +14,7 @@ model:
         | filter dsoa.run.plugin == "shares"
         | sort timestamp desc
         | limit 20
-      description: Fetch recent DSOA shares lifecycle events.
+      description: Fetch recent Dynatrace Snowflake Observability Agent shares lifecycle events.
       description_copilot: Search for recent Snowflake shares lifecycle events from the shares plugin.
     - query_string: |
         fetch events
@@ -20,7 +22,8 @@ model:
         | filter dsoa.run.plugin == "shares"
         | sort timestamp desc
         | limit 50
-      description: Fetch the most recent DSOA shares lifecycle events (share, grant and table creation anchors).
+      description:
+        Fetch the most recent Dynatrace Snowflake Observability Agent shares lifecycle events (share, grant and table creation anchors).
       description_copilot: Search for Snowflake share and grant lifecycle events from the shares plugin.
     - query_string: |
         fetch events
@@ -28,7 +31,7 @@ model:
         | filter dsoa.run.plugin == "shares"
         | summarize { events = count() }, by: { snowflake.event.type }
         | sort events desc
-      description: Count DSOA shares lifecycle events grouped by event type.
+      description: Count Dynatrace Snowflake Observability Agent shares lifecycle events grouped by event type.
       description_copilot: Break down Snowflake share lifecycle events by their event type.
   groups:
     - id: snowflake.events.shares.fields

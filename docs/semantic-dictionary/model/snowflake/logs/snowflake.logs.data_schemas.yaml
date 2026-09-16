@@ -1,10 +1,10 @@
 model:
   id: snowflake.logs.data_schemas
   title: Snowflake data schemas log records
-  brief: Log records emitted by the DSOA data_schemas plugin.
+  brief: Log records emitted by the Dynatrace Snowflake Observability Agent data_schemas plugin.
   model_group_id: snowflake.logs
   data_object: logs
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch logs
@@ -12,7 +12,8 @@ model:
         | filter dsoa.run.plugin == "data_schemas"
         | sort timestamp desc
         | limit 100
-      description: Fetch the 100 most recent DSOA data_schemas plugin log entries (DDL change inventory) from Grail.
+      description:
+        Fetch the 100 most recent Dynatrace Snowflake Observability Agent data_schemas plugin log entries (DDL change inventory) from Grail.
       description_copilot: Search for all data_schemas plugin logs from the Snowflake observability agent.
     - query_string: |
         fetch logs

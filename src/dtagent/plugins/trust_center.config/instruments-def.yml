@@ -20,8 +20,9 @@ attributes:
     __type: string
     displayName: Snowflake error code
     __semdict_note: >-
-      DSOA-specific string error code for Snowflake Trust Center scanner failures. Not the same as the Dynatrace SD error.code field (type:
-      long for iOS/mobile numeric codes). Pending rename to snowflake.trust_center.error.code for namespace clarity.
+      Dynatrace Snowflake Observability Agent-specific string error code for Snowflake Trust Center scanner failures. Not the same as the
+      Dynatrace SD error.code field (type: long for iOS/mobile numeric codes). Pending rename to snowflake.trust_center.error.code for
+      namespace clarity.
     __example: "TRUST_CENTER_ERR001"
     __description: The error code returned by the operation, if any.
     __interface_note: Error code associated with the Trust Center scanner.
@@ -144,7 +145,7 @@ dql_queries:
       | filter dsoa.run.plugin == "trust_center"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA trust_center plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent trust_center plugin log entries from Grail.
     description_copilot: Search for all trust_center plugin logs from the Snowflake observability agent.
     context:
       - logs

@@ -2,7 +2,7 @@ model_group:
   id: snowflake
   title: Snowflake
   brief: |-
-    DSOA (Dynatrace Snowflake Observability Agent) telemetry models, organized by signal type:
+    Dynatrace Snowflake Observability Agent (Dynatrace Snowflake Observability Agent) telemetry models, organized by signal type:
 
     * [Lifecycle events](./events/readme.md)
     * [Log records](./logs/readme.md)
@@ -25,8 +25,14 @@ model_group:
         | makeTimeseries sum(snowflake.time.total_elapsed), by: {
             plugin_name
         }
-      description: Track execution of the DSOA snowpipes plugin through Snowflake's query history log, as a time series of total elapsed time. Timings are divided by the number of plugins invoked in the same DTAGENT call, so each plugin is attributed its own share.
-      description_copilot: This query measures the execution time trend of a specific DSOA plugin (snowpipes) over the last 24 hours. It parses structured call patterns from Snowflake query logs, normalizes timing metrics per plugin, and produces a time series chart of total elapsed time.
+      description:
+        Track execution of the Dynatrace Snowflake Observability Agent snowpipes plugin through Snowflake's query history log, as a time
+        series of total elapsed time. Timings are divided by the number of plugins invoked in the same DTAGENT call, so each plugin is
+        attributed its own share.
+      description_copilot:
+        This query measures the execution time trend of a specific Dynatrace Snowflake Observability Agent plugin (snowpipes) over the last
+        24 hours. It parses structured call patterns from Snowflake query logs, normalizes timing metrics per plugin, and produces a time
+        series chart of total elapsed time.
     - query_string: |
         fetch spans, from: -7d
         | filter db.system == "snowflake"
@@ -43,8 +49,13 @@ model_group:
             service_name = coalesce(deployment.environment.name, deployment.environment),
             span.events, operator_stats
         | limit 10
-      description: Return a sample of 10 Snowflake queries with row-multiplying (fan-out) joins, where a join operator emits more rows than it consumes. Based on the operator statistics reported to Dynatrace span events from Snowflake's query history traces.
-      description_copilot: This query hunts for inefficient Snowflake JOIN operations over the past 7 days — specifically joins where the output row count exceeds the input row count, which is a classic signal of a row-multiplying (fan-out) join, often caused by missing or incorrect join keys, cartesian products, or unintended data duplication.
+      description:
+        Return a sample of 10 Snowflake queries with row-multiplying (fan-out) joins, where a join operator emits more rows than it
+        consumes. Based on the operator statistics reported to Dynatrace span events from Snowflake's query history traces.
+      description_copilot:
+        This query hunts for inefficient Snowflake JOIN operations over the past 7 days — specifically joins where the output row count
+        exceeds the input row count, which is a classic signal of a row-multiplying (fan-out) join, often caused by missing or incorrect
+        join keys, cartesian products, or unintended data duplication.
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -102,5 +113,12 @@ model_group:
         | makeTimeseries event_delay = sum(event_delay)
             , by: {warehouse_action, snowflake.warehouse.name, environment}
             , time: event_timestamp
-      description: Produce a time series of warehouse resume/suspend latency, broken down by action type, warehouse name, and environment. Warehouse state-change records (DSOA warehouse_usage plugin) are correlated with the resource monitor assignments reported as events (DSOA resource_monitors plugin), to scope the result to the warehouses governed by the DTAGENT_RS resource monitor.
-      description_copilot: Measures how long Snowflake virtual warehouses take to resume or suspend - the transition delay between a warehouse lifecycle event being triggered and the warehouse reaching a consistent state - for the warehouses governed by a given resource monitor. Useful for tracking warehouse availability and identifying warehouses with abnormally long startup or shutdown times.
+      description:
+        Produce a time series of warehouse resume/suspend latency, broken down by action type, warehouse name, and environment. Warehouse
+        state-change records (Dynatrace Snowflake Observability Agent warehouse_usage plugin) are correlated with the resource monitor
+        assignments reported as events (Dynatrace Snowflake Observability Agent resource_monitors plugin), to scope the result to the
+        warehouses governed by the DTAGENT_RS resource monitor.
+      description_copilot:
+        Measures how long Snowflake virtual warehouses take to resume or suspend - the transition delay between a warehouse lifecycle event
+        being triggered and the warehouse reaching a consistent state - for the warehouses governed by a given resource monitor. Useful for
+        tracking warehouse availability and identifying warehouses with abnormally long startup or shutdown times.

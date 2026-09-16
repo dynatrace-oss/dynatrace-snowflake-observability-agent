@@ -1,10 +1,10 @@
 model:
   id: snowflake.logs.org_costs
   title: Snowflake organization costs log records
-  brief: Log records emitted by the DSOA org_costs plugin.
+  brief: Log records emitted by the Dynatrace Snowflake Observability Agent org_costs plugin.
   model_group_id: snowflake.logs
   data_object: logs
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch logs
@@ -12,7 +12,7 @@ model:
         | filter dsoa.run.plugin == "org_costs"
         | sort timestamp desc
         | limit 100
-      description: Fetch the 100 most recent DSOA org_costs plugin log entries from Grail.
+      description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent org_costs plugin log entries from Grail.
       description_copilot: Search for all org_costs plugin logs from the Snowflake observability agent.
     - query_string: |
         fetch logs

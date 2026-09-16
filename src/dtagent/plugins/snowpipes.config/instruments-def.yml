@@ -52,7 +52,7 @@ attributes:
     __context_names:
       - snowpipes
     __example: RUNNING
-    __description: Raw execution state from SYSTEM$PIPE_STATUS.
+    __description: Raw execution state from ``SYSTEM$PIPE_STATUS``.
   snowflake.pipe.last_ingested_timestamp:
     __type: string
     displayName: Snowflake pipe last ingested file timestamp
@@ -258,9 +258,18 @@ dimensions:
     __context_names:
       - snowpipes
     __example: RUNNING
-    __description: |
-      Pipe execution state as original string:
-      RUNNING, PAUSED, STOPPED_*, STALLED_*.
+    __description: >
+      Raw execution state from ``SYSTEM$PIPE_STATUS``; stable values include RUNNING and PAUSED, dynamic variants follow STOPPED_* and
+      STALLED_* patterns.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: running
+          value: RUNNING
+          brief: Pipe is active and processing staged files for ingestion.
+        - id: paused
+          value: PAUSED
+          brief: Pipe has been administratively paused; no files are ingested until resumed.
 event_timestamps:
   snowflake.event.trigger:
     __type: string
@@ -417,7 +426,7 @@ dql_queries:
       | filter dsoa.run.plugin == "snowpipes"
       | sort timestamp desc
       | limit 100
-    description: Fetch the 100 most recent DSOA snowpipes plugin log entries from Grail.
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent snowpipes plugin log entries from Grail.
     description_copilot: Search for all snowpipes plugin logs from the Snowflake observability agent.
     context:
       - logs
@@ -451,7 +460,7 @@ dql_queries:
       | filter dsoa.run.plugin == "snowpipes"
       | sort timestamp desc
       | limit 20
-    description: Fetch recent DSOA snowpipes lifecycle events.
+    description: Fetch recent Dynatrace Snowflake Observability Agent snowpipes lifecycle events.
     description_copilot: Search for recent Snowflake snowpipes lifecycle events from the snowpipes plugin.
     context:
       - events
@@ -461,7 +470,7 @@ dql_queries:
       | filter dsoa.run.plugin == "snowpipes"
       | sort timestamp desc
       | limit 50
-    description: Fetch the most recent DSOA snowpipes lifecycle events (pipe creation anchors).
+    description: Fetch the most recent Dynatrace Snowflake Observability Agent snowpipes lifecycle events (pipe creation anchors).
     description_copilot: Search for Snowflake pipe lifecycle events from the snowpipes plugin.
     context:
       - events
@@ -471,7 +480,7 @@ dql_queries:
       | filter dsoa.run.plugin == "snowpipes"
       | summarize { events = count() }, by: { snowflake.event.type }
       | sort events desc
-    description: Count DSOA snowpipes lifecycle events grouped by event type.
+    description: Count Dynatrace Snowflake Observability Agent snowpipes lifecycle events grouped by event type.
     description_copilot: Break down Snowflake pipe lifecycle events by their event type.
     context:
       - events
