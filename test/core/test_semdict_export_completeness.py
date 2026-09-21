@@ -94,6 +94,11 @@ def _collect_enum_fields(all_defs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[
 
     Returns the first (winning) definition per key — mirrors export dedup.
 
+    Fields with ``__semdict: ref`` are excluded: they are defined externally in the
+    Semantic Dictionary and the export pipeline intentionally emits them as ``ref:``
+    nodes with no inline type or enum.  Their ``__enum`` annotation is informational
+    only and is not written to the generated output.
+
     Args:
         all_defs: Parsed instruments-def data keyed by plugin name.
 
@@ -105,6 +110,8 @@ def _collect_enum_fields(all_defs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[
         for section in ("attributes", "dimensions", "metrics", "event_timestamps"):
             for key, entry in (data.get(section) or {}).items():
                 if key not in enum_fields and (entry or {}).get("__enum"):
+                    if (entry or {}).get("__semdict") == "ref":
+                        continue
                     enum_fields[key] = {"entry": entry, "plugin": plugin_name, "section": section}
     return enum_fields
 
@@ -125,6 +132,11 @@ class TestEnumPreservation:
         A plain ``type: string`` in output for a field that has ``__enum`` in source
         indicates the enum loss bug (Concern 5 / C5). The cross-plugin dedup logic
         must prefer the enum-rich definition.
+
+        Fields with ``__semdict: ref`` are excluded from this check: they are defined
+        externally in the Semantic Dictionary and are always emitted as ``ref:`` nodes
+        with no inline enum.  Their ``__enum`` annotation in instruments-def is
+        informational only.
 
         Specifically catches: snowflake.query.execution_status, db.operation.name,
         snowflake.warehouse.type, snowflake.object.type, snowflake.object.ddl.operation.
