@@ -1,0 +1,134 @@
+# Mock instruments-def.yml for semantic export unit tests
+# Contains representative examples of all classification types and new annotations
+
+attributes:
+  db.system:
+    __semdict: ref
+    __description: "The database management system (DBMS) product being used. It is always 'snowflake'"
+    __example: "snowflake"
+
+  authentication.type:
+    __semdict: ref
+    __semdict_note: >-
+      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE).
+      DSOA also emits PASSWORD for Snowflake password auth; this is an open enum extension request.
+    __description: "The authentication method used for the session."
+    __example: "PASSWORD"
+
+  dsoa.run.id:
+    __semdict: new
+    __description: "Unique ID of each execution of the DSOA plugin."
+    __example: "4aa7c76c-e98c-4b8b-a5b3-a8a721bbde2d"
+
+  deployment.environment:
+    __semdict: deprecated-alias
+    __otel_replacement: deployment.environment.name
+    __semdict_note: "Renamed from deployment.environment in OTel Semantic Conventions v1.26."
+    __description: "The deployment environment, e.g., production, staging, or development."
+    __example: "PROD"
+
+  session.id:
+    __semdict: otel-only
+    __semdict_note: >-
+      OTel semconv Development-tier attribute (session namespace). The semdict session.id is
+      model-scoped/internal in code_monitoring only; no global ref available.
+    __description: "The session ID during which the query was executed."
+    __example: "1234567890"
+
+  mock.boolean.flag:
+    __semdict: new
+    __type: boolean
+    __description: "A boolean test field."
+    __example: true
+
+  mock.long.value:
+    __semdict: new
+    __type: long
+    __description: "A long integer test field."
+    __example: 42
+
+  # Attribute with __field_type: resource — should go to resource_fields
+  snowflake.warehouse.size:
+    __semdict: new
+    __field_type: resource
+    __description: "The size of the warehouse."
+    __example: "X-SMALL"
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: x_small
+          value: X-SMALL
+          brief: X-Small warehouse.
+        - id: small
+          value: SMALL
+          brief: Small warehouse.
+
+dimensions:
+  snowflake.warehouse.name:
+    __semdict: new
+    __description: "The name of the Snowflake virtual warehouse."
+    __example: "COMPUTE_WH"
+
+  # Dimension with __field_type: signal — should go to signal_fields
+  snowflake.warehouse.event.name:
+    __semdict: new
+    __field_type: signal
+    __description: "The name of the warehouse event."
+    __example: "WAREHOUSE_START"
+    __context_names:
+      - mock_context
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: warehouse_start
+          value: WAREHOUSE_START
+          brief: Warehouse was started.
+        - id: warehouse_suspend
+          value: WAREHOUSE_SUSPEND
+          brief: Warehouse was suspended.
+
+metrics:
+  snowflake.warehouse.credits.used:
+    __semdict: new
+    __type: gauge
+    __unit: "{credits}"
+    __context_names:
+      - mock_context
+    __description: "Total credits consumed by the warehouse during the reporting interval."
+    __example: "42.5"
+
+  snowflake.warehouse.queries.count:
+    __semdict: new
+    __type: count
+    unit: "1"
+    __description: "Number of queries executed by the warehouse."
+    __example: "100"
+
+  snowflake.warehouse.memory.updown:
+    __semdict: new
+    __type: updowncounter
+    unit: bytes
+    __description: "Memory usage that can go up or down."
+    __example: "1024"
+
+  snowflake.warehouse.latency.hist:
+    __semdict: new
+    __type: histogram
+    unit: ms
+    __description: "Distribution of query latencies."
+    __example: "250"
+
+event_timestamps:
+  snowflake.event.trigger:
+    __description: "Trigger key — identifies which timestamp field caused the event."
+    __example: "snowflake.warehouse.created_on"
+  snowflake.warehouse.created_on:
+    __description: "Timestamp when the warehouse was created."
+    __example: "2024-09-01 08:00:00.000"
+    __context_names:
+      - mock_context
+  snowflake.warehouse.updated_on:
+    __description: "Timestamp when the warehouse was last updated."
+    __example: "2024-11-10 14:30:00.000"
+    __context_names:
+      - mock_context

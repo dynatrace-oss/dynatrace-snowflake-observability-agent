@@ -1,0 +1,40 @@
+groups:
+  - id: db
+    type: attribute_group
+    title: DB signal fields
+    brief: Signal-level fields for DB telemetry.
+    attributes:
+      - id: db.snowflake.connection
+        display_name: 'Snowflake connection name'
+        type: string
+        stability: experimental
+        brief: The name of the connection used by the client, or NULL if the client is not using a connection URL.
+        examples: [ 'connection_1' ]
+      - id: db.snowflake.dbs
+        display_name: 'Snowflake databases used in query'
+        type: string[]
+        stability: stable
+        brief: The databases involved in the query.
+        examples:
+          - ['PROD_DB', 'TEST_DB']
+      - id: db.snowflake.tables
+        display_name: 'Snowflake tables used in query'
+        type: string[]
+        stability: stable
+        brief: The tables involved in the query.
+        examples:
+          - ['users', 'orders']
+      - id: db.snowflake.views
+        display_name: 'Snowflake views used in query'
+        type: string[]
+        stability: stable
+        brief: The views involved in the query.
+        examples:
+          - ['user_view']
+        note: Fully proprietary; no OTel analog.
+      - id: db.user
+        display_name: 'Database user'
+        type: string
+        stability: experimental
+        brief: The name of the user who executed the query.
+        examples: [ 'john_doe' ]

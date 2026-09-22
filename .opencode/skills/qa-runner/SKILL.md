@@ -1567,6 +1567,49 @@ whether any task entered an `ERROR` state.
 
 ---
 
+## Phase 3.7 — Metric Unit Recognition Check (optional, manual)
+
+Verifies that every `dt.meta.unit` value DSOA sends is actually **recognized**
+by Dynatrace (gets a proper symbol/display in Notebooks), not just accepted as
+free text. Run this once per release when `instruments-def.yml` `unit:` values
+or the `MetricUnit` schema enum have changed — skip otherwise.
+
+**Not part of Phase 3.5 auto-eval** — requires a raw ingest-capable API token
+(`metrics.ingest` scope) which auto-eval does not have access to. Ask the human
+to run it and paste back the PASS/FAIL table.
+
+```bash
+dtctl auth login                       # make sure dtctl points at the target tenant
+./scripts/test/verify_metric_units.sh  # prompts for the token (input hidden) if unset
+```
+
+The script:
+
+1. Ingests `test/qa/fixtures/all_metrics_ingest_payload.txt` (one data line +
+   one `#<metric> gauge dt.meta.unit="..."` metadata line per metric across all
+   `instruments-def.yml` files — regenerate with `make gen-metric-fixture` if
+   metrics changed).
+2. Waits ~2 minutes for metric metadata to propagate.
+3. For each metric, runs `dtctl query "timeseries sum(<key>), from: -90m"
+   -o json --metadata=metrics` and reads the resolved `unit` from
+   `metadata.metrics[].unit`. `dtctl` now exposes the Grail Query API's
+   metric-metadata enrichment natively — no App Engine sandbox required.
+4. Prints a PASS/FAIL table showing the unit sent vs. the unit Dynatrace resolved.
+
+**Pass condition:** Dynatrace resolved *some* unit for the metric (PASS) vs.
+none at all (FAIL). Note Dynatrace returns the **canonical display name**, not
+the raw symbol (e.g. `MiBy` → `MebiByte`, `%` → `Percent`) — so a human should
+still glance at the DYNATRACE column to confirm the resolved name actually
+matches the intended meaning of what was sent, rather than expecting an exact
+string match. Known exception: the Bucket C/D domain nouns documented in the
+`MetricUnit` schema (`scripts/tools/instruments-def.schema.json`) and
+`src/build/semantic_exporter/field_emitters.py` (`credit`, `file`, `partition`, `row`,
+`cluster`, `warehouse`, `query`, `currency`) are unrecognized free text
+that Dynatrace echoes back verbatim
+(sent value == resolved value) — this is expected, not a regression.
+
+---
+
 ## Phase 4 — Test Walkthrough
 
 Walk through `test/qa/RELEASE-CHECKLIST.md` section by section. For each item:

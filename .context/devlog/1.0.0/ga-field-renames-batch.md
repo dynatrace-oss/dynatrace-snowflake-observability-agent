@@ -16,7 +16,7 @@ change. Shipped as part of the 1.0.0 SD-alignment effort tracked in
 ## Renames
 
 | Current                                 | GA                                            | Plugin                                       |
-|-----------------------------------------|-----------------------------------------------|----------------------------------------------|
+| --------------------------------------- | --------------------------------------------- | -------------------------------------------- |
 | `snowflake.warehouse.owner`             | `snowflake.warehouse.owner.name`              | resource_monitors                            |
 | `snowflake.budget.owner`                | `snowflake.budget.owner.name`                 | budgets                                      |
 | `snowflake.task.config`                 | `snowflake.task.config.id`                    | tasks                                        |
@@ -79,7 +79,7 @@ prefixes in customer assets — a pre-existing limitation of the tool (same as t
 
 ## Out of scope
 
-- `snowflake.warehouse.event` → `.event.trigger` code path (BIZOBS-1938; the migration row already
+- `snowflake.warehouse.event` → `.event.trigger` code path (the migration row already
   existed in appx-c).
 - `snowflake.user.roles.direct.removed` / `.removed_on` siblings (not part of this batch).
 - Dashboard/workflow DQL updates (tracked separately).

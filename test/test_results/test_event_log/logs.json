@@ -1,95 +1,5 @@
 [
   {
-    "content": "event_log_metrics",
-    "process.cpu.utilization": {
-      "gauge": 0
-    },
-    "process.memory.usage": {
-      "sum": 0
-    },
-    "db.namespace": "DTAGENT_TEST_DB",
-    "db.user": "SYSTEM",
-    "snow.database.id": 632,
-    "snow.database.name": "DTAGENT_TEST_DB",
-    "snow.executable.id": 51528,
-    "snow.executable.name": "DTAGENT(SOURCES ARRAY):OBJECT",
-    "snow.executable.runtime.version": 3.13,
-    "snow.executable.type": "PROCEDURE",
-    "snow.owner.id": 567463,
-    "snow.owner.name": "DTAGENT_TEST_ADMIN",
-    "snow.query.id": "01ba3bba-0412-e356-0051-0c031e222a46",
-    "snow.schema.id": 6165,
-    "snow.schema.name": "APP",
-    "snow.session.id": 22812680207736954,
-    "snow.session.role.primary.id": 567463,
-    "snow.session.role.primary.name": "DTAGENT_TEST_ADMIN",
-    "snow.user.id": 0,
-    "snow.warehouse.id": 4649,
-    "snow.warehouse.name": "DTAGENT_TEST_WH",
-    "snowflake.query.id": "01ba3bba-0412-e356-0051-0c031e222a46",
-    "snowflake.role.name": "DTAGENT_TEST_ADMIN",
-    "snowflake.schema.name": "APP",
-    "snowflake.warehouse.name": "DTAGENT_TEST_WH",
-    "dsoa.run.context": "event_log_metrics",
-    "dsoa.run.plugin": "test_event_log",
-    "resource_attributes": {
-      "db.system": "snowflake",
-      "deployment.environment": "TEST",
-      "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "service.name": "test.dsoa2025",
-      "telemetry.exporter.name": "dynatrace.snowagent",
-      "telemetry.sdk.language": "python",
-      "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
-      "deployment.environment.name": "TEST"
-    }
-  },
-  {
-    "content": "event_log_metrics",
-    "process.cpu.utilization": {
-      "gauge": 0
-    },
-    "process.memory.usage": {
-      "sum": 0
-    },
-    "db.namespace": "DTAGENT_TEST_DB",
-    "db.user": "SYSTEM",
-    "snow.database.id": 632,
-    "snow.database.name": "DTAGENT_TEST_DB",
-    "snow.executable.id": 51528,
-    "snow.executable.name": "DTAGENT(SOURCES ARRAY):OBJECT",
-    "snow.executable.runtime.version": 3.13,
-    "snow.executable.type": "PROCEDURE",
-    "snow.owner.id": 567463,
-    "snow.owner.name": "DTAGENT_TEST_ADMIN",
-    "snow.query.id": "01ba3bba-0412-e3aa-0051-0c031e22516a",
-    "snow.schema.id": 6165,
-    "snow.schema.name": "APP",
-    "snow.session.id": 22812680207694442,
-    "snow.session.role.primary.id": 567463,
-    "snow.session.role.primary.name": "DTAGENT_TEST_ADMIN",
-    "snow.user.id": 0,
-    "snow.warehouse.id": 4649,
-    "snow.warehouse.name": "DTAGENT_TEST_WH",
-    "snowflake.query.id": "01ba3bba-0412-e3aa-0051-0c031e22516a",
-    "snowflake.role.name": "DTAGENT_TEST_ADMIN",
-    "snowflake.schema.name": "APP",
-    "snowflake.warehouse.name": "DTAGENT_TEST_WH",
-    "dsoa.run.context": "event_log_metrics",
-    "dsoa.run.plugin": "test_event_log",
-    "resource_attributes": {
-      "db.system": "snowflake",
-      "deployment.environment": "TEST",
-      "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "service.name": "test.dsoa2025",
-      "telemetry.exporter.name": "dynatrace.snowagent",
-      "telemetry.sdk.language": "python",
-      "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
-      "deployment.environment.name": "TEST"
-    }
-  },
-  {
     "content": "Invalid type dict for attribute 'snowflake.query.step.operator.stats' value. Expected one of ['bool', 'str', 'bytes', 'int', 'float'] or a sequence of those types",
     "db.user": "SYSTEM",
     "snow.database.id": 621,
@@ -143,7 +53,6 @@
     ],
     "db.user": "SYSTEM",
     "snowflake.session.id": 22812680207694162,
-    "dsoa.run.context": "event_log",
     "snowagent.run.id": "5c0188ef23e84fb99fd31ffddd8d0dcd",
     "snowflake.cluster_number": 1,
     "snowflake.credits.cloud_services": 4.7e-05,
@@ -205,6 +114,7 @@
     "severity_text": "INFO",
     "snowflake.event.scope.name": "DTAGENT_OTLP",
     "record_type": "LOG",
+    "dsoa.run.context": "event_log",
     "dsoa.run.plugin": "test_event_log",
     "resource_attributes": {
       "db.system": "snowflake",

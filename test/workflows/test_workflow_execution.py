@@ -78,9 +78,9 @@ _WORKFLOW_ANOMALY_DETECTOR: dict[str, str | None] = {
     "dynamic-table-drift": "dsoa.dynamic_table_drift",
     "long-running-queries": "dsoa.long_running_queries",
     "org-contract-balance-warning": None,  # Uses eventsClient separately
-    "query-slowdown-detection": "dsoa.query_slowdown_detection",
-    "security-anomaly-detection": "dsoa.security_anomaly_detection",
-    "shares-broken-detection": "dsoa.shares_broken",
+    "query-slowdown-detection": "dsoa.query_slowdown",
+    "security-anomaly-detection": "dsoa.security_anomaly",
+    "shares-broken-detection": "dsoa.shares_broken_detection",
     "table-perf-degradation": "dsoa.table_perf_degradation",
     "warehouse-sensitive-change-alert": None,  # Uses execute-dql-query, no event ingest
 }

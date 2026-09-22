@@ -1,0 +1,268 @@
+dsoa.agent.memory.peak_rss 42.5
+#dsoa.agent.memory.peak_rss gauge dt.meta.displayName="Agent peak memory (RSS)",dt.meta.unit="MiBy"
+process.cpu.utilization 0.015
+#process.cpu.utilization gauge dt.meta.displayName="Process CPU utilization",dt.meta.unit="%"
+process.memory.usage 34844672
+#process.memory.usage gauge dt.meta.displayName="Process memory usage",dt.meta.unit="By"
+snowflake.acceleration.data.scanned 2097152
+#snowflake.acceleration.data.scanned gauge dt.meta.displayName="Snowflake query acceleration bytes scanned",dt.meta.unit="By"
+snowflake.acceleration.partitions.scanned 50
+#snowflake.acceleration.partitions.scanned gauge dt.meta.displayName="Snowflake query acceleration partitions scanned",dt.meta.unit="partition"
+snowflake.acceleration.scale_factor.max 4
+#snowflake.acceleration.scale_factor.max gauge dt.meta.displayName="Snowflake query acceleration upper limit scale factor",dt.meta.unit="1"
+snowflake.compute.available 60
+#snowflake.compute.available gauge dt.meta.displayName="Snowflake available compute resources percentage",dt.meta.unit="%"
+snowflake.compute.other 10
+#snowflake.compute.other gauge dt.meta.displayName="Snowflake other compute resources percentage",dt.meta.unit="%"
+snowflake.compute.provisioning 20
+#snowflake.compute.provisioning gauge dt.meta.displayName="Snowflake provisioning compute resources percentage",dt.meta.unit="%"
+snowflake.compute.quiescing 10
+#snowflake.compute.quiescing gauge dt.meta.displayName="Snowflake quiescing compute resources percentage",dt.meta.unit="%"
+snowflake.copy.bytes_billed 51200
+#snowflake.copy.bytes_billed gauge dt.meta.displayName="Snowflake copy bytes billed",dt.meta.unit="By"
+snowflake.copy.errors 2
+#snowflake.copy.errors gauge dt.meta.displayName="Snowflake copy errors",dt.meta.unit="count"
+snowflake.copy.file_size 102400
+#snowflake.copy.file_size gauge dt.meta.displayName="Snowflake copy file size",dt.meta.unit="By"
+snowflake.cost_attribution.query_count 42
+#snowflake.cost_attribution.query_count gauge dt.meta.displayName="Snowflake cost attribution query count",dt.meta.unit="count"
+snowflake.credits.attributed_compute 0.0042
+#snowflake.credits.attributed_compute gauge dt.meta.displayName="Snowflake query attributed compute credits",dt.meta.unit="credit"
+snowflake.credits.cloud_services 10
+#snowflake.credits.cloud_services gauge dt.meta.displayName="Snowflake cloud services credits used",dt.meta.unit="credit"
+snowflake.credits.compute 8
+#snowflake.credits.compute gauge dt.meta.displayName="Snowflake compute credits used",dt.meta.unit="credit"
+snowflake.credits.limit 100
+#snowflake.credits.limit gauge dt.meta.displayName="Snowflake budget spending limit",dt.meta.unit="credit"
+snowflake.credits.query_acceleration 0.0001
+#snowflake.credits.query_acceleration gauge dt.meta.displayName="Snowflake query acceleration credits",dt.meta.unit="credit"
+snowflake.credits.quota.remaining 250
+#snowflake.credits.quota.remaining gauge dt.meta.displayName="Snowflake credits quota remaining",dt.meta.unit="credit"
+snowflake.credits.quota.used 750
+#snowflake.credits.quota.used gauge dt.meta.displayName="Snowflake credits quota used",dt.meta.unit="credit"
+snowflake.credits.quota.used_pct 75
+#snowflake.credits.quota.used_pct gauge dt.meta.displayName="Snowflake quota used percentage",dt.meta.unit="%"
+snowflake.credits.quota.value 1000
+#snowflake.credits.quota.value gauge dt.meta.displayName="Snowflake credits quota",dt.meta.unit="credit"
+snowflake.credits.spent 75
+#snowflake.credits.spent gauge dt.meta.displayName="Snowflake credits spent",dt.meta.unit="credit"
+snowflake.credits.used 15
+#snowflake.credits.used gauge dt.meta.displayName="Snowflake credits used",dt.meta.unit="credit"
+snowflake.credits.used.cloud_services 3.2
+#snowflake.credits.used.cloud_services gauge dt.meta.displayName="Snowflake cloud services credits used",dt.meta.unit="credit"
+snowflake.credits.used.compute 12.3
+#snowflake.credits.used.compute gauge dt.meta.displayName="Snowflake compute credits used",dt.meta.unit="credit"
+snowflake.data.deleted 1048576
+#snowflake.data.deleted gauge dt.meta.displayName="Snowflake bytes deleted",dt.meta.unit="By"
+snowflake.data.files 120
+#snowflake.data.files gauge dt.meta.displayName="Snowflake data files processed",dt.meta.unit="file"
+snowflake.data.ingested 10485760
+#snowflake.data.ingested gauge dt.meta.displayName="Snowflake data ingested",dt.meta.unit="By"
+snowflake.data.read.from_result 1048576
+#snowflake.data.read.from_result gauge dt.meta.displayName="Snowflake bytes read from result",dt.meta.unit="By"
+snowflake.data.rows 1000000
+#snowflake.data.rows gauge dt.meta.displayName="Snowflake data row count",dt.meta.unit="row"
+snowflake.data.scanned 10485760
+#snowflake.data.scanned gauge dt.meta.displayName="Snowflake bytes scanned",dt.meta.unit="By"
+snowflake.data.scanned_from_cache 0.75
+#snowflake.data.scanned_from_cache gauge dt.meta.displayName="Snowflake data scanned from cache",dt.meta.unit="ratio"
+snowflake.data.sent_over_the_network 524288
+#snowflake.data.sent_over_the_network gauge dt.meta.displayName="Snowflake data sent over the network",dt.meta.unit="By"
+snowflake.data.size 1073741824
+#snowflake.data.size gauge dt.meta.displayName="Snowflake table size",dt.meta.unit="By"
+snowflake.data.spilled.local 1048576
+#snowflake.data.spilled.local gauge dt.meta.displayName="Snowflake data spilled to local storage",dt.meta.unit="By"
+snowflake.data.spilled.remote 2097152
+#snowflake.data.spilled.remote gauge dt.meta.displayName="Snowflake data spilled to remote storage",dt.meta.unit="By"
+snowflake.data.transferred.inbound 10485760
+#snowflake.data.transferred.inbound gauge dt.meta.displayName="Snowflake inbound data transferred",dt.meta.unit="By"
+snowflake.data.transferred.outbound 5242880
+#snowflake.data.transferred.outbound gauge dt.meta.displayName="Snowflake outbound data transferred",dt.meta.unit="By"
+snowflake.data.written 2097152
+#snowflake.data.written gauge dt.meta.displayName="Snowflake bytes written",dt.meta.unit="By"
+snowflake.data.written_to_result 1048576
+#snowflake.data.written_to_result gauge dt.meta.displayName="Snowflake bytes written to result",dt.meta.unit="By"
+snowflake.external_functions.data.received 1048576
+#snowflake.external_functions.data.received gauge dt.meta.displayName="Snowflake external function data received",dt.meta.unit="By"
+snowflake.external_functions.data.sent 524288
+#snowflake.external_functions.data.sent gauge dt.meta.displayName="Snowflake external function data sent",dt.meta.unit="By"
+snowflake.external_functions.invocations 5
+#snowflake.external_functions.invocations gauge dt.meta.displayName="Snowflake external function invocations",dt.meta.unit="count"
+snowflake.external_functions.rows.received 1000
+#snowflake.external_functions.rows.received gauge dt.meta.displayName="Snowflake external function rows received",dt.meta.unit="row"
+snowflake.external_functions.rows.sent 500
+#snowflake.external_functions.rows.sent gauge dt.meta.displayName="Snowflake external function rows sent",dt.meta.unit="row"
+snowflake.load.blocked 0
+#snowflake.load.blocked gauge dt.meta.displayName="Snowflake average blocked queries",dt.meta.unit="count"
+snowflake.load.queued.overloaded 2
+#snowflake.load.queued.overloaded gauge dt.meta.displayName="Snowflake queries queued due to overload",dt.meta.unit="count"
+snowflake.load.queued.provisioning 1
+#snowflake.load.queued.provisioning gauge dt.meta.displayName="Snowflake queries queued during provisioning",dt.meta.unit="count"
+snowflake.load.running 5
+#snowflake.load.running gauge dt.meta.displayName="Snowflake queries running",dt.meta.unit="count"
+snowflake.load.used 85
+#snowflake.load.used gauge dt.meta.displayName="Snowflake compute load",dt.meta.unit="%"
+snowflake.login.attempts.failed 42
+#snowflake.login.attempts.failed gauge dt.meta.displayName="Failed login attempts to Snowflake",dt.meta.unit="count"
+snowflake.login.attempts.successful 1234
+#snowflake.login.attempts.successful gauge dt.meta.displayName="Successful login attempts to Snowflake",dt.meta.unit="count"
+snowflake.login.attempts.total 1276
+#snowflake.login.attempts.total gauge dt.meta.displayName="All login attempts to Snowflake",dt.meta.unit="count"
+snowflake.metering.data.rows 50000
+#snowflake.metering.data.rows gauge dt.meta.displayName="Snowflake metered rows",dt.meta.unit="row"
+snowflake.metering.data.size 10485760
+#snowflake.metering.data.size gauge dt.meta.displayName="Snowflake metered data",dt.meta.unit="By"
+snowflake.org.billing.amount 150.5
+#snowflake.org.billing.amount gauge dt.meta.displayName="Snowflake organization billing amount",dt.meta.unit="currency"
+snowflake.org.billing.capacity_balance 10000.0
+#snowflake.org.billing.capacity_balance gauge dt.meta.displayName="Snowflake organization billing capacity balance",dt.meta.unit="currency"
+snowflake.org.billing.free_usage_balance 200.0
+#snowflake.org.billing.free_usage_balance gauge dt.meta.displayName="Snowflake organization billing free usage balance",dt.meta.unit="currency"
+snowflake.org.billing.marketplace_capacity_drawdown_balance 0.0
+#snowflake.org.billing.marketplace_capacity_drawdown_balance gauge dt.meta.displayName="Snowflake organization marketplace capacity drawdown balance",dt.meta.unit="currency"
+snowflake.org.billing.on_demand_consumption 100.0
+#snowflake.org.billing.on_demand_consumption gauge dt.meta.displayName="Snowflake organization billing on-demand consumption",dt.meta.unit="currency"
+snowflake.org.billing.rollover_balance 500.0
+#snowflake.org.billing.rollover_balance gauge dt.meta.displayName="Snowflake organization billing rollover balance",dt.meta.unit="currency"
+snowflake.org.credits.adjustment_cloud_services -0.5
+#snowflake.org.credits.adjustment_cloud_services gauge dt.meta.displayName="Snowflake organization cloud services credit adjustment",dt.meta.unit="credit"
+snowflake.org.credits.cloud_services 1.2
+#snowflake.org.credits.cloud_services gauge dt.meta.displayName="Snowflake organization cloud services credits used",dt.meta.unit="credit"
+snowflake.org.credits.compute 8.0
+#snowflake.org.credits.compute gauge dt.meta.displayName="Snowflake organization compute credits used",dt.meta.unit="credit"
+snowflake.org.credits.used 9.2
+#snowflake.org.credits.used gauge dt.meta.displayName="Snowflake organization total credits used",dt.meta.unit="credit"
+snowflake.org.data.stored 1099511627776
+#snowflake.org.data.stored gauge dt.meta.displayName="Snowflake organization data stored",dt.meta.unit="By"
+snowflake.org.data.transferred 2147483648
+#snowflake.org.data.transferred gauge dt.meta.displayName="Snowflake organization data transferred",dt.meta.unit="By"
+snowflake.partitions.added 5
+#snowflake.partitions.added gauge dt.meta.displayName="Snowflake partitions added",dt.meta.unit="partition"
+snowflake.partitions.removed 3
+#snowflake.partitions.removed gauge dt.meta.displayName="Snowflake partitions removed",dt.meta.unit="partition"
+snowflake.partitions.scanned 100
+#snowflake.partitions.scanned gauge dt.meta.displayName="Snowflake partitions scanned",dt.meta.unit="partition"
+snowflake.partitions.total 500
+#snowflake.partitions.total gauge dt.meta.displayName="Snowflake total partitions",dt.meta.unit="partition"
+snowflake.pipe.cost.bytes_billed 524288
+#snowflake.pipe.cost.bytes_billed gauge dt.meta.displayName="Snowflake pipe bytes billed",dt.meta.unit="By"
+snowflake.pipe.cost.credits_used 0.5
+#snowflake.pipe.cost.credits_used gauge dt.meta.displayName="Snowflake pipe credits used",dt.meta.unit="count"
+snowflake.pipe.data.ingested 1048576
+#snowflake.pipe.data.ingested gauge dt.meta.displayName="Snowflake pipe data ingested",dt.meta.unit="By"
+snowflake.pipe.errors 0
+#snowflake.pipe.errors gauge dt.meta.displayName="Snowflake pipe load errors",dt.meta.unit="count"
+snowflake.pipe.files.ingested 1
+#snowflake.pipe.files.ingested gauge dt.meta.displayName="Snowflake pipe files ingested",dt.meta.unit="count"
+snowflake.pipe.files.inserted 10
+#snowflake.pipe.files.inserted gauge dt.meta.displayName="Snowflake pipe files inserted",dt.meta.unit="count"
+snowflake.pipe.files.pending 5
+#snowflake.pipe.files.pending gauge dt.meta.displayName="Snowflake pipe pending files",dt.meta.unit="count"
+snowflake.pipe.ingest.latency 5000
+#snowflake.pipe.ingest.latency gauge dt.meta.displayName="Snowflake pipe ingest latency",dt.meta.unit="ms"
+snowflake.pipe.latency.oldest_file 12345
+#snowflake.pipe.latency.oldest_file gauge dt.meta.displayName="Snowflake pipe oldest file latency",dt.meta.unit="ms"
+snowflake.pipe.rows.loaded 1000
+#snowflake.pipe.rows.loaded gauge dt.meta.displayName="Snowflake pipe rows loaded",dt.meta.unit="count"
+snowflake.pipe.rows.parsed 1050
+#snowflake.pipe.rows.parsed gauge dt.meta.displayName="Snowflake pipe rows parsed",dt.meta.unit="count"
+snowflake.queries.queued 5
+#snowflake.queries.queued gauge dt.meta.displayName="Snowflake queued queries",dt.meta.unit="query"
+snowflake.queries.running 15
+#snowflake.queries.running gauge dt.meta.displayName="Snowflake running queries",dt.meta.unit="query"
+snowflake.resource_monitor.warehouses.count 5
+#snowflake.resource_monitor.warehouses.count gauge dt.meta.displayName="Snowflake resource monitor warehouse count",dt.meta.unit="warehouse"
+snowflake.rows.copied 75
+#snowflake.rows.copied gauge dt.meta.displayName="Snowflake rows copied",dt.meta.unit="row"
+snowflake.rows.deleted 50
+#snowflake.rows.deleted gauge dt.meta.displayName="Snowflake rows deleted",dt.meta.unit="row"
+snowflake.rows.inserted 100
+#snowflake.rows.inserted gauge dt.meta.displayName="Snowflake rows inserted",dt.meta.unit="row"
+snowflake.rows.unloaded 1000
+#snowflake.rows.unloaded gauge dt.meta.displayName="Snowflake rows unloaded",dt.meta.unit="row"
+snowflake.rows.updated 300
+#snowflake.rows.updated gauge dt.meta.displayName="Snowflake rows updated",dt.meta.unit="row"
+snowflake.rows.written_to_result 1
+#snowflake.rows.written_to_result gauge dt.meta.displayName="Snowflake rows written to result",dt.meta.unit="row"
+snowflake.table.access.count 42
+#snowflake.table.access.count gauge dt.meta.displayName="Snowflake table access count",dt.meta.unit="count"
+snowflake.table.active_bytes 1073741824
+#snowflake.table.active_bytes gauge dt.meta.displayName="Snowflake table active bytes",dt.meta.unit="By"
+snowflake.table.clustering.constant_partition_ratio 0.85
+#snowflake.table.clustering.constant_partition_ratio gauge dt.meta.displayName="Snowflake table constant partition ratio",dt.meta.unit="ratio"
+snowflake.table.clustering.degraded 1
+#snowflake.table.clustering.degraded gauge dt.meta.displayName="Snowflake table clustering degraded indicator",dt.meta.unit="count"
+snowflake.table.clustering.depth 2.5
+#snowflake.table.clustering.depth gauge dt.meta.displayName="Snowflake table clustering depth",dt.meta.unit="count"
+snowflake.table.clustering.depth_change 0.3
+#snowflake.table.clustering.depth_change gauge dt.meta.displayName="Snowflake table clustering depth change",dt.meta.unit="count"
+snowflake.table.clustering.overlap 1.2
+#snowflake.table.clustering.overlap gauge dt.meta.displayName="Snowflake table clustering overlap",dt.meta.unit="count"
+snowflake.table.clustering.total_partitions 1200
+#snowflake.table.clustering.total_partitions gauge dt.meta.displayName="Snowflake table total partitions",dt.meta.unit="count"
+snowflake.table.days_since_last_access 95
+#snowflake.table.days_since_last_access gauge dt.meta.displayName="Snowflake days since last table access",dt.meta.unit="d"
+snowflake.table.dynamic.lag.max 83
+#snowflake.table.dynamic.lag.max gauge dt.meta.displayName="Snowflake dynamic table maximum lag",dt.meta.unit="s"
+snowflake.table.dynamic.lag.mean 26
+#snowflake.table.dynamic.lag.mean gauge dt.meta.displayName="Snowflake dynamic table mean lag",dt.meta.unit="s"
+snowflake.table.dynamic.lag.target.time_above 151
+#snowflake.table.dynamic.lag.target.time_above gauge dt.meta.displayName="Snowflake dynamic table time above target lag",dt.meta.unit="s"
+snowflake.table.dynamic.lag.target.value 60
+#snowflake.table.dynamic.lag.target.value gauge dt.meta.displayName="Snowflake dynamic table target lag",dt.meta.unit="s"
+snowflake.table.dynamic.lag.target.within_ratio 0.999
+#snowflake.table.dynamic.lag.target.within_ratio gauge dt.meta.displayName="Snowflake dynamic table within-target lag ratio",dt.meta.unit="ratio"
+snowflake.table.failsafe_bytes 268435456
+#snowflake.table.failsafe_bytes gauge dt.meta.displayName="Snowflake table failsafe bytes",dt.meta.unit="By"
+snowflake.table.growth_bytes 104857600
+#snowflake.table.growth_bytes gauge dt.meta.displayName="Snowflake table growth in bytes",dt.meta.unit="By"
+snowflake.table.growth_pct 9.77
+#snowflake.table.growth_pct gauge dt.meta.displayName="Snowflake table growth percentage",dt.meta.unit="%"
+snowflake.table.retained_for_clone_bytes 134217728
+#snowflake.table.retained_for_clone_bytes gauge dt.meta.displayName="Snowflake table retained-for-clone bytes",dt.meta.unit="By"
+snowflake.table.time_since.last_ddl 2880
+#snowflake.table.time_since.last_ddl gauge dt.meta.displayName="Snowflake time since last DDL",dt.meta.unit="min"
+snowflake.table.time_since.last_update 1440
+#snowflake.table.time_since.last_update gauge dt.meta.displayName="Snowflake time since last update",dt.meta.unit="min"
+snowflake.table.time_travel_bytes 536870912
+#snowflake.table.time_travel_bytes gauge dt.meta.displayName="Snowflake table time travel bytes",dt.meta.unit="By"
+snowflake.task.run.cancelled 1
+#snowflake.task.run.cancelled gauge dt.meta.displayName="Snowflake task runs cancelled",dt.meta.unit="count"
+snowflake.task.run.failed 3
+#snowflake.task.run.failed gauge dt.meta.displayName="Snowflake task runs failed",dt.meta.unit="count"
+snowflake.task.run.successful 142
+#snowflake.task.run.successful gauge dt.meta.displayName="Snowflake task runs successful",dt.meta.unit="count"
+snowflake.time.child_queries_wait 200
+#snowflake.time.child_queries_wait gauge dt.meta.displayName="Snowflake child queries wait time",dt.meta.unit="ms"
+snowflake.time.compilation 5000
+#snowflake.time.compilation gauge dt.meta.displayName="Snowflake query compilation time",dt.meta.unit="ms"
+snowflake.time.execution 100000
+#snowflake.time.execution gauge dt.meta.displayName="Snowflake query execution time",dt.meta.unit="ms"
+snowflake.time.fault_handling 1500
+#snowflake.time.fault_handling gauge dt.meta.displayName="Snowflake fault handling time",dt.meta.unit="ms"
+snowflake.time.list_external_files 300
+#snowflake.time.list_external_files gauge dt.meta.displayName="Snowflake list external files time",dt.meta.unit="ms"
+snowflake.time.queued.overload 1500
+#snowflake.time.queued.overload gauge dt.meta.displayName="Snowflake queued overload time",dt.meta.unit="ms"
+snowflake.time.queued.provisioning 3000
+#snowflake.time.queued.provisioning gauge dt.meta.displayName="Snowflake queued provisioning time",dt.meta.unit="ms"
+snowflake.time.repair 500
+#snowflake.time.repair gauge dt.meta.displayName="Snowflake queued repair time",dt.meta.unit="ms"
+snowflake.time.retry 2000
+#snowflake.time.retry gauge dt.meta.displayName="Snowflake query retry time",dt.meta.unit="ms"
+snowflake.time.running 120000
+#snowflake.time.running gauge dt.meta.displayName="Snowflake query running time",dt.meta.unit="ms"
+snowflake.time.total_elapsed 120000
+#snowflake.time.total_elapsed gauge dt.meta.displayName="Snowflake query total elapsed time",dt.meta.unit="ms"
+snowflake.time.transaction_blocked 1000
+#snowflake.time.transaction_blocked gauge dt.meta.displayName="Snowflake transaction blocked time",dt.meta.unit="ms"
+snowflake.trust_center.findings 10
+#snowflake.trust_center.findings gauge dt.meta.displayName="Snowflake Trust Center findings count",dt.meta.unit="count"
+snowflake.warehouse.auto_suspend 600
+#snowflake.warehouse.auto_suspend gauge dt.meta.displayName="Snowflake warehouse auto-suspend timeout",dt.meta.unit="s"
+snowflake.warehouse.clusters.max 10
+#snowflake.warehouse.clusters.max gauge dt.meta.displayName="Snowflake warehouse maximum cluster count",dt.meta.unit="cluster"
+snowflake.warehouse.clusters.min 1
+#snowflake.warehouse.clusters.min gauge dt.meta.displayName="Snowflake warehouse minimum cluster count",dt.meta.unit="cluster"
+snowflake.warehouse.clusters.started 3
+#snowflake.warehouse.clusters.started gauge dt.meta.displayName="Snowflake warehouse started clusters",dt.meta.unit="cluster"

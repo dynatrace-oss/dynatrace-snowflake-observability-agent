@@ -1,0 +1,15 @@
+groups:
+  - id: i.snowflake_warehouse
+    type: interface
+    title: Snowflake warehouse dimensions
+    brief: Common warehouse dimensions for per-warehouse metrics.
+    attributes:
+      - ref: snowflake.warehouse.name
+      - ref: snowflake.warehouse.id
+  - id: i.snowflake_database
+    type: interface
+    title: Snowflake database dimensions
+    brief: Common database/schema dimensions for per-database metrics.
+    attributes:
+      - ref: db.namespace
+      - ref: snowflake.schema.name

@@ -87,9 +87,49 @@ def _get_plugin_title(plugin_name: str) -> str:
 
 
 def _get_clean_description(details: dict) -> str:
-    """Rephrases descriptions to be properly displayed in columns."""
+    """Rephrases descriptions to be properly displayed in columns.
+
+    When the field has a ``__enum`` definition, a human-readable list of
+    possible values is appended after the base description so that readers
+    of ``SEMANTICS.md`` understand the valid values without consulting the
+    raw YAML source.
+
+    Format (HTML-rendered in Markdown table cells)::
+
+        <base description> <br> Possible values: <ul><li>- `VALUE` — brief,
+        <li> `VALUE` — brief, …</ul> Additional values may be present.
+
+    The trailing sentence is added only when ``allow_custom_values`` is
+    ``true`` (i.e. the enum is open-ended).
+
+    Args:
+        details: Field entry dict from ``instruments-def.yml``.
+
+    Returns:
+        Description string suitable for a Markdown table cell.
+    """
     description = details.get("__description", "")
-    return description.replace("\n", " ").replace("-", "<br>-")
+    base = description.replace("\n", " ").replace("-", "<br>-")
+    enum_def = details.get("__enum")
+    if not enum_def or not isinstance(enum_def, dict):
+        return base
+    members = enum_def.get("members") or []
+    if not members:
+        return base
+    parts = []
+    for member in members:
+        value = member.get("value", "")
+        brief = (member.get("brief") or "").rstrip(".")
+        if brief:
+            parts.append(f"<li> `{value}` — {brief}")
+        else:
+            parts.append(f"<li> `{value}`")
+    items = ", ".join(parts)
+    enum_text = f"<br> Possible values: <ul>{items}</ul>"
+    if enum_def.get("allow_custom_values"):
+        enum_text += " Additional values may be present."
+    separator = " " if base and not base.endswith(" ") else ""
+    return f"{base}{separator}{enum_text}"
 
 
 def _generate_markdown_table(columns: List[str], rows_data: List[List]) -> str:
@@ -102,12 +142,15 @@ def _generate_markdown_table(columns: List[str], rows_data: List[List]) -> str:
     Returns:
         Markdown table string.
     """
+    # Escape pipe characters in cell content so they don't break table column structure
+    safe_rows = [[str(cell).replace("|", "\\|") for cell in row] for row in rows_data]
+
     # Calculate column widths
     column_widths = []
     for i, header in enumerate(columns):
         max_len = len(header)
-        for row in rows_data:
-            max_len = max(max_len, len(str(row[i])))
+        for row in safe_rows:
+            max_len = max(max_len, len(row[i]))
         column_widths.append(max_len)
 
     # Generate header
@@ -116,8 +159,8 @@ def _generate_markdown_table(columns: List[str], rows_data: List[List]) -> str:
 
     # Generate rows
     rows = ""
-    for row_data in rows_data:
-        row = "| " + " | ".join(f"{str(cell):<{w}}" for cell, w in zip(row_data, column_widths)) + " |\n"
+    for row_data in safe_rows:
+        row = "| " + " | ".join(f"{cell:<{w}}" for cell, w in zip(row_data, column_widths)) + " |\n"
         rows += row
 
     return header + separator + rows + "\n"
@@ -132,9 +175,9 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
 
             # Define columns based on key
             if key == "metrics":
-                columns = ["Identifier", "Name", "Unit", "Description", "Example"]
+                columns = ["Identifier", "Name", "Unit", "Description", "Example", "Stability"]
             else:
-                columns = ["Identifier", "Description", "Example"]
+                columns = ["Identifier", "Description", "Example", "Stability"]
             if no_global_context_name:
                 columns.append("Context Name")
 
@@ -146,12 +189,13 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
                 example = details.get("__example", "")
                 if isinstance(example, str) and ("@" in example or "* *" in example):
                     example = f"`{example}`"
+                stability = details.get("__stability", "") or ""
                 if key == "metrics":
                     name = details.get("displayName", "")
                     unit = details.get("unit", "")
-                    row = [key_id, name, unit, description, example]
+                    row = [key_id, name, unit, description, example, stability]
                 else:
-                    row = [key_id, description, example]
+                    row = [key_id, description, example, stability]
                 if no_global_context_name:
                     context_names = ", ".join(details.get("__context_names", []))
                     row.append(context_names)
@@ -359,6 +403,16 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
                             )
 
                         __content += plugin_semantics
+
+                        dql_queries = plugin_input.get("dql_queries") or []
+                        if dql_queries:
+                            __content += f"\n### DQL query examples for the `{plugin_name}` plugin\n\n"
+                            for dql_entry in dql_queries:
+                                query_str = (dql_entry.get("query_string") or "").strip()
+                                description = (dql_entry.get("description") or "").strip()
+                                if description:
+                                    __content += f"{description}\n\n"
+                                __content += f"```dql\n{query_str}\n```\n\n"
 
     return __content, __plugins_toc
 
