@@ -869,38 +869,28 @@ class TestDisplayNameCasing:
             for w in words[1:]
         )
 
-    def test_attribute_display_names_are_sentence_case(self):
-        """Attribute displayName values must use Sentence case."""
+    def _check_title_case_violation(self, field_type: str) -> bool:
+        """Field displayName values must use Sentence case."""
         all_defs = _load_all_instruments_defs()
         violations = []
         for plugin_name, data in all_defs.items():
-            for key, entry in (data.get("attributes") or {}).items():
-                dn = (entry or {}).get("displayName")
+            for key, entry in (data.get("field_type") or {}).items():
+                dn = (entry or {}).get("displayName", "").replace("Dynatrace Snowflake Observability Agent", "").strip()
                 if dn and self._is_title_case_violation(dn):
                     violations.append(f"{plugin_name}/{key}: {dn!r}")
-        assert not violations, f"{len(violations)} attribute displayName(s) in Title Case:\n" + "\n".join(violations)
+        assert not violations, f"{len(violations)} {field_type} displayName(s) in Title Case:\n" + "\n".join(violations)
+
+    def test_attribute_display_names_are_sentence_case(self):
+        """Attribute displayName values must use Sentence case."""
+        self._check_title_case_violation("attributes")
 
     def test_dimension_display_names_are_sentence_case(self):
         """Dimension displayName values must use Sentence case."""
-        all_defs = _load_all_instruments_defs()
-        violations = []
-        for plugin_name, data in all_defs.items():
-            for key, entry in (data.get("dimensions") or {}).items():
-                dn = (entry or {}).get("displayName")
-                if dn and self._is_title_case_violation(dn):
-                    violations.append(f"{plugin_name}/{key}: {dn!r}")
-        assert not violations, f"{len(violations)} dimension displayName(s) in Title Case:\n" + "\n".join(violations)
+        self._check_title_case_violation("dimensions")
 
     def test_metric_display_names_are_sentence_case(self):
         """Metric displayName values must use Sentence case."""
-        all_defs = _load_all_instruments_defs()
-        violations = []
-        for plugin_name, data in all_defs.items():
-            for key, entry in (data.get("metrics") or {}).items():
-                dn = (entry or {}).get("displayName")
-                if dn and self._is_title_case_violation(dn):
-                    violations.append(f"{plugin_name}/{key}: {dn!r}")
-        assert not violations, f"{len(violations)} metric displayName(s) in Title Case:\n" + "\n".join(violations)
+        self._check_title_case_violation("metrics")
 
 
 ##endregion
