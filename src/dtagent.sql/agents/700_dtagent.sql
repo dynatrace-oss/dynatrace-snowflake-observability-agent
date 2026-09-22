@@ -42,9 +42,9 @@ packages = (
     'pandas',
     'tzlocal',
     'snowflake-snowpark-python',
-    'opentelemetry-api',
-    'opentelemetry-sdk',
-    'opentelemetry-exporter-otlp-proto-http'
+    'opentelemetry-api>1.39.0,<1.44',
+    'opentelemetry-sdk>1.39.0,<1.44',
+    'opentelemetry-exporter-otlp-proto-http>1.39.0,<1.44'
 )
 handler = 'main'
 external_access_integrations = (DTAGENT_API_INTEGRATION)
