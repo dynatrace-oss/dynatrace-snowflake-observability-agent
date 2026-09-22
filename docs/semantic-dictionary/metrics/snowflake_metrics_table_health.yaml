@@ -4,7 +4,7 @@ model:
   brief: Metrics collected by the Dynatrace Snowflake Observability Agent table_health plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [i.dsoa_resource, i.snowflake_database]
+  interfaces: [ i.dsoa_resource, i.snowflake_database ]
   dql_queries:
     - query_string: >
         timeseries val = avg(snowflake.table.active_bytes), by: { db.collection.name, deployment.environment.name }
@@ -34,8 +34,7 @@ model:
       metric_name: snowflake.table.clustering.constant_partition_ratio
       instrument: gauge
       brief: |-
-        Fraction of micro-partitions that are constant (fully within a single clustering
-        key range). Higher values indicate better clustering quality.
+        Fraction of micro-partitions that are constant (fully within a single clustering key range). Higher values indicate better clustering quality.
       title: Snowflake table constant partition ratio
       unit: ratio
       attributes:
@@ -47,9 +46,7 @@ model:
       metric_name: snowflake.table.clustering.degraded
       instrument: gauge
       brief: |-
-        Flag indicating whether clustering has degraded beyond the configured threshold
-        (plugins.table_health.clustering_degradation_threshold).
-        1 = degraded, 0 = healthy or no clustering data available.
+        Flag indicating whether clustering has degraded beyond the configured threshold (plugins.table_health.clustering_degradation_threshold). 1 = degraded, 0 = healthy or no clustering data available.
       title: Snowflake table clustering degraded indicator
       unit: count
       attributes:
@@ -60,8 +57,7 @@ model:
       metric_name: snowflake.table.clustering.depth
       instrument: gauge
       brief: |-
-        Average clustering depth of the table. Lower values indicate better clustering.
-        A value of 1.0 means all micro-partitions are perfectly clustered.
+        Average clustering depth of the table. Lower values indicate better clustering. A value of 1.0 means all micro-partitions are perfectly clustered.
       title: Snowflake table clustering depth
       unit: count
       attributes:
@@ -73,8 +69,7 @@ model:
       metric_name: snowflake.table.clustering.depth_change
       instrument: gauge
       brief: |-
-        Change in average clustering depth between the two most recent snapshots.
-        Positive values indicate degradation; negative values indicate improvement.
+        Change in average clustering depth between the two most recent snapshots. Positive values indicate degradation; negative values indicate improvement.
       title: Snowflake table clustering depth change
       unit: count
       attributes:
@@ -85,8 +80,7 @@ model:
       metric_name: snowflake.table.clustering.overlap
       instrument: gauge
       brief: |-
-        Average overlap depth of the table. Lower values indicate less overlap between
-        micro-partitions and better clustering efficiency.
+        Average overlap depth of the table. Lower values indicate less overlap between micro-partitions and better clustering efficiency.
       title: Snowflake table clustering overlap
       unit: count
       attributes:
@@ -119,8 +113,7 @@ model:
       metric_name: snowflake.table.growth_bytes
       instrument: gauge
       brief: |-
-        Change in active bytes between the two most recent snapshots.
-        Positive values indicate growth; negative values indicate shrinkage.
+        Change in active bytes between the two most recent snapshots. Positive values indicate growth; negative values indicate shrinkage.
       title: Snowflake table growth in bytes
       unit: By
       attributes:
@@ -131,8 +124,7 @@ model:
       metric_name: snowflake.table.growth_pct
       instrument: gauge
       brief: |-
-        Percentage change in active bytes between the two most recent snapshots.
-        Null when the previous snapshot had zero bytes.
+        Percentage change in active bytes between the two most recent snapshots. Null when the previous snapshot had zero bytes.
       title: Snowflake table growth percentage
       unit: "%"
       attributes:

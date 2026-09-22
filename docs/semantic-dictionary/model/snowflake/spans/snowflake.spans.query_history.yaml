@@ -4,7 +4,7 @@ model:
   brief: Span records emitted by the Dynatrace Snowflake Observability Agent query_history plugin.
   model_group_id: snowflake.spans
   data_object: spans
-  interfaces: [i.dsoa_resource]
+  interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: |
         fetch spans
@@ -12,8 +12,7 @@ model:
         | filter dsoa.run.plugin == "query_history"
         | sort timestamp desc
         | limit 50
-      description:
-        Fetch the 50 most recent Dynatrace Snowflake Observability Agent query_history spans (individual Snowflake query executions).
+      description: Fetch the 50 most recent Dynatrace Snowflake Observability Agent query_history spans (individual Snowflake query executions).
       description_copilot: Find query_history span traces produced by the Snowflake observability agent.
     - query_string: |
         fetch spans
@@ -23,9 +22,7 @@ model:
         | fields trace.id, span.id, request.is_root_span, snowflake.query.id, start_time, end_time
         | sort start_time desc
         | limit 50
-      description:
-        Correlate Dynatrace Snowflake Observability Agent query_history spans by trace.id/span.id to inspect the root span and timing for a
-        Snowflake query execution.
+      description: Correlate Dynatrace Snowflake Observability Agent query_history spans by trace.id/span.id to inspect the root span and timing for a Snowflake query execution.
       description_copilot: Find the trace and span identifiers for Snowflake query execution spans, including whether each is the root span.
     - query_string: |
         fetch spans

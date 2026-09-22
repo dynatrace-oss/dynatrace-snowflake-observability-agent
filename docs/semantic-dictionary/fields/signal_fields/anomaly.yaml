@@ -8,7 +8,7 @@ groups:
         display_name: 'Anomaly detector'
         type: string
         stability: experimental
-        brief: Identifies the workflow or plugin that detected the anomaly. Values follow the ``dsoa.<workflow_name>`` convention (e.g., ``dsoa.data_volume_anomaly``) except for the failed-login detector which uses ``dsoa.failed_login_detection``.
+        brief: Identifies the workflow or plugin that detected the anomaly. Values follow the ``dsoa.<workflow_name>`` convention (for example, ``dsoa.data_volume_anomaly``) except for the failed-login detector which uses ``dsoa.failed_login_detection``.
         examples: [ 'dsoa.data_volume_anomaly' ]
       - id: anomaly.direction
         display_name: 'Anomaly direction'
@@ -31,25 +31,26 @@ groups:
           members:
             - id: login
               value: "login"
-              brief: Anomaly in login attempt counts.
+              brief: Anomaly in login attempt counts (security anomaly detection workflow).
             - id: session
               value: "session"
-              brief: Anomaly in active session counts.
+              brief: Anomaly in active session counts (security anomaly detection workflow).
             - id: query_count
               value: "query_count"
-              brief: Anomaly in query execution counts.
+              brief: Anomaly in query execution counts (security anomaly detection workflow).
             - id: data_scan
               value: "data_scan"
-              brief: Anomaly in data volume scanned.
+              brief: Anomaly in data volume scanned (security anomaly detection workflow).
             - id: volume_drop
               value: "volume_drop"
-              brief: Detected drop in data rows for a share.
+              brief: Detected drop in data rows for a share (broken shares detection workflow).
             - id: unavailable
               value: "unavailable"
-              brief: Share object no longer accessible.
+              brief: Share object no longer accessible (broken shares detection workflow).
             - id: disappeared
               value: "disappeared"
-              brief: Share object no longer present in the account.
+              brief: Share object no longer present in the account (broken shares detection workflow).
         stability: experimental
-        brief: High-level category classifying the anomaly subject within its detector. Specific values are defined per workflow (e.g., ``login`` / ``session`` / ``query_count`` / ``data_scan`` for security anomaly detection; ``unavailable`` / ``disappeared`` / ``volume_drop`` for shares broken detection).
-        examples: [ 'login' ]
+        brief: High-level category classifying the anomaly subject within its detector.
+        examples:
+          - ['login']

@@ -4,7 +4,7 @@ model:
   brief: Log records emitted by the Dynatrace Snowflake Observability Agent shares plugin.
   model_group_id: snowflake.logs
   data_object: logs
-  interfaces: [i.dsoa_resource]
+  interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: |
         fetch logs
@@ -12,9 +12,7 @@ model:
         | filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
         | sort timestamp desc
         | limit 100
-      description:
-        Fetch the 100 most recent Dynatrace Snowflake Observability Agent shares plugin log entries (inbound and outbound shares) from
-        Grail.
+      description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent shares plugin log entries (inbound and outbound shares) from Grail.
       description_copilot: Search for all shares plugin logs from the Snowflake observability agent.
     - query_string: |
         fetch logs
