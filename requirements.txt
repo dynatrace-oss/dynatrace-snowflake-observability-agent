@@ -31,10 +31,10 @@ snowflake-connector-python[secure-local-storage]>=4.4.0
 streamlit
 
 # === OpenTelemetry ===
-opentelemetry-api==1.39.1
-opentelemetry-sdk==1.39.1
-opentelemetry-exporter-otlp-proto-http==1.39.1
-opentelemetry-proto==1.39.1
+opentelemetry-api>1.39.0,<1.44
+opentelemetry-sdk>1.39.0,<1.44
+opentelemetry-exporter-otlp-proto-http>1.39.0,<1.44
+opentelemetry-proto>1.39.0,<1.44
 
 # === Data Processing & Utilities ===
 pandas
