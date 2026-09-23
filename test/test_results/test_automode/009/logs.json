@@ -16,19 +16,17 @@
     },
     "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/009",
-    "code.file.path": "./src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
-      "db.system": "snowflake",
-      "deployment.environment": "TEST",
-      "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "service.name": "test.dsoa2025",
-      "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
-      "deployment.environment.name": "TEST"
+      "telemetry.sdk.version": "<<SEMVER>>",
+      "service.instance.id": "<<UUID>>",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
     }
   },
   {
@@ -48,19 +46,17 @@
     },
     "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/009",
-    "code.file.path": "./src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
-      "db.system": "snowflake",
-      "deployment.environment": "TEST",
-      "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "service.name": "test.dsoa2025",
-      "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
-      "deployment.environment.name": "TEST"
+      "telemetry.sdk.version": "<<SEMVER>>",
+      "service.instance.id": "<<UUID>>",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
     }
   },
   {
@@ -80,19 +76,17 @@
     },
     "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/009",
-    "code.file.path": "./src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
-      "db.system": "snowflake",
-      "deployment.environment": "TEST",
-      "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "service.name": "test.dsoa2025",
-      "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
-      "deployment.environment.name": "TEST"
+      "telemetry.sdk.version": "<<SEMVER>>",
+      "service.instance.id": "<<UUID>>",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
     }
   },
   {
@@ -126,19 +120,17 @@
     ],
     "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/009",
-    "code.file.path": "./src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
-      "db.system": "snowflake",
-      "deployment.environment": "TEST",
-      "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "service.name": "test.dsoa2025",
-      "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
-      "deployment.environment.name": "TEST"
+      "telemetry.sdk.version": "<<SEMVER>>",
+      "service.instance.id": "<<UUID>>",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
     }
   },
   {
@@ -153,19 +145,17 @@
     },
     "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "self_monitoring",
-    "code.file.path": "./src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
-      "db.system": "snowflake",
-      "deployment.environment": "TEST",
-      "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "service.name": "test.dsoa2025",
-      "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
-      "deployment.environment.name": "TEST"
+      "telemetry.sdk.version": "<<SEMVER>>",
+      "service.instance.id": "<<UUID>>",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
     }
   }
 ]
