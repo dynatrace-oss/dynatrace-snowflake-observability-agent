@@ -32,13 +32,13 @@ language python
 runtime_version = '3.13'
 artifact_repository = snowflake.snowpark.anaconda_shared_repository
 packages = (
-    'requests',
+    'requests>=2.33.0',
     'pandas',
     'tzlocal',
-    'snowflake-snowpark-python',
-    'opentelemetry-api',
-    'opentelemetry-sdk',
-    'opentelemetry-exporter-otlp-proto-http'
+    'snowflake-snowpark-python>=1.49.0',
+    'opentelemetry-api>1.39.0,<1.44',
+    'opentelemetry-sdk>1.39.0,<1.44',
+    'opentelemetry-exporter-otlp-proto-http>1.39.0,<1.44'
 )
 handler = 'main'
 external_access_integrations = (DTAGENT_API_INTEGRATION)

@@ -25,9 +25,12 @@ import os
 import json
 import re
 import datetime
+import uuid
 from typing import Any, Dict, List, Union
 from contextlib import contextmanager
 from unittest.mock import MagicMock, patch, Mock
+from packaging.version import Version, InvalidVersion
+from packaging.specifiers import SpecifierSet
 
 from dtagent.context import RUN_ID_KEY, RUN_RESULTS_KEY
 
@@ -386,40 +389,60 @@ class MockTelemetryClient:
             Returns:
                 Dict[str, Any]: The cleaned telemetry data dictionary.
             """
-            # Remove fields changing values per run
-            cleaned_dict = {
-                k: __cleanup_telemetry_dict(v) if isinstance(v, dict) else v
-                for k, v in data_dict.items()
-                if k.lower()
-                not in (
-                    # update by agent to fit the current run
-                    "observed_timestamp",
-                    "observed_at",
-                    "timestamp",
-                    "end_time",
-                    "start_time",
-                    "time",
-                    "starttime",
-                    "endtime",
-                    "event.start",
-                    "event.end",
-                    # from event tests
-                    "test.ts",
-                    "test.event.dtagent.start_time",
-                    "test.event.dtagent.end_time",
-                    "test.event.dtagent.datetime",
-                    # id in biz events and events is unique per event
-                    "id",
-                    # each agent run has a different run id
-                    RUN_ID_KEY,
-                    RUN_RESULTS_KEY,
-                    "dsoa.task.exec.id",
-                    # DSOA versions
-                    "app.version",
-                    "app.short_version",
-                    "telemetry.exporter.version",
-                )
+            _EXCLUDED_KEYS = {
+                # update by agent to fit the current run
+                "observed_timestamp",
+                "observed_at",
+                "timestamp",
+                "end_time",
+                "start_time",
+                "time",
+                "starttime",
+                "endtime",
+                "event.start",
+                "event.end",
+                # from event tests
+                "test.ts",
+                "test.event.dtagent.start_time",
+                "test.event.dtagent.end_time",
+                "test.event.dtagent.datetime",
+                # id in biz events and events is unique per event
+                "id",
+                # each agent run has a different run id
+                RUN_ID_KEY,
+                RUN_RESULTS_KEY,
+                "dsoa.task.exec.id",
+                # DSOA versions
+                "app.version",
+                "app.short_version",
+                "telemetry.exporter.version",
             }
+            _UUIDS = {"service.instance.id"}
+            _SEMVERS = {
+                "telemetry.sdk.version": SpecifierSet(">1.39.0,<1.44"),
+            }
+            cleaned_dict = {}
+            for k, v in data_dict.items():
+                if k.lower() in _EXCLUDED_KEYS:
+                    continue
+                if k.lower() in _SEMVERS:
+                    try:
+                        Version(v)
+                    except InvalidVersion:
+                        raise AssertionError(f"{k} '{v}' is not a valid semantic version")
+                    if not _SEMVERS[k].contains(v):
+                        raise AssertionError(f"{k} '{v}' is not in range {_SEMVERS[k]}")
+                    cleaned_dict[k] = "<<SEMVER>>"
+                elif k.lower() in _UUIDS:
+                    try:
+                        uuid.UUID(v)
+                    except ValueError:
+                        raise AssertionError(f"{k} '{v}' is not a valid UUID")
+                    cleaned_dict[k] = "<<UUID>>"
+                elif isinstance(v, dict):
+                    cleaned_dict[k] = __cleanup_telemetry_dict(v)
+                else:
+                    cleaned_dict[k] = v
             return cleaned_dict
 
         def __cleanup_metric_lines(lines: str) -> List[str]:
