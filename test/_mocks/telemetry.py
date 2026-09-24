@@ -389,7 +389,7 @@ class MockTelemetryClient:
             Returns:
                 Dict[str, Any]: The cleaned telemetry data dictionary.
             """
-            _EXCLUDED_KEYS = (
+            _EXCLUDED_KEYS = {
                 # update by agent to fit the current run
                 "observed_timestamp",
                 "observed_at",
@@ -416,10 +416,8 @@ class MockTelemetryClient:
                 "app.version",
                 "app.short_version",
                 "telemetry.exporter.version",
-            )
-            _UUIDS = (
-                "service.instance.id"
-            )
+            }
+            _UUIDS = {"service.instance.id"}
             _SEMVERS = {
                 "telemetry.sdk.version": SpecifierSet(">1.39.0,<1.44"),
             }

@@ -38,7 +38,8 @@
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
+      "telemetry.sdk.version": "<<SEMVER>>",
+      "service.instance.id": "<<UUID>>",
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
@@ -86,7 +87,8 @@
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
+      "telemetry.sdk.version": "<<SEMVER>>",
+      "service.instance.id": "<<UUID>>",
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
@@ -117,7 +119,8 @@
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
+      "telemetry.sdk.version": "<<SEMVER>>",
+      "service.instance.id": "<<UUID>>",
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
@@ -148,7 +151,8 @@
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
+      "telemetry.sdk.version": "<<SEMVER>>",
+      "service.instance.id": "<<UUID>>",
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
@@ -179,7 +183,8 @@
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
+      "telemetry.sdk.version": "<<SEMVER>>",
+      "service.instance.id": "<<UUID>>",
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
@@ -210,7 +215,8 @@
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
+      "telemetry.sdk.version": "<<SEMVER>>",
+      "service.instance.id": "<<UUID>>",
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
