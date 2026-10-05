@@ -6,7 +6,7 @@ in the sensitive allowlist (size, scaling policy, auto-suspend, cluster-count bo
 ## Overview
 
 | Property        | Value                                                                           |
-|-----------------|---------------------------------------------------------------------------------|
+| --------------- | ------------------------------------------------------------------------------- |
 | DPO Theme       | Security                                                                        |
 | Required Plugin | `query_history`                                                                 |
 | Trigger         | Every 60 minutes (interval)                                                     |
@@ -32,13 +32,13 @@ in the sensitive allowlist (size, scaling policy, auto-suspend, cluster-count bo
 
 Reads the following attributes from `query_history` logs:
 
-| Attribute                | Role                                                     |
-|--------------------------|----------------------------------------------------------|
-| `db.operation.name`      | Filtered to warehouse DDL types                          |
-| `db.query.text`          | Raw SQL; scanned for sensitive-property keywords         |
-| `db.user`                | Actor (user who ran the DDL)                             |
-| `snowflake.role.name`    | Role used                                                |
-| `deployment.environment` | Scopes query to a specific DSOA deployment               |
+| Attribute                | Role                                             |
+| ------------------------ | ------------------------------------------------ |
+| `db.operation.name`      | Filtered to warehouse DDL types                  |
+| `db.query.text`          | Raw SQL; scanned for sensitive-property keywords |
+| `db.user`                | Actor (user who ran the DDL)                     |
+| `snowflake.role.name`    | Role used                                        |
+| `deployment.environment` | Scopes query to a specific DSOA deployment       |
 
 Empirically confirmed `db.operation.name` values for warehouse DDL: `ALTER`, `CREATE`,
 `DROP`, `RENAME_WAREHOUSE`.
@@ -58,7 +58,7 @@ property changes (such as `COMMENT`) deliberately do not fire.
 
 ## Caveats
 
-- **`db.query.text` obfuscation.** If `plugins.query_history.obfuscation_mode` is not `off`,
+- **`db.query.text` obfuscation.** If `plugins.query_history.obfuscation_mode` is not `none`, the
   query text may be obfuscated and the keyword scan will not match. Ensure obfuscation is
   disabled or set to a mode that preserves DDL keywords for this workflow to function.
 - **`ALTER WAREHOUSE … SUSPEND` / `RESUME`** are session operations and do not carry

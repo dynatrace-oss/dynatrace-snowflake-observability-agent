@@ -5,6 +5,7 @@
 # disabled plugins, handles removed_plugins.yml entries, and detects orphaned tasks
 # via INFORMATION_SCHEMA.TASKS (injected as a Snowflake EXECUTE IMMEDIATE block).
 #
+bats_require_minimum_version 1.5.0
 
 setup() {
     # shellcheck disable=SC2154

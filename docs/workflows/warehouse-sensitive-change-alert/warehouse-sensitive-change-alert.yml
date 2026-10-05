@@ -14,7 +14,7 @@ description: |
   Raises a Dynatrace event per detected change.
 
   Caveat: db.query.text is subject to obfuscation if plugins.query_history.obfuscation_mode
-  is not "off". If obfuscation is enabled, the property-keyword scan may not match.
+  is not "none". If obfuscation is enabled, the property-keyword scan may not match.
 isPrivate: false
 schemaVersion: 4
 trigger:

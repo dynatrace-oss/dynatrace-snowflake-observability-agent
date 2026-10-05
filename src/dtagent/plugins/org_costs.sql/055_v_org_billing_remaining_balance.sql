@@ -37,7 +37,7 @@ select
         'snowflake.org.billing.currency',   CURRENCY
     )                                                                               as DIMENSIONS,
     OBJECT_CONSTRUCT(
-        'snowflake.org.billing.contract_number', CONTRACT_NUMBER
+        'snowflake.org.billing.contract_number', TO_VARCHAR(CONTRACT_NUMBER)
     )                                                                               as ATTRIBUTES,
     OBJECT_CONSTRUCT(
         'snowflake.org.billing.capacity_balance',                      CAPACITY_BALANCE,

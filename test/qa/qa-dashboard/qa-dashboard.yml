@@ -43,7 +43,6 @@ defaultTimeframe:
   to: now()
 defaultSegments: []
 sections:
-
   # ---------------------------------------------------------------------------
   # Header
   # ---------------------------------------------------------------------------
@@ -427,7 +426,7 @@ sections:
     markdown: |
       ## Query Text Obfuscation (BDX-1916)
 
-      Three modes: `off` (literals visible), `literals` (string/number literals replaced
+      Three modes: `none` (literals visible), `literals` (string/number literals replaced
       with `?`), `full` (entire text replaced with hash). Test each mode separately.
 
       Prerequisites: Run `setup_test_query_obfuscation.sql`, then switch
@@ -437,7 +436,7 @@ sections:
   - id: qd-c10-1
     type: dql
     showInput: false
-    title: "[C10.1] Mode: off — sentinel literal SHOULD BE VISIBLE"
+    title: "[C10.1] Mode: none — sentinel literal SHOULD BE VISIBLE"
     height: 180
     state:
       input:
@@ -445,7 +444,7 @@ sections:
           from: now()-1h
           to: now()
         value: |
-          // Run with obfuscation_mode: off active.
+          // Run with obfuscation_mode: none active.
           // Tip: narrow timeframe to now()-30m in the UI to target post-switch spans.
           fetch spans
           | filter dsoa.run.context == "query_history"

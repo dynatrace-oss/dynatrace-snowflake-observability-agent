@@ -84,7 +84,7 @@ select
     OBJECT_CONSTRUCT(
         'db.query.text',                                                qh.QUERY_TEXT,
         'snowflake.table.dynamic.graph.inputs',                         qh.INPUTS,
-        'snowflake.table.dynamic.graph.valid_to',                       qh.VALID_TO,
+        'snowflake.table.dynamic.graph.valid_to',                       EXTRACT(EPOCH_NANOSECOND FROM qh.VALID_TO::TIMESTAMP_LTZ),
         'snowflake.table.dynamic.lag.target.type',                      qh.TARGET_LAG_TYPE,
         'snowflake.table.dynamic.scheduling.state',                     qh.SCHEDULING_STATE_STATE,
         'snowflake.table.dynamic.scheduling.reason.code',               qh.SCHEDULING_STATE_REASON_CODE,

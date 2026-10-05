@@ -86,8 +86,8 @@ select
         'snowflake.copy.first_error.column_name',       FIRST_ERROR_COLUMN_NAME,
         'snowflake.copy.first_error.character_position', FIRST_ERROR_CHARACTER_POS,
         'snowflake.copy.errors.limit',                  ERROR_LIMIT,
-        'snowflake.copy.pipe.received_time',            PIPE_RECEIVED_TIME,
-        'snowflake.copy.first_commit_time',             FIRST_COMMIT_TIME
+        'snowflake.copy.pipe.received_time',            EXTRACT(EPOCH_NANOSECOND FROM PIPE_RECEIVED_TIME::TIMESTAMP_LTZ),
+        'snowflake.copy.first_commit_time',             EXTRACT(EPOCH_NANOSECOND FROM FIRST_COMMIT_TIME::TIMESTAMP_LTZ)
     )                                                                                                as ATTRIBUTES,
     OBJECT_CONSTRUCT(
         'snowflake.pipe.files.ingested',    CASE WHEN STATUS = 'Loaded' THEN 1 ELSE 0 END,
