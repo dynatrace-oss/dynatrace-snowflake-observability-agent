@@ -37,3 +37,11 @@ analyzing, and detecting anomalies in data processing. It delivers observability
 - [Contribution guidelines](docs/CONTRIBUTING.md)
 - [Plugin development guide](docs/PLUGIN_DEVELOPMENT.md)
 - [Appendix and reference](docs/APPENDIX.md)
+
+**Support**
+
+This project is officially supported by Dynatrace.
+
+For product support, troubleshooting, and service-related questions, use the appropriate Dynatrace Support channel.
+
+GitHub Issues may be used for repository-specific bugs, feature requests, or contribution discussions where documented.
