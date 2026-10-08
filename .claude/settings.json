@@ -20,7 +20,6 @@
   "env": {
     "PYTHONPATH": "src"
   },
-  "enableAllProjectMcpServers": true,
   "spinnerTipsEnabled": true,
   "attribution": {
     "commit": "Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>"
