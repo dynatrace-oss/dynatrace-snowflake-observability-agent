@@ -95,7 +95,7 @@ class TestQueryHistSpanHierarchy:
             from opentelemetry.sdk.resources import Resource
 
             def _get_spans(self, resource: Resource) -> Spans:
-                return TestSpans(resource, self._configuration)
+                return TestSpans(resource, self._configuration, self._otel_manager)
 
         def __local_get_plugin_class(source: str):
             return TestQueryHistoryPlugin

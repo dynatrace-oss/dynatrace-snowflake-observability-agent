@@ -9,6 +9,17 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in the [development log](../.context/devlog/).
 
+## [1.0.2] - Unreleased
+
+### Self-monitoring — User-Agent enrichment with environment and plugin
+
+The outbound `User-Agent` header sent with all OTLP/API calls now includes the deployment
+environment and the currently active plugin (`dsoa/{version};env={env};plugin={plugin}`),
+in addition to the DSOA version. This is purely additive telemetry for cross-tenant
+self-monitoring via the shared HAProxy ingest log stream and has no effect on ingestion
+behavior. For `logs` and `spans`, any buffered records are flushed before the plugin tag is
+updated, so each HTTP flush carries the header of the plugin that produced those records.
+
 ## [1.0.1] - Unreleased
 
 ### Documentation — custom object names and multitenancy TAG behavior

@@ -109,6 +109,7 @@ class AbstractDynatraceSnowAgentConnector:
         if self._configuration:
             resource = _gen_resource(self._configuration)
             self._semantics = Semantics()
+            self._otel_manager = OtelManager()
             self._logs = self._get_logs(resource)
             self._spans = self._get_spans(resource)
             self._metrics = self._get_metrics()
@@ -119,11 +120,11 @@ class AbstractDynatraceSnowAgentConnector:
 
     def _get_spans(self, resource: Resource) -> Spans:
         """Returns new Spans instance"""
-        return Spans(resource, self._configuration)
+        return Spans(resource, self._configuration, self._otel_manager)
 
     def _get_logs(self, resource: Resource) -> Logs:
         """Returns new Logs instance"""
-        return Logs(resource, self._configuration)
+        return Logs(resource, self._configuration, self._otel_manager)
 
     def _get_metrics(self) -> Metrics:
         """Returns new Metrics instance"""

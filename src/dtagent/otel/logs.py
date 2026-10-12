@@ -31,7 +31,7 @@ from opentelemetry._logs import SeverityNumber
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
 from dtagent.util import process_timestamps_for_telemetry
-from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
+from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager, SessionUserAgentMixin
 
 ##endregion COMPILE_REMOVE
 
@@ -47,7 +47,7 @@ _SEVERITY_MAP = {
 }
 
 
-class Logs:
+class Logs(SessionUserAgentMixin):
     """Main Logs class for sending logs via Dynatrace OTLP Logs API.
 
     API Specifications:
@@ -62,11 +62,19 @@ class Logs:
 
     ENDPOINT_PATH = "/api/v2/otlp/v1/logs"
 
-    def __init__(self, resource: Resource, configuration: Configuration):
-        """Initialize the OTLP logs exporter."""
+    def __init__(self, resource: Resource, configuration: Configuration, otel_manager: OtelManager):
+        """Initialize the OTLP logs exporter.
+
+        Args:
+            resource (Resource):           OTel resource carrying common attributes.
+            configuration (Configuration): Agent configuration.
+            otel_manager (OtelManager):    Shared OtelManager instance used to build dynamic headers.
+        """
         self._otel_logger: Optional[Any] = None
         self._otel_logger_provider: Optional[LoggerProvider] = None
         self._configuration = configuration
+        self._otel_manager = otel_manager
+        self._session: Optional[CustomLoggingSession] = None
 
         self._setup_logger(resource)
 
@@ -87,20 +95,23 @@ class Logs:
         from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
         from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 
+        otel_manager = self._otel_manager
+
         class CustomUserAgentOTLPLogExporter(OTLPLogExporter):
             """Custom OTLP Log Exporter that sets a custom User-Agent header."""
 
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                self._session.headers.update(OtelManager.get_dsoa_headers())
+                self._session.headers.update(otel_manager.get_dsoa_headers())
 
+        self._session = CustomLoggingSession()
         self._otel_logger_provider = LoggerProvider(resource=resource)
         self._otel_logger_provider.add_log_record_processor(
             BatchLogRecordProcessor(
                 CustomUserAgentOTLPLogExporter(
                     endpoint=f'{self._configuration.get("logs.http")}',
                     headers={"Authorization": f'Api-Token {self._configuration.get("dt.token")}'},
-                    session=CustomLoggingSession(),
+                    session=self._session,
                 ),
                 export_timeout_millis=self._configuration.get(otel_module="logs", key="export_timeout_millis", default_value=10000),
                 max_export_batch_size=self._configuration.get(otel_module="logs", key="max_export_batch_size", default_value=100),
