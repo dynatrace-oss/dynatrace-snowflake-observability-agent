@@ -54,3 +54,6 @@ test/qa/results/
 .claude/settings.local.json
 *.heapsnapshot
 claude-prompts/*
+
+# == IDE configuration files ===
+.idea
