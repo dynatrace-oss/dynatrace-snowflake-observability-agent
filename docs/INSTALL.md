@@ -13,6 +13,38 @@ Three ways to deploy DSOA — choose the one that fits your environment:
 
 ---
 
+## Estimate DSOA cost (before you install)
+
+`dsoa-cost-estimate.sql` is a read-only Snowflake script that estimates what DSOA will cost on **your** account before
+you install anything. It needs no configuration: it assumes all plugins are enabled with their shipped defaults,
+measures your object counts and workload over the last 7 days, and returns the cost **per plugin**:
+
+- Snowflake credits per day and month: allocated (a share of the shared `DTAGENT_WH` awake time, adds up to the total)
+  and standalone (if only that plugin were enabled)
+- Dynatrace usage per plugin and signal (logs, spans, events, bizevents, metrics): GiB ingested per day, GiB retained
+  at steady state, and $ per month at month 1 and at steady state, including 365 days of retention
+- totals for all plugins and for a default install, a suggested value for `core.snowflake.resource_monitor.credit_quota`,
+  the top 3 cost drivers, and, if DSOA is already installed, the actual `DTAGENT_WH` credits next to the estimate
+
+**How to run:** open the file in a Snowsight worksheet and run it with a role that can read the `SNOWFLAKE` database
+(for example `ACCOUNTADMIN`). It creates no objects. It first checks the required permissions and, if any is missing,
+returns a single `MISSING PERMISSIONS` row naming them (see [COST_ESTIMATE.md](COST_ESTIMATE.md#required-permissions)).
+Optional sources it cannot read are shown as `n/a` with the reason, and a documented default is used instead.
+
+**Download:** the script is generated at build time (`./scripts/dev/build.sh`, step `src/build/generate_cost_calculator.py`)
+into `build/dsoa-cost-estimate.sql`, copied to the root of every release package (`dsoa-cost-estimate.sql`), and a copy is committed at
+`src/dtagent.sql/estimate-cost/dsoa-cost-estimate.sql` so it can be downloaded from the repository.
+
+**Re-pricing:** prices are the public Dynatrace DPS rate card, hard-coded in the `RATE CARD` block at the top of the
+script. To use contract prices, change the values of the `p_*` variables there. Nothing else needs to change.
+
+**Reading the output:** see [COST_ESTIMATE.md](COST_ESTIMATE.md).
+
+**Not included:** Dynatrace query cost (dashboards, notebooks, workflows, ad-hoc DQL) depends on how the data is used.
+The estimate is a model: volumes are calculated from object counts and workload, not from database size.
+
+---
+
 ## Docker (recommended)
 
 No toolchain required — just Docker. Works on any OS.

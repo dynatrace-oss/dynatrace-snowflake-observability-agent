@@ -1,0 +1,286 @@
+# Cost model for the pre-install DSOA cost estimate script (BIZOBS-3285).
+# Consumed by src/build/generate_cost_calculator.py, which writes build/dsoa-cost-estimate.sql.
+#
+# Everything here is a model INPUT, not a measurement. Values marked `basis: assumption` have
+# to be calibrated against the internal DT deployment (PROCESSED_MEASUREMENTS_LOG and
+# DTAGENT_WH metering) - see the acceptance criteria of BIZOBS-3285.
+#
+# Guards: `expected_schedule`, `expected_metric_defs` and `expected_scope` are pinned on purpose.
+# test/core/test_cost_calculator.py fails when the plugin config or instruments-def no longer
+# match, which forces a review of the model.
+
+rate_card:
+  as_of: "2026-11-02"
+  currency: USD
+  source: "Dynatrace public DPS rate card - VERIFY every value before publishing (open point in BIZOBS-3285)"
+  # Ingest & Process, per GiB. Metrics are billed per 100k data points.
+  logs_ingest_per_gib: 0.20
+  spans_ingest_per_gib: 0.20
+  events_ingest_per_gib: 0.20
+  bizevents_ingest_per_gib: 0.20
+  metrics_ingest_per_100k_datapoints: 0.15
+  # Retain, per GiB per day. OPEN POINT: confirm that metrics retention is billed the same way.
+  retain_per_gib_day: 0.0007
+  retention_days: 365
+
+snowflake:
+  warehouse: DTAGENT_WH
+  credits_per_hour: 1          # XS warehouse
+  auto_suspend_seconds: 60
+  # Seconds of warehouse time per run that the self-monitoring first-to-last-event duration does not contain (task start,
+  # warehouse resume, final bookkeeping). Fitted on 4 observations (DEV with 8 and 16 plugins, 2 more accounts), see docs/COST_ESTIMATE.md.
+  run_overhead_seconds: 50
+  resource_monitor_headroom: 1.4   # suggested quota = estimated credits/day * headroom, rounded up
+
+# Typical run duration in seconds on the shipped defaults.
+# Calibrated from real deployments, see the comment below.
+run_duration_seconds:
+  # Median over 7 DSOA deployments (average run time per plugin and account, 7 days, from the self-monitoring bizevents,
+  # measured 2026-11-02). Time from first to last bizevent of a run, so it excludes the 60 s auto-suspend tail (added later).
+  # The spread is large: accounts with many objects take 5-10x longer for data_schemas, data_volume, snowpipes, users and
+  # warehouse_usage, so credits for big accounts are underestimated. budgets, org_costs and table_health were not measured
+  # and use the default.
+  default: 20
+  active_queries: 9
+  cold_tables: 61
+  data_schemas: 58
+  data_volume: 20
+  dynamic_tables: 13
+  event_log: 12
+  event_usage: 7
+  login_history: 19
+  metering: 9
+  query_history: 145
+  resource_monitors: 11
+  shares: 29
+  snowpipes: 35
+  tasks: 16
+  trust_center: 8
+  users: 31
+  warehouse_usage: 34
+
+drivers:
+  const: {fallback: 1, description: "constant 1 (single object per account)"}
+  tables_in_scope: {fallback: 0, description: "tables in default data_volume / table_health scope"}
+  dynamic_tables: {fallback: 0, description: "dynamic tables outside DTAGENT_DB"}
+  pipes: {fallback: 0, description: "Snowpipes outside DTAGENT_DB"}
+  warehouses: {fallback: 1, description: "warehouses with metering in the last 7 days"}
+  resource_monitors: {fallback: 1, description: "resource monitors"}
+  users: {fallback: 0, description: "active users"}
+  share_grants_out: {fallback: 0, description: "grants to outbound shares"}
+  tables_in_shares: {fallback: 0, description: "tables in inbound shares"}
+  trust_center_findings: {fallback: 0, description: "Trust Center findings"}
+  queries_day: {fallback: 0, description: "queries per day (excluding DTAGENT_WH)"}
+  slow_queries_day: {fallback: 0, description: "queries per day slower than slow_queries_threshold (10 s)"}
+  log_rows_day: {fallback: 0, description: "event table log rows per day"}
+  span_rows_day: {fallback: 0, description: "event table span rows per day"}
+  metric_rows_day: {fallback: 0, description: "event table metric rows per day"}
+  logins_day: {fallback: 0, description: "logins per day"}
+  sessions_day: {fallback: 0, description: "sessions per day"}
+  task_runs_day: {fallback: 0, description: "task runs per day"}
+  files_loaded_day: {fallback: 0, description: "files loaded by Snowpipe/COPY per day"}
+  ddl_day: {fallback: 0, description: "DDL statements per day"}
+  dt_refreshes_day: {fallback: 0, description: "dynamic table refreshes per day"}
+
+# Per plugin. A context is either
+#   snapshot:    every run re-sends `driver` x `coefficient` rows
+#   incremental: every run sends only new rows, so rows/day = `driver` x `coefficient` (optionally capped per run)
+# `per_row` = records emitted for each row, per signal (metrics are data points).
+# Fixtures give the bytes per record (test/test_results/<fixture>/{logs,events,spans,biz_events}.json, metrics.txt).
+plugins:
+  active_queries:
+    default_on: true
+    expected_schedule: "USING CRON */6 * * * * UTC"
+    expected_metric_defs: 6
+    expected_scope: {}
+    fixtures: [test_active_queries]
+    contexts:
+      - {name: active_queries, mode: incremental, driver: queries_day, coefficient: 0.1, basis: assumption,
+         per_row: {logs: 1, spans: 1, metrics: 5}}
+  budgets:
+    default_on: false
+    expected_schedule: "USING CRON 30 0 * * * UTC"
+    expected_metric_defs: 2
+    expected_scope: {}
+    fixtures: [test_budget]
+    contexts:
+      - {name: budgets, mode: snapshot, driver: const, coefficient: 1, basis: assumption,
+         per_row: {logs: 1, events: 1, metrics: 2}}
+  cold_tables:
+    default_on: true
+    expected_schedule: "USING CRON 0 6 * * * UTC"
+    expected_metric_defs: 2
+    expected_scope: {}
+    fixtures: [test_cold_tables]
+    contexts:
+      - {name: cold_tables, mode: snapshot, driver: tables_in_scope, coefficient: 0.2, basis: assumption,
+         per_row: {logs: 1, metrics: 2}}
+  data_schemas:
+    default_on: true
+    expected_schedule: "USING CRON 0 0,8,16 * * * UTC"
+    expected_metric_defs: 0
+    expected_scope: {}
+    fixtures: [test_data_schemas]
+    contexts:
+      - {name: data_schemas, mode: incremental, driver: ddl_day, coefficient: 1, basis: assumption,
+         per_row: {events: 1}}
+  data_volume:
+    default_on: true
+    expected_schedule: "USING CRON 30 0,4,8,12,16,20 * * * UTC"
+    expected_metric_defs: 4
+    expected_scope: {include: ["DTAGENT_DB.%.%", "%.PUBLIC.%"], exclude: ["%.INFORMATION_SCHEMA.%", "%.%.TMP_%"]}
+    fixtures: [test_data_volume]
+    contexts:
+      - {name: data_volume, mode: snapshot, driver: tables_in_scope, coefficient: 1, basis: assumption,
+         per_row: {events: 1, metrics: 3}}
+  dynamic_tables:
+    default_on: true
+    expected_schedule: "USING CRON */30 * * * * UTC"
+    expected_metric_defs: 10
+    expected_scope: {include: ["%.%.%"], exclude: ["DTAGENT_DB.%.%"]}
+    fixtures: [test_dynamic_tables]
+    contexts:
+      - {name: dynamic_tables, mode: snapshot, driver: dynamic_tables, coefficient: 1, basis: assumption,
+         per_row: {logs: 1, metrics: 4}}
+      - {name: dynamic_table_refresh_history, mode: incremental, driver: dt_refreshes_day, coefficient: 1,
+         basis: assumption, per_row: {logs: 1, metrics: 6}}
+  event_log:
+    default_on: true
+    expected_schedule: "USING CRON */30 * * * * UTC"
+    expected_metric_defs: 2
+    expected_scope: {max_entries: 10000, lookback_hours: 24}
+    fixtures: [test_event_log]
+    contexts:
+      - {name: event_log_logs, mode: incremental, driver: log_rows_day, coefficient: 1, max_per_run: 10000,
+         basis: fixture, per_row: {logs: 1}}
+      - {name: event_log_spans, mode: incremental, driver: span_rows_day, coefficient: 1, max_per_run: 10000,
+         basis: fixture, per_row: {spans: 1}}
+      - {name: event_log_metrics, mode: incremental, driver: metric_rows_day, coefficient: 1, max_per_run: 10000,
+         basis: fixture, per_row: {metrics: 1}}
+  event_usage:
+    default_on: false
+    deprecated: "deprecated since 0.9.5, replaced by metering, not counted"
+    expected_schedule: "USING CRON 0 * * * * UTC"
+    expected_metric_defs: 2
+    expected_scope: {}
+    fixtures: [test_event_usage]
+    contexts: []
+  login_history:
+    default_on: true
+    expected_schedule: "USING CRON */30 * * * * UTC"
+    expected_metric_defs: 3
+    expected_scope: {}
+    fixtures: [test_login_history]
+    contexts:
+      - {name: login_history, mode: incremental, driver: logins_day, coefficient: 1, basis: assumption,
+         per_row: {logs: 1}}
+      - {name: sessions, mode: incremental, driver: sessions_day, coefficient: 1, basis: assumption,
+         per_row: {logs: 1}}
+  metering:
+    default_on: true
+    expected_schedule: "USING CRON 0 * * * * UTC"
+    expected_metric_defs: 6
+    expected_scope: {}
+    fixtures: [test_metering]
+    contexts:
+      - {name: metering, mode: snapshot, driver: warehouses, coefficient: 1, basis: assumption,
+         per_row: {logs: 1, metrics: 6}}
+  org_costs:
+    default_on: false
+    requires_org_account: true
+    expected_schedule: "USING CRON 0 */6 * * * UTC"
+    expected_metric_defs: 12
+    expected_scope: {}
+    fixtures: [test_org_costs]
+    contexts:
+      - {name: org_costs, mode: snapshot, driver: const, coefficient: 50, basis: assumption,
+         per_row: {logs: 1, metrics: 1}}
+  query_history:
+    default_on: true
+    expected_schedule: "USING CRON */30 * * * * UTC"
+    expected_metric_defs: 42
+    expected_scope: {max_entries: 0, slow_queries_threshold: 10000, slow_queries_to_analyze_limit: 50}
+    fixtures: [test_query_history]
+    contexts:
+      - {name: query_history, mode: incremental, driver: queries_day, coefficient: 1, basis: fixture,
+         per_row: {logs: 1, spans: 1, metrics: 37}}  # fixture: 3 queries -> 111 data points
+  resource_monitors:
+    default_on: true
+    expected_schedule: "USING CRON */30 * * * * UTC"
+    expected_metric_defs: 16
+    expected_scope: {}
+    fixtures: [test_resource_monitors]
+    contexts:
+      - {name: resource_monitors, mode: snapshot, driver: resource_monitors, coefficient: 1, basis: assumption,
+         per_row: {logs: 1, events: 0.1, metrics: 5}}
+  shares:
+    default_on: true
+    expected_schedule: "USING CRON */30 * * * * UTC"
+    expected_metric_defs: 0
+    expected_scope: {include: ["%.%.%"]}
+    fixtures: [test_shares]
+    contexts:
+      - {name: outbound_shares, mode: snapshot, driver: share_grants_out, coefficient: 1, basis: assumption,
+         per_row: {logs: 1}}
+      - {name: inbound_shares, mode: snapshot, driver: tables_in_shares, coefficient: 1, basis: assumption,
+         per_row: {logs: 1}}
+  snowpipes:
+    default_on: true
+    expected_schedule: "USING CRON */5 * * * * UTC"
+    # The 5-minute fast task runs SHOW PIPES + SYSTEM$PIPE_STATUS() on cloud services only (see snowpipes.sql/801_snowpipes_task.sql),
+    # so it does not keep DTAGENT_WH awake. The warehouse is used by the hourly history task.
+    awake_schedule_key: schedule_history
+    expected_awake_schedule: "USING CRON 0 * * * * UTC"
+    expected_metric_defs: 14
+    expected_scope: {include: ["%.%.%"], exclude: ["DTAGENT_DB.%.%"]}
+    fixtures: [test_snowpipes]
+    contexts:
+      - {name: snowpipes, mode: snapshot, driver: pipes, coefficient: 1, basis: assumption,
+         per_row: {logs: 1, metrics: 2}}
+      - {name: snowpipes_copy_history, mode: incremental, driver: files_loaded_day, coefficient: 1,
+         basis: assumption, per_row: {logs: 1, metrics: 8}}
+  table_health:
+    default_on: false
+    expected_schedule: "USING CRON 0 0,6,12,18 * * * UTC"
+    expected_metric_defs: 13
+    expected_scope: {max_tables: 500, min_table_bytes: 1073741824}
+    fixtures: [test_table_health]
+    contexts:
+      - {name: table_health, mode: snapshot, driver: tables_in_scope, coefficient: 0.1, max_rows: 500,
+         basis: assumption, per_row: {metrics: 13}}
+  tasks:
+    default_on: true
+    expected_schedule: "USING CRON 30 * * * * UTC"
+    expected_metric_defs: 4
+    expected_scope: {lookback_hours: 4}
+    fixtures: [test_tasks]
+    contexts:
+      - {name: task_history, mode: incremental, driver: task_runs_day, coefficient: 1, basis: assumption,
+         per_row: {logs: 1, events: 0.05}}
+  trust_center:
+    default_on: true
+    expected_schedule: "USING CRON 30 */12 * * * UTC"
+    expected_metric_defs: 1
+    expected_scope: {log_details: false}
+    fixtures: [test_trust_center]
+    contexts:
+      - {name: trust_center, mode: snapshot, driver: trust_center_findings, coefficient: 1, basis: fixture,
+         per_row: {logs: 1, metrics: 1}}
+  users:
+    default_on: true
+    expected_schedule: "USING CRON 0 0 * * * UTC"
+    expected_metric_defs: 0
+    expected_scope: {roles_monitoring_mode: []}
+    fixtures: [test_users]
+    contexts:
+      - {name: users, mode: snapshot, driver: users, coefficient: 1, basis: assumption,
+         per_row: {logs: 1, events: 0.05}}
+  warehouse_usage:
+    default_on: true
+    expected_schedule: "USING CRON 0 * * * * UTC"
+    expected_metric_defs: 7
+    expected_scope: {lookback_hours: 24}
+    fixtures: [test_warehouse_usage]
+    contexts:
+      - {name: warehouse_usage, mode: snapshot, driver: warehouses, coefficient: 1, basis: assumption,
+         per_row: {logs: 1, metrics: 7}}
