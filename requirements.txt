@@ -48,7 +48,6 @@ ruamel.yaml
 
 # === Testing ===
 pytest
-pytest-tap
 check-jsonschema
 
 # === Linting & Formatting ===
