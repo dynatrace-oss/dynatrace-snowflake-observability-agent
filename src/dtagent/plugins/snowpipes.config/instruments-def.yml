@@ -259,8 +259,8 @@ dimensions:
       - snowpipes
     __example: RUNNING
     __description: >
-      Raw execution state from ``SYSTEM$PIPE_STATUS``; stable values include RUNNING and PAUSED, dynamic variants follow STOPPED_* and
-      STALLED_* patterns.
+      Raw execution state from ``SYSTEM$PIPE_STATUS``; stable values include RUNNING and PAUSED, dynamic variants follow ``STOPPED_*`` and
+      ``STALLED_*`` patterns.
     __enum:
       allow_custom_values: true
       members:

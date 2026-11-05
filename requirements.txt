@@ -48,6 +48,7 @@ ruamel.yaml
 
 # === Testing ===
 pytest
+tap.py  # TAP parser used by test/core/test_bash_scripts.py (bats output)
 check-jsonschema
 
 # === Linting & Formatting ===
