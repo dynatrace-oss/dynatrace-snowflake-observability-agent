@@ -123,6 +123,9 @@ echo "$merged_sections" > "$tmp_merged"
 yq '.plugins = (.plugins // {}) + load("'"$tmp_merged"'").plugins | .otel = (.otel // {}) + load("'"$tmp_merged"'").otel' "$CONFIG_TEMPLATE_FILE" > ./build/config-default.yml
 rm -f "$tmp_merged"
 
+# Generating the pre-install cost estimate script (build/ and src/dtagent.sql/estimate-cost/); fails when src/build/cost_model.yml is out of date
+PYTHONPATH="$PYTHONPATH:./src" python -m build.generate_cost_calculator || exit 1
+
 # -----------------------------
 # Build staged SQL scripts
 # -----------------------------
