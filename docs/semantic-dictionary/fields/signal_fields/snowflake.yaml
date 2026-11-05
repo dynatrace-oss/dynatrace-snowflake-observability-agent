@@ -504,7 +504,7 @@ groups:
               brief: Pipe has been administratively paused; no files are ingested until resumed.
         stability: stable
         brief: |-
-          Raw execution state from ``SYSTEM$PIPE_STATUS``; stable values include RUNNING and PAUSED, dynamic variants follow STOPPED_* and STALLED_* patterns.
+          Raw execution state from ``SYSTEM$PIPE_STATUS``; stable values include RUNNING and PAUSED, dynamic variants follow ``STOPPED_*`` and ``STALLED_*`` patterns.
         examples: [ 'RUNNING' ]
       - id: snowflake.pipe.usage.start_time
         display_name: 'Snowflake pipe usage window start time'
