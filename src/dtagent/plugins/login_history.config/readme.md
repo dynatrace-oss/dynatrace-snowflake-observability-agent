@@ -11,4 +11,4 @@ The log entries include information on:
 - reason of ending the session, and
 - version used by the client.
 
-Additionally, when login error is reported, a `CUSTOM_ALERT` event is sent.
+Failed-login alerts are no longer sent as events by this plugin; alerting is provided by the Data Observability app.

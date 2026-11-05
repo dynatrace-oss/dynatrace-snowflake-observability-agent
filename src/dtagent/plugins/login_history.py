@@ -25,9 +25,7 @@
 #
 #
 
-from typing import Tuple, Dict, Optional, List
-from dtagent.otel.events import EventType
-from dtagent.util import _unpack_payload
+from typing import Dict, Optional, List
 from dtagent.plugins import Plugin
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
@@ -41,22 +39,6 @@ class LoginHistoryPlugin(Plugin):
 
     PLUGIN_NAME = "login_history"
     PLUGIN_CONTEXTS: tuple = ("login_history", "sessions")
-
-    def _prepare_event_payload_failed_login(self, row_dict: dict) -> Tuple[EventType, str, Dict]:
-        """Defines what payload should be sent once snowflake.error.code column is present in the row"""
-
-        properties = _unpack_payload(row_dict)
-        user = properties.get("db.user")
-        error_message = properties.get("snowflake.status.message")
-        error_code = row_dict.get("_ERROR_CODE")
-        payload = {
-            "event.name": f"Detected failed logins to Snowflake by {user}",
-            "event.description": f"We have detected a failed login attempt due to {error_message} (code: {error_code}), by {user}",
-            "db.user": properties.get("db.user"),
-            "timeout": 360,
-            "anomaly.detector": "dsoa.failed_login_detection",
-        }
-        return EventType.CUSTOM_ALERT, "Failed login attempt", payload
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on login history.
@@ -97,12 +79,7 @@ class LoginHistoryPlugin(Plugin):
                 run_uuid=run_id,
                 log_completion=run_proc,
                 start_time="TIMESTAMP",
-                event_column_to_check="_ERROR_CODE",
-                event_payload_prepare=self._prepare_event_payload_failed_login,
-                f_report_event=self._report_via_davis_events,
             )
-            if self._davis_events is not None:
-                login_history_events_cnt += self._davis_events.flush_events()
             results["login_history"] = {
                 "entries": login_history_entries_cnt,
                 "log_lines": login_history_logs_cnt,

@@ -21,19 +21,10 @@
 -- SOFTWARE.
 --
 --
--- STATUS.RESOURCE_MONITOR_THRESHOLD_STATE tracks the last-emitted threshold band per resource monitor.
--- Used by the threshold alerting logic to implement ACTIVE/CLOSED Davis event lifecycle.
+-- Drops STATUS.RESOURCE_MONITOR_THRESHOLD_STATE: resource monitor threshold events were removed
+-- (alerts now come from the Data Observability app), so the band state is no longer tracked.
+-- Idempotent: safe to run when the table does not exist.
 --
---%PLUGIN:resource_monitors:
-use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB;
 
-create table if not exists STATUS.RESOURCE_MONITOR_THRESHOLD_STATE (
-    MONITOR_NAME    TEXT        NOT NULL,
-    LAST_BAND       TEXT        NOT NULL,
-    LAST_USED_PCT   NUMBER(6,2) NOT NULL,
-    LAST_UPDATED    TIMESTAMP_LTZ NOT NULL DEFAULT CURRENT_TIMESTAMP(),
-    constraint PK_RM_THRESHOLD_STATE primary key (MONITOR_NAME)
-);
-
-grant select, insert, update, delete on STATUS.RESOURCE_MONITOR_THRESHOLD_STATE to role DTAGENT_VIEWER;
---%:PLUGIN:resource_monitors
+drop table if exists STATUS.RESOURCE_MONITOR_THRESHOLD_STATE;

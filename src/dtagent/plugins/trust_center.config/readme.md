@@ -1,5 +1,5 @@
 Delivers new findings reported (within the last 24 hours) by Snowflake Trust Center as log entries.
-For findings with `CRITICAL` severity, `CUSTOM_ALERT` event is sent to Dynatrace.
+Findings with `CRITICAL` severity are no longer sent as `CUSTOM_ALERT` events; alerting is provided by the Data Observability app.
 
 This plugin provides information on:
 
