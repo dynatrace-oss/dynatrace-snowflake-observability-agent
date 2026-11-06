@@ -864,7 +864,7 @@ Provides detail about logins history as well as sessions history in form of logs
 - reason of ending the session, and
 - version used by the client.
 
-Additionally, when login error is reported, a `CUSTOM_ALERT` event is sent.
+Failed-login alerts are no longer sent as events by this plugin; alerting is provided by the Data Observability app.
 
 [Show semantics for this plugin](SEMANTICS.md#login_history_semantics_sec)
 
@@ -883,7 +883,6 @@ plugins:
     is_disabled: false
     telemetry:
       - logs
-      - events
       - biz_events
 ```
 
@@ -1446,8 +1445,9 @@ This plugin:
 - logs an error if an account-level monitor setup is missing,
 - logs a warning if a warehouse is not monitored at all,
 - sends events on all new activities of monitors and warehouses, and
-- fires Davis events when a resource monitor's credit usage crosses configurable thresholds (info / warn / critical / exhausted bands) and
-  resolves them automatically when usage drops back below the threshold.
+- reports quota consumption as `snowflake.credits.quota.*` metrics.
+
+Quota threshold alerts are no longer sent as Davis events by this plugin; alerting is provided by the Data Observability app.
 
 [Show semantics for this plugin](SEMANTICS.md#resource_monitors_semantics_sec)
 
@@ -1468,15 +1468,6 @@ plugins:
       - metrics
       - events
       - biz_events
-    credits_quota_thresholds:
-      # Default alert bands (% of quota used). Must be monotonically increasing, all values in (0, 100].
-      # Band assignment is positional: index 0 = info, 1 = warn, 2 = critical, 3 = exhausted.
-      defaults: [50, 80, 90, 100]
-      # Per-monitor overrides — key is the resource monitor name (uppercase).
-      # Invalid overrides fall back to defaults with an ERROR log.
-      overrides: {}
-      # How often (minutes) ACTIVE keep-alive events are re-sent while quota remains in an alert band.
-      active_keepalive_timeout_minutes: 60
 ```
 
 ### Resource Monitors bill of materials
@@ -1485,16 +1476,15 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Resource Monitors` plugin
 
-| Name                                               | Type            |
-| -------------------------------------------------- | --------------- |
-| DTAGENT_DB.APP.TMP_RESOURCE_MONITORS               | transient table |
-| DTAGENT_DB.APP.TMP_WAREHOUSES                      | transient table |
-| DTAGENT_DB.APP.V_RESOURCE_MONITORS                 | view            |
-| DTAGENT_DB.APP.V_WAREHOUSES                        | view            |
-| DTAGENT_DB.APP.P_REFRESH_RESOURCE_MONITORS()       | procedure       |
-| DTAGENT_DB.CONFIG.UPDATE_RESOURCE_MONITORS_CONF()  | procedure       |
-| DTAGENT_DB.STATUS.RESOURCE_MONITOR_THRESHOLD_STATE | table           |
-| DTAGENT_DB.APP.TASK_DTAGENT_RESOURCE_MONITORS      | task            |
+| Name                                              | Type            |
+| ------------------------------------------------- | --------------- |
+| DTAGENT_DB.APP.TMP_RESOURCE_MONITORS              | transient table |
+| DTAGENT_DB.APP.TMP_WAREHOUSES                     | transient table |
+| DTAGENT_DB.APP.V_RESOURCE_MONITORS                | view            |
+| DTAGENT_DB.APP.V_WAREHOUSES                       | view            |
+| DTAGENT_DB.APP.P_REFRESH_RESOURCE_MONITORS()      | procedure       |
+| DTAGENT_DB.CONFIG.UPDATE_RESOURCE_MONITORS_CONF() | procedure       |
+| DTAGENT_DB.APP.TASK_DTAGENT_RESOURCE_MONITORS     | task            |
 
 #### Objects referenced by the `Resource Monitors` plugin
 
@@ -1696,7 +1686,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | DTAGENT_DB.APP.V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED | view            |                                                                                           |
 | DTAGENT_DB.APP.P_GRANT_MONITOR_SNOWPIPES()            | procedure       |                                                                                           |
 | DTAGENT_DB.CONFIG.UPDATE_SNOWPIPES_CONF()             | procedure       |                                                                                           |
-| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES                 | task            | Fast-mode (\*/5)                                                                          |
+| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES                 | task            | Fast-mode (*/5)                                                                           |
 | DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_HISTORY         | task            | Deep-mode (hourly)                                                                        |
 | DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_GRANTS          | task            | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on pipes |
 
@@ -1934,8 +1924,8 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 ## The Trust Center plugin
 
-Delivers new findings reported (within the last 24 hours) by Snowflake Trust Center as log entries. For findings with `CRITICAL` severity,
-`CUSTOM_ALERT` event is sent to Dynatrace.
+Delivers new findings reported (within the last 24 hours) by Snowflake Trust Center as log entries. Findings with `CRITICAL` severity are no
+longer sent as `CUSTOM_ALERT` events; alerting is provided by the Data Observability app.
 
 This plugin provides information on:
 
@@ -1961,7 +1951,6 @@ plugins:
     telemetry:
       - metrics
       - logs
-      - events
       - biz_events
 ```
 

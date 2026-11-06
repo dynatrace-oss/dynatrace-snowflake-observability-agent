@@ -6,5 +6,4 @@ plugins:
     telemetry:
       - metrics
       - logs
-      - events
       - biz_events

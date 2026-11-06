@@ -8,4 +8,6 @@ This plugin:
 - logs an error if an account-level monitor setup is missing,
 - logs a warning if a warehouse is not monitored at all,
 - sends events on all new activities of monitors and warehouses, and
-- fires Davis events when a resource monitor's credit usage crosses configurable thresholds (info / warn / critical / exhausted bands) and resolves them automatically when usage drops back below the threshold.
+- reports quota consumption as `snowflake.credits.quota.*` metrics.
+
+Quota threshold alerts are no longer sent as Davis events by this plugin; alerting is provided by the Data Observability app.
