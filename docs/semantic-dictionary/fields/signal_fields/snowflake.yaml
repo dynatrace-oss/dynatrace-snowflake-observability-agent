@@ -771,46 +771,6 @@ groups:
         stability: experimental
         brief: The timestamp when the resource monitor started.
         examples: [ 1730419200000000000 ]
-      - id: snowflake.resource_monitor.threshold.direction
-        display_name: 'Snowflake resource monitor threshold crossing direction'
-        type:
-          allow_custom_values: false
-          members:
-            - id: up
-              value: "up"
-              brief: Quota is increasing into or remaining within a band.
-            - id: down
-              value: "down"
-              brief: Consumption drops back below a previously active band.
-        stability: experimental
-        brief: 'Direction of the threshold crossing: ``up`` when quota is increasing into or remaining within a band; ``down`` when the consumption drops back below a previously active band.'
-        examples: [ 'up' ]
-      - id: snowflake.resource_monitor.threshold.level
-        display_name: 'Snowflake resource monitor threshold alert band'
-        type:
-          allow_custom_values: false
-          members:
-            - id: info
-              value: "info"
-              brief: Quota consumption is below 80%.
-            - id: warn
-              value: "warn"
-              brief: Quota consumption is in the 80% (inclusive) to 90% (exclusive) range.
-            - id: critical
-              value: "critical"
-              brief: Quota consumption is in the 90% (inclusive) to 100% (exclusive) range.
-            - id: exhausted
-              value: "exhausted"
-              brief: Quota consumption is at or above 100%.
-        stability: experimental
-        brief: "Alert band for the threshold event."
-        examples: [ 'warn' ]
-      - id: snowflake.resource_monitor.threshold.value
-        display_name: 'Snowflake resource monitor threshold value'
-        type: double
-        stability: experimental
-        brief: 'Alert band the resource monitor''s credit usage fell into when the event was emitted: one of ``info``, ``warn``, ``critical``, or ``exhausted`` (increasing severity). The percentage boundaries for each band are configurable via ``plugins.resource_monitors.credits_quota_thresholds`` (default ``[50, 80, 90, 100]``); the specific crossed percentage is reported in ``snowflake.resource_monitor.threshold.value``. The configured threshold percentage at which this crossing event was triggered (for example, 80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures live consumption at emit time.'
-        examples: [ 80.0 ]
       - id: snowflake.resource_monitor.warehouses
         display_name: 'Snowflake resource monitor warehouses'
         type: string[]

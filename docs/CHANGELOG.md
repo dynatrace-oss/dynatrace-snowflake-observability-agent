@@ -19,7 +19,7 @@ Alerts are now provided by the Data Observability app, so the agent no longer se
 - `trust_center`: the `CUSTOM_ALERT` event for `CRITICAL` findings.
 - `resource_monitors`: the credit quota threshold Davis events, together with the `plugins.resource_monitors.credits_quota_thresholds` configuration. The upgrade script drops the `STATUS.RESOURCE_MONITOR_THRESHOLD_STATE` table.
 
-Logs, metrics (including `snowflake.credits.quota.*`) and business events are unchanged. The now-unused `events` option was removed from the default `telemetry` list of `login_history` and `trust_center`.
+Metrics (including `snowflake.credits.quota.*`) and business events are unchanged, and the content of existing log records is unchanged. However, failed-login rows and `CRITICAL` Trust Center findings, which were previously sent only as events, are now sent as logs, so expect additional log records from `login_history` and `trust_center`. The now-unused `events` option was removed from the default `telemetry` list of `login_history` and `trust_center`.
 
 ### Documentation — custom object names and multitenancy TAG behavior
 
