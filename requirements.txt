@@ -48,7 +48,7 @@ ruamel.yaml
 
 # === Testing ===
 pytest
-pytest-tap
+pytest-tap>=3.6  # 3.6 fixes the duplicate --tap/--tap-stream dest error raised by pytest>=9.2
 check-jsonschema
 
 # === Linting & Formatting ===

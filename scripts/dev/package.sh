@@ -63,6 +63,8 @@ cp -v build/*.sql package/build/
 cp -rv build/09_upgrade package/build/
 cp -rv build/30_plugins package/build/
 cp -v build/config-default.yml package/build/
+cp -v build/dsoa-cost-estimate.sql package/
+cp -v docs/COST_ESTIMATE.md package/  # guide for the estimate, linked from INSTALL.md
 
 mkdir -v package/conf
 cp -v conf/config-template.yml package/conf/
