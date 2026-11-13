@@ -144,7 +144,12 @@ class TestCostCalculator:
 
     @pytest.mark.parametrize(
         "schedule,runs",
-        [("USING CRON */30 * * * * UTC", 48), ("USING CRON 0 0,8,16 * * * UTC", 3), ("USING CRON 30 */12 * * * UTC", 2), ("USING CRON 0 0 * * * UTC", 1)],
+        [
+            ("USING CRON */30 * * * * UTC", 48),
+            ("USING CRON 0 0,8,16 * * * UTC", 3),
+            ("USING CRON 30 */12 * * * UTC", 2),
+            ("USING CRON 0 0 * * * UTC", 1),
+        ],
     )
     def test_cron_runs_per_day(self, schedule, runs):
         """Cron expansion gives the number of runs per day."""
