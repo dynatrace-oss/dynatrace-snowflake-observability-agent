@@ -124,7 +124,7 @@ yq '.plugins = (.plugins // {}) + load("'"$tmp_merged"'").plugins | .otel = (.ot
 rm -f "$tmp_merged"
 
 # Generating the pre-install cost estimate script (build/ and src/dtagent.sql/estimate-cost/); fails when src/build/cost_model.yml is out of date
-PYTHONPATH="$PYTHONPATH:./src" python -m build.generate_cost_calculator || exit 1
+PYTHONPATH="./src${PYTHONPATH:+:$PYTHONPATH}" python -m build.generate_cost_calculator || exit 1
 
 # -----------------------------
 # Build staged SQL scripts

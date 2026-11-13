@@ -37,6 +37,9 @@ DECLARE
   v_files_loaded_day FLOAT DEFAULT 0; n_files_loaded_day VARCHAR DEFAULT 'measured'; -- files loaded by Snowpipe/COPY per day
   v_ddl_day FLOAT DEFAULT 0; n_ddl_day VARCHAR DEFAULT 'measured'; -- DDL statements per day
   v_dt_refreshes_day FLOAT DEFAULT 0; n_dt_refreshes_day VARCHAR DEFAULT 'measured'; -- dynamic table refreshes per day
+  v_serverless_task_runs_day FLOAT DEFAULT 0; n_serverless_task_runs_day VARCHAR DEFAULT 'measured'; -- serverless task runs per day
+  v_task_versions_day FLOAT DEFAULT 0; n_task_versions_day VARCHAR DEFAULT 'measured'; -- new task graph versions per day
+  v_warehouse_events_day FLOAT DEFAULT 0; n_warehouse_events_day VARCHAR DEFAULT 'measured'; -- warehouse events (resume, suspend, resize) per day
   v_const FLOAT DEFAULT 1;
   v_org FLOAT DEFAULT 0; n_org VARCHAR DEFAULT 'measured'; -- 1 when this is an organization account
   v_actual_credits FLOAT; v_actual_days FLOAT; n_actual_credits VARCHAR DEFAULT 'not installed';
@@ -213,6 +216,24 @@ BEGIN
   END;
   IF (v_dt_refreshes_day IS NULL) THEN v_dt_refreshes_day := 0; n_dt_refreshes_day := 'n/a, no data returned, using default'; END IF;
   BEGIN
+    SELECT COUNT(*) / 7 INTO :v_serverless_task_runs_day FROM SNOWFLAKE.ACCOUNT_USAGE.SERVERLESS_TASK_HISTORY WHERE END_TIME >= DATEADD(day, -7, CURRENT_TIMESTAMP());
+  EXCEPTION WHEN OTHER THEN
+    v_serverless_task_runs_day := 0; n_serverless_task_runs_day := 'n/a, using default: ' || SQLERRM;
+  END;
+  IF (v_serverless_task_runs_day IS NULL) THEN v_serverless_task_runs_day := 0; n_serverless_task_runs_day := 'n/a, no data returned, using default'; END IF;
+  BEGIN
+    SELECT COUNT(*) / 7 INTO :v_task_versions_day FROM SNOWFLAKE.ACCOUNT_USAGE.TASK_VERSIONS WHERE GREATEST_IGNORE_NULLS(GRAPH_VERSION_CREATED_ON, LAST_COMMITTED_ON, LAST_SUSPENDED_ON) >= DATEADD(day, -7, CURRENT_TIMESTAMP());
+  EXCEPTION WHEN OTHER THEN
+    v_task_versions_day := 0; n_task_versions_day := 'n/a, using default: ' || SQLERRM;
+  END;
+  IF (v_task_versions_day IS NULL) THEN v_task_versions_day := 0; n_task_versions_day := 'n/a, no data returned, using default'; END IF;
+  BEGIN
+    SELECT COUNT(*) / 7 INTO :v_warehouse_events_day FROM SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_EVENTS_HISTORY WHERE TIMESTAMP >= DATEADD(day, -7, CURRENT_TIMESTAMP()) AND WAREHOUSE_NAME <> 'DTAGENT_WH';
+  EXCEPTION WHEN OTHER THEN
+    v_warehouse_events_day := 0; n_warehouse_events_day := 'n/a, using default: ' || SQLERRM;
+  END;
+  IF (v_warehouse_events_day IS NULL) THEN v_warehouse_events_day := 0; n_warehouse_events_day := 'n/a, no data returned, using default'; END IF;
+  BEGIN
     SELECT COUNT(*) INTO :v_org FROM (SELECT 1 FROM SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY LIMIT 1);
     v_org := 1;
   EXCEPTION WHEN OTHER THEN
@@ -252,13 +273,11 @@ BEGIN
       UNION ALL
       SELECT 'active_queries', 'metrics', ((240 * (:v_queries_day * 0.1 / 240) * 5 + 240))::FLOAT, 443.9
       UNION ALL
-      SELECT 'active_queries', 'spans', ((240 * (:v_queries_day * 0.1 / 240) * 1))::FLOAT, 3900.2
-      UNION ALL
       SELECT 'active_queries', 'bizevents', ((480))::FLOAT, 588.5
       UNION ALL
-      SELECT 'budgets', 'logs', ((1 * (:v_const * 1) * 1 + 1))::FLOAT, 798.0
+      SELECT 'budgets', 'logs', ((1 * (:v_const * 1) * 1 + 1 + 1 * (:v_const * 5) * 1 + 1))::FLOAT, 798.0
       UNION ALL
-      SELECT 'budgets', 'metrics', ((1 * (:v_const * 1) * 2 + 1))::FLOAT, 429.3
+      SELECT 'budgets', 'metrics', ((1 * (:v_const * 1) * 2 + 1 + 1 * (:v_const * 5) * 1 + 1))::FLOAT, 429.3
       UNION ALL
       SELECT 'budgets', 'events', ((1 * (:v_const * 1) * 1))::FLOAT, 964.0
       UNION ALL
@@ -270,15 +289,15 @@ BEGIN
       UNION ALL
       SELECT 'cold_tables', 'bizevents', ((2))::FLOAT, 582.5
       UNION ALL
-      SELECT 'data_schemas', 'logs', ((3))::FLOAT, 1973.7
+      SELECT 'data_schemas', 'logs', ((3))::FLOAT, 0
       UNION ALL
-      SELECT 'data_schemas', 'metrics', ((3))::FLOAT, 518.9
+      SELECT 'data_schemas', 'metrics', ((3))::FLOAT, 0
       UNION ALL
       SELECT 'data_schemas', 'events', ((3 * (:v_ddl_day * 1 / 3) * 1))::FLOAT, 1158.5
       UNION ALL
       SELECT 'data_schemas', 'bizevents', ((6))::FLOAT, 584.5
       UNION ALL
-      SELECT 'data_volume', 'logs', ((6))::FLOAT, 1973.7
+      SELECT 'data_volume', 'logs', ((6))::FLOAT, 0
       UNION ALL
       SELECT 'data_volume', 'metrics', ((6 * (:v_tables_in_scope * 1) * 3 + 6))::FLOAT, 461.9
       UNION ALL
@@ -286,9 +305,11 @@ BEGIN
       UNION ALL
       SELECT 'data_volume', 'bizevents', ((12))::FLOAT, 582.5
       UNION ALL
-      SELECT 'dynamic_tables', 'logs', ((48 * (:v_dynamic_tables * 1) * 1 + 48 + 48 * (:v_dt_refreshes_day * 1 / 48) * 1 + 48))::FLOAT, 1349.2
+      SELECT 'dynamic_tables', 'logs', ((48 * (:v_dynamic_tables * 1) * 1 + 48 + 48 * (:v_dt_refreshes_day * 1 / 48) * 1 + 48 + 48 * (:v_dynamic_tables * 1) * 1 + 48))::FLOAT, 1349.2
       UNION ALL
-      SELECT 'dynamic_tables', 'metrics', ((48 * (:v_dynamic_tables * 1) * 4 + 48 + 48 * (:v_dt_refreshes_day * 1 / 48) * 6 + 48))::FLOAT, 464.6
+      SELECT 'dynamic_tables', 'metrics', ((48 * (:v_dynamic_tables * 1) * 4 + 48 + 48 * (:v_dt_refreshes_day * 1 / 48) * 6 + 48 + 48 * (:v_dynamic_tables * 1) * 1 + 48))::FLOAT, 464.6
+      UNION ALL
+      SELECT 'dynamic_tables', 'events', ((48 * (:v_dynamic_tables * 1) * 0.1))::FLOAT, 1334.0
       UNION ALL
       SELECT 'dynamic_tables', 'bizevents', ((96))::FLOAT, 588.5
       UNION ALL
@@ -302,7 +323,7 @@ BEGIN
       UNION ALL
       SELECT 'login_history', 'logs', ((48 * (:v_logins_day * 1 / 48) * 1 + 48 + 48 * (:v_sessions_day * 1 / 48) * 1 + 48))::FLOAT, 761.0
       UNION ALL
-      SELECT 'login_history', 'metrics', ((48 + 48))::FLOAT, 518.9
+      SELECT 'login_history', 'metrics', ((48 + 48))::FLOAT, 0
       UNION ALL
       SELECT 'login_history', 'bizevents', ((96))::FLOAT, 586.5
       UNION ALL
@@ -326,37 +347,37 @@ BEGIN
       UNION ALL
       SELECT 'query_history', 'bizevents', ((96))::FLOAT, 586.5
       UNION ALL
-      SELECT 'resource_monitors', 'logs', ((48 * (:v_resource_monitors * 1) * 1 + 48))::FLOAT, 1973.7
+      SELECT 'resource_monitors', 'logs', ((48 + 48 * (:v_warehouses * 1) * 0.5 + 48))::FLOAT, 900
       UNION ALL
-      SELECT 'resource_monitors', 'metrics', ((48 * (:v_resource_monitors * 1) * 5 + 48))::FLOAT, 353.4
+      SELECT 'resource_monitors', 'metrics', ((48 * (:v_resource_monitors * 1) * 5 + 48 + 48 * (:v_warehouses * 1) * 11 + 48))::FLOAT, 353.4
       UNION ALL
-      SELECT 'resource_monitors', 'events', ((48 * (:v_resource_monitors * 1) * 0.1))::FLOAT, 1406.9
+      SELECT 'resource_monitors', 'events', ((48 * (:v_resource_monitors * 1) * 0.1 + 48 * (:v_warehouses * 1) * 0.1))::FLOAT, 1406.9
       UNION ALL
       SELECT 'resource_monitors', 'bizevents', ((96))::FLOAT, 594.5
       UNION ALL
       SELECT 'shares', 'logs', ((48 * (:v_share_grants_out * 1) * 1 + 48 + 48 * (:v_tables_in_shares * 1) * 1 + 48))::FLOAT, 949.6
       UNION ALL
-      SELECT 'shares', 'metrics', ((48 + 48))::FLOAT, 518.9
+      SELECT 'shares', 'metrics', ((48 + 48))::FLOAT, 0
       UNION ALL
       SELECT 'shares', 'bizevents', ((96))::FLOAT, 572.5
       UNION ALL
-      SELECT 'snowpipes', 'logs', ((288 * (:v_pipes * 1) * 1 + 288 + 288 * (:v_files_loaded_day * 1 / 288) * 1 + 288))::FLOAT, 1186.3
+      SELECT 'snowpipes', 'logs', ((288 * (:v_pipes * 1) * 1 + 288 + 288 * (:v_files_loaded_day * 1 / 288) * 1 + 288 + 288 * (:v_pipes * 24 / 288) * 1 + 288))::FLOAT, 1186.3
       UNION ALL
-      SELECT 'snowpipes', 'metrics', ((288 * (:v_pipes * 1) * 2 + 288 + 288 * (:v_files_loaded_day * 1 / 288) * 8 + 288))::FLOAT, 537.2
+      SELECT 'snowpipes', 'metrics', ((288 * (:v_pipes * 1) * 2 + 288 + 288 * (:v_files_loaded_day * 1 / 288) * 8 + 288 + 288 * (:v_pipes * 24 / 288) * 4 + 288))::FLOAT, 537.2
       UNION ALL
       SELECT 'snowpipes', 'bizevents', ((576))::FLOAT, 578.5
       UNION ALL
-      SELECT 'table_health', 'logs', ((4))::FLOAT, 1973.7
+      SELECT 'table_health', 'logs', ((4))::FLOAT, 0
       UNION ALL
       SELECT 'table_health', 'metrics', ((4 * LEAST(:v_tables_in_scope * 0.1, 500) * 13 + 4))::FLOAT, 474.2
       UNION ALL
       SELECT 'table_health', 'bizevents', ((8))::FLOAT, 584.5
       UNION ALL
-      SELECT 'tasks', 'logs', ((24 * (:v_task_runs_day * 1 / 24) * 1 + 24))::FLOAT, 1011.8
+      SELECT 'tasks', 'logs', ((24 * (:v_task_runs_day * 1 / 24) * 1 + 24 + 24 * (:v_serverless_task_runs_day * 1 / 24) * 1 + 24 + 24 * (:v_task_versions_day * 1 / 24) * 1 + 24))::FLOAT, 1011.8
       UNION ALL
-      SELECT 'tasks', 'metrics', ((24))::FLOAT, 361.0
+      SELECT 'tasks', 'metrics', ((24 + 24 * (:v_serverless_task_runs_day * 1 / 24) * 1 + 24 + 24))::FLOAT, 361.0
       UNION ALL
-      SELECT 'tasks', 'events', ((24 * (:v_task_runs_day * 1 / 24) * 0.05))::FLOAT, 1187.5
+      SELECT 'tasks', 'events', ((24 * (:v_task_runs_day * 1 / 24) * 0.05 + 24 * (:v_task_versions_day * 1 / 24) * 1))::FLOAT, 1187.5
       UNION ALL
       SELECT 'tasks', 'bizevents', ((48))::FLOAT, 570.5
       UNION ALL
@@ -368,15 +389,15 @@ BEGIN
       UNION ALL
       SELECT 'users', 'logs', ((1 * (:v_users * 1) * 1 + 1))::FLOAT, 792.1
       UNION ALL
-      SELECT 'users', 'metrics', ((1))::FLOAT, 518.9
+      SELECT 'users', 'metrics', ((1))::FLOAT, 0
       UNION ALL
       SELECT 'users', 'events', ((1 * (:v_users * 1) * 0.05))::FLOAT, 908.4
       UNION ALL
       SELECT 'users', 'bizevents', ((2))::FLOAT, 570.5
       UNION ALL
-      SELECT 'warehouse_usage', 'logs', ((24 * (:v_warehouses * 1) * 1 + 24))::FLOAT, 766.2
+      SELECT 'warehouse_usage', 'logs', ((24 * (:v_warehouse_events_day * 1 / 24) * 1 + 24 + 24 * (:v_warehouses * 288 / 24) * 1 + 24 + 24 * (:v_warehouses * 24 / 24) * 1 + 24))::FLOAT, 766.2
       UNION ALL
-      SELECT 'warehouse_usage', 'metrics', ((24 * (:v_warehouses * 1) * 7 + 24))::FLOAT, 317.1
+      SELECT 'warehouse_usage', 'metrics', ((24 + 24 * (:v_warehouses * 288 / 24) * 4 + 24 + 24 * (:v_warehouses * 24 / 24) * 3 + 24))::FLOAT, 317.1
       UNION ALL
       SELECT 'warehouse_usage', 'bizevents', ((48))::FLOAT, 590.5
     ),
@@ -399,7 +420,7 @@ BEGIN
       UNION ALL
       SELECT 'query_history' AS plugin, IFF(:n_queries_day <> 'measured', 'queries_day ', '') AS gap
       UNION ALL
-      SELECT 'resource_monitors' AS plugin, IFF(:n_resource_monitors <> 'measured', 'resource_monitors ', '') AS gap
+      SELECT 'resource_monitors' AS plugin, IFF(:n_resource_monitors <> 'measured', 'resource_monitors ', '') || IFF(:n_warehouses <> 'measured', 'warehouses ', '') AS gap
       UNION ALL
       SELECT 'shares' AS plugin, IFF(:n_share_grants_out <> 'measured', 'share_grants_out ', '') || IFF(:n_tables_in_shares <> 'measured', 'tables_in_shares ', '') AS gap
       UNION ALL
@@ -407,13 +428,13 @@ BEGIN
       UNION ALL
       SELECT 'table_health' AS plugin, IFF(:n_tables_in_scope <> 'measured', 'tables_in_scope ', '') AS gap
       UNION ALL
-      SELECT 'tasks' AS plugin, IFF(:n_task_runs_day <> 'measured', 'task_runs_day ', '') AS gap
+      SELECT 'tasks' AS plugin, IFF(:n_serverless_task_runs_day <> 'measured', 'serverless_task_runs_day ', '') || IFF(:n_task_runs_day <> 'measured', 'task_runs_day ', '') || IFF(:n_task_versions_day <> 'measured', 'task_versions_day ', '') AS gap
       UNION ALL
       SELECT 'trust_center' AS plugin, IFF(:n_trust_center_findings <> 'measured', 'trust_center_findings ', '') AS gap
       UNION ALL
       SELECT 'users' AS plugin, IFF(:n_users <> 'measured', 'users ', '') AS gap
       UNION ALL
-      SELECT 'warehouse_usage' AS plugin, IFF(:n_warehouses <> 'measured', 'warehouses ', '') AS gap
+      SELECT 'warehouse_usage' AS plugin, IFF(:n_warehouse_events_day <> 'measured', 'warehouse_events_day ', '') || IFF(:n_warehouses <> 'measured', 'warehouses ', '') AS gap
     ),
     sf(plugin, status, default_on, deprecated, needs_org, standalone, alloc_org, alloc_no_org, note) AS (
       SELECT * FROM VALUES
@@ -506,6 +527,9 @@ BEGIN
       UNION ALL SELECT '2 INPUT', 'files_loaded_day', NULL, :n_files_loaded_day, :v_files_loaded_day, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 17
       UNION ALL SELECT '2 INPUT', 'ddl_day', NULL, :n_ddl_day, :v_ddl_day, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 18
       UNION ALL SELECT '2 INPUT', 'dt_refreshes_day', NULL, :n_dt_refreshes_day, :v_dt_refreshes_day, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 19
+      UNION ALL SELECT '2 INPUT', 'serverless_task_runs_day', NULL, :n_serverless_task_runs_day, :v_serverless_task_runs_day, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 20
+      UNION ALL SELECT '2 INPUT', 'task_versions_day', NULL, :n_task_versions_day, :v_task_versions_day, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 21
+      UNION ALL SELECT '2 INPUT', 'warehouse_events_day', NULL, :n_warehouse_events_day, :v_warehouse_events_day, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 22
       UNION ALL SELECT '3 PLUGIN', plugin, NULL, status_note, NULL, records_day, gib_day, gib_retained, usd_month_1, usd_month_steady,
         sf_alloc, sf_standalone, ROW_NUMBER() OVER (ORDER BY plugin) FROM by_plugin
       UNION ALL SELECT '4 PLUGIN SIGNAL', plugin, signal, NULL, NULL, records_day, gib_day, gib_retained, usd_month_1, usd_month_steady,

@@ -81,12 +81,19 @@ drivers:
   files_loaded_day: {fallback: 0, description: "files loaded by Snowpipe/COPY per day"}
   ddl_day: {fallback: 0, description: "DDL statements per day"}
   dt_refreshes_day: {fallback: 0, description: "dynamic table refreshes per day"}
+  serverless_task_runs_day: {fallback: 0, description: "serverless task runs per day"}
+  task_versions_day: {fallback: 0, description: "new task graph versions per day"}
+  warehouse_events_day: {fallback: 0, description: "warehouse events (resume, suspend, resize) per day"}
 
 # Per plugin. A context is either
 #   snapshot:    every run re-sends `driver` x `coefficient` rows
 #   incremental: every run sends only new rows, so rows/day = `driver` x `coefficient` (optionally capped per run)
 # `per_row` = records emitted for each row, per signal (metrics are data points).
 # Fixtures give the bytes per record (test/test_results/<fixture>/{logs,events,spans,biz_events}.json, metrics.txt).
+# A signal a plugin's fixtures do not contain needs an explicit `bytes_override` - there is no cross-plugin fallback.
+#
+# Context coverage is checked against the plugin code: every context a plugin processes must be modelled, listed in
+# a context's `covers` (when several code contexts are modelled together), or listed in `excluded_contexts` with a reason.
 plugins:
   active_queries:
     default_on: true
@@ -95,8 +102,9 @@ plugins:
     expected_scope: {}
     fixtures: [test_active_queries]
     contexts:
+      # active_queries.py only calls _log_entries: logs and metrics, no spans (the `spans` telemetry flag is unused).
       - {name: active_queries, mode: incremental, driver: queries_day, coefficient: 0.1, basis: assumption,
-         per_row: {logs: 1, spans: 1, metrics: 5}}
+         per_row: {logs: 1, metrics: 5}}
   budgets:
     default_on: false
     expected_schedule: "USING CRON 30 0 * * * UTC"
@@ -106,6 +114,9 @@ plugins:
     contexts:
       - {name: budgets, mode: snapshot, driver: const, coefficient: 1, basis: assumption,
          per_row: {logs: 1, events: 1, metrics: 2}}
+      # one row per budget x service type x day over the last 24 h; ~5 service types for the agent's own budget
+      - {name: spendings, mode: snapshot, driver: const, coefficient: 5, basis: assumption,
+         per_row: {logs: 1, metrics: 1}}
   cold_tables:
     default_on: true
     expected_schedule: "USING CRON 0 6 * * * UTC"
@@ -144,6 +155,9 @@ plugins:
          per_row: {logs: 1, metrics: 4}}
       - {name: dynamic_table_refresh_history, mode: incremental, driver: dt_refreshes_day, coefficient: 1,
          basis: assumption, per_row: {logs: 1, metrics: 6}}
+      # ~1 row per dynamic table per run (2 h window, VALID_TO null or newer than the last run)
+      - {name: dynamic_table_graph_history, mode: snapshot, driver: dynamic_tables, coefficient: 1,
+         basis: assumption, per_row: {logs: 1, metrics: 1, events: 0.1}}
   event_log:
     default_on: true
     expected_schedule: "USING CRON */30 * * * * UTC"
@@ -151,8 +165,8 @@ plugins:
     expected_scope: {max_entries: 10000, lookback_hours: 24}
     fixtures: [test_event_log]
     contexts:
-      - {name: event_log_logs, mode: incremental, driver: log_rows_day, coefficient: 1, max_per_run: 10000,
-         basis: fixture, per_row: {logs: 1}}
+      - {name: event_log_logs, covers: [event_log], mode: incremental, driver: log_rows_day, coefficient: 1,
+         max_per_run: 10000, basis: fixture, per_row: {logs: 1}}
       - {name: event_log_spans, mode: incremental, driver: span_rows_day, coefficient: 1, max_per_run: 10000,
          basis: fixture, per_row: {spans: 1}}
       - {name: event_log_metrics, mode: incremental, driver: metric_rows_day, coefficient: 1, max_per_run: 10000,
@@ -194,6 +208,8 @@ plugins:
     fixtures: [test_org_costs]
     contexts:
       - {name: org_costs, mode: snapshot, driver: const, coefficient: 50, basis: assumption,
+         covers: [org_costs_metering, org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency,
+                  org_billing_remaining_balance],
          per_row: {logs: 1, metrics: 1}}
   query_history:
     default_on: true
@@ -211,8 +227,15 @@ plugins:
     expected_scope: {}
     fixtures: [test_resource_monitors]
     contexts:
+      # No log per monitor (_process_log_rm returns False); metrics plus timestamp and threshold events.
       - {name: resource_monitors, mode: snapshot, driver: resource_monitors, coefficient: 1, basis: assumption,
-         per_row: {logs: 1, events: 0.1, metrics: 5}}
+         per_row: {events: 0.1, metrics: 5}}
+      # Per warehouse; a WARN log is sent only for warehouses without a resource monitor (_process_log_wh).
+      - {name: warehouses, mode: snapshot, driver: warehouses, coefficient: 1, basis: assumption,
+         per_row: {logs: 0.5, events: 0.1, metrics: 11}}
+    # test_resource_monitors has no logs.json; size of a single-object WARN log, comparable to the
+    # login_history / shares log fixtures (0.8-1.0 KB).
+    bytes_override: {logs: 900}
   shares:
     default_on: true
     expected_schedule: "USING CRON */30 * * * * UTC"
@@ -224,6 +247,8 @@ plugins:
          per_row: {logs: 1}}
       - {name: inbound_shares, mode: snapshot, driver: tables_in_shares, coefficient: 1, basis: assumption,
          per_row: {logs: 1}}
+    excluded_contexts:
+      shares: "no logs; one event only when a share is created since the last run - negligible"
   snowpipes:
     default_on: true
     expected_schedule: "USING CRON */5 * * * * UTC"
@@ -239,6 +264,9 @@ plugins:
          per_row: {logs: 1, metrics: 2}}
       - {name: snowpipes_copy_history, mode: incremental, driver: files_loaded_day, coefficient: 1,
          basis: assumption, per_row: {logs: 1, metrics: 8}}
+      # PIPE_USAGE_HISTORY: one row per pipe per hour with activity; assumes every pipe is active every hour
+      - {name: snowpipes_usage_history, mode: incremental, driver: pipes, coefficient: 24,
+         basis: assumption, per_row: {logs: 1, metrics: 4}}
   table_health:
     default_on: false
     expected_schedule: "USING CRON 0 0,6,12,18 * * * UTC"
@@ -247,6 +275,7 @@ plugins:
     fixtures: [test_table_health]
     contexts:
       - {name: table_health, mode: snapshot, driver: tables_in_scope, coefficient: 0.1, max_rows: 500,
+         covers: [table_storage, table_clustering, table_health_derived],
          basis: assumption, per_row: {metrics: 13}}
   tasks:
     default_on: true
@@ -257,6 +286,11 @@ plugins:
     contexts:
       - {name: task_history, mode: incremental, driver: task_runs_day, coefficient: 1, basis: assumption,
          per_row: {logs: 1, events: 0.05}}
+      - {name: serverless_tasks, mode: incremental, driver: serverless_task_runs_day, coefficient: 1, basis: assumption,
+         per_row: {logs: 1, metrics: 1}}
+      # one row per new task graph version; an event only when the version is newer than the last run
+      - {name: task_versions, mode: incremental, driver: task_versions_day, coefficient: 1, basis: assumption,
+         per_row: {logs: 1, events: 1}}
   trust_center:
     default_on: true
     expected_schedule: "USING CRON 30 */12 * * * UTC"
@@ -282,5 +316,12 @@ plugins:
     expected_scope: {lookback_hours: 24}
     fixtures: [test_warehouse_usage]
     contexts:
-      - {name: warehouse_usage, mode: snapshot, driver: warehouses, coefficient: 1, basis: assumption,
-         per_row: {logs: 1, metrics: 7}}
+      # WAREHOUSE_EVENTS_HISTORY: one log per warehouse event
+      - {name: warehouse_usage, mode: incremental, driver: warehouse_events_day, coefficient: 1, basis: assumption,
+         per_row: {logs: 1}}
+      # WAREHOUSE_LOAD_HISTORY: 5-minute intervals per warehouse; assumes every warehouse has load in every interval
+      - {name: warehouse_usage_load, mode: incremental, driver: warehouses, coefficient: 288, basis: assumption,
+         per_row: {logs: 1, metrics: 4}}
+      # WAREHOUSE_METERING_HISTORY: one row per warehouse per hour
+      - {name: warehouse_usage_metering, mode: incremental, driver: warehouses, coefficient: 24, basis: assumption,
+         per_row: {logs: 1, metrics: 3}}

@@ -30,6 +30,7 @@ Inputs: plugin *-config.yml, instruments-def.yml, test fixtures (bytes per recor
 
 import json
 import os
+import re
 import sys
 from typing import Any, Dict, List, Optional, Set
 
@@ -79,6 +80,9 @@ REQUIRED_SOURCES = [
 OPTIONAL_SOURCES = [
     f"{_AU}.RESOURCE_MONITORS",
     f"{_AU}.DYNAMIC_TABLE_REFRESH_HISTORY",
+    f"{_AU}.SERVERLESS_TASK_HISTORY",
+    f"{_AU}.TASK_VERSIONS",
+    f"{_AU}.WAREHOUSE_EVENTS_HISTORY",
     "SNOWFLAKE.TRUST_CENTER.FINDINGS",
     "SNOWFLAKE.TELEMETRY.EVENTS",
     "SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY",
@@ -143,6 +147,23 @@ MEASUREMENTS: List[Dict[str, Any]] = [
         "sql": f"SELECT COUNT(*) / {{lb}} FROM {_AU}.DYNAMIC_TABLE_REFRESH_HISTORY "
         f"WHERE REFRESH_START_TIME >= DATEADD(day, -{LOOKBACK_DAYS}, CURRENT_TIMESTAMP())",
     },
+    {
+        "drivers": ["serverless_task_runs_day"],
+        "sql": f"SELECT COUNT(*) / {{lb}} FROM {_AU}.SERVERLESS_TASK_HISTORY "
+        f"WHERE END_TIME >= DATEADD(day, -{LOOKBACK_DAYS}, CURRENT_TIMESTAMP())",
+    },
+    {
+        # same change test as the task_versions view (tasks.sql/063_v_task_versions.sql)
+        "drivers": ["task_versions_day"],
+        "sql": f"SELECT COUNT(*) / {{lb}} FROM {_AU}.TASK_VERSIONS "
+        "WHERE GREATEST_IGNORE_NULLS(GRAPH_VERSION_CREATED_ON, LAST_COMMITTED_ON, LAST_SUSPENDED_ON) "
+        f">= DATEADD(day, -{LOOKBACK_DAYS}, CURRENT_TIMESTAMP())",
+    },
+    {
+        "drivers": ["warehouse_events_day"],
+        "sql": f"SELECT COUNT(*) / {{lb}} FROM {_AU}.WAREHOUSE_EVENTS_HISTORY "
+        f"WHERE TIMESTAMP >= DATEADD(day, -{LOOKBACK_DAYS}, CURRENT_TIMESTAMP()) AND WAREHOUSE_NAME <> 'DTAGENT_WH'",
+    },
 ]
 
 
@@ -171,6 +192,22 @@ def count_metric_defs(plugin: str) -> int:
 def discover_plugins() -> Set[str]:
     """Returns the names of all plugins shipped in src/dtagent/plugins."""
     return {name[: -len(".config")] for name in os.listdir(PLUGINS_DIR) if name.endswith(".config")}
+
+
+def code_contexts(plugin: str) -> Set[str]:
+    """Returns the contexts a multi-context plugin processes, read from its `"<context>" in contexts` guards.
+
+    Single-context plugins have no such guard and return an empty set.
+    """
+    path = os.path.join(PLUGINS_DIR, f"{plugin}.py")
+    if not os.path.isfile(path):
+        return set()
+    with open(path, "r", encoding="utf-8") as file:
+        return set(re.findall(r'"([a-z_]+)"\s+in\s+contexts', file.read()))
+
+
+def _signals_used(entry: Dict[str, Any]) -> Set[str]:
+    return {signal for context in entry["contexts"] for signal, count in context["per_row"].items() if count}
 
 
 def validate_model(model: Dict[str, Any]) -> List[str]:
@@ -206,9 +243,20 @@ def validate_model(model: Dict[str, Any]) -> List[str]:
         for context in entry["contexts"]:
             if context["driver"] not in model["drivers"]:
                 problems.append(f"{plugin}/{context['name']}: unknown driver '{context['driver']}'")
+        modelled = {name for context in entry["contexts"] for name in [context["name"], *context.get("covers", [])]}
+        accounted = modelled | set(entry.get("excluded_contexts", {}))
+        for context in sorted(code_contexts(plugin) - accounted):
+            problems.append(
+                f"{plugin}/{context}: context is processed by the plugin but not modelled "
+                "(add it, list it in a context's `covers`, or in `excluded_contexts` with a reason)"
+            )
         for fixture in entry["fixtures"]:
             if not os.path.isdir(os.path.join(FIXTURES_DIR, fixture)):
                 problems.append(f"{plugin}: fixture '{fixture}' does not exist")
+        sizes = _fixture_stats(entry["fixtures"])
+        for signal in sorted(_signals_used(entry)):
+            if sizes[signal] is None and signal not in entry.get("bytes_override", {}):
+                problems.append(f"{plugin}: no fixture contains {signal}; add a fixture or a `bytes_override` for it")
     return problems
 
 
@@ -252,13 +300,16 @@ def _fixture_stats(fixtures: List[str]) -> Dict[str, Optional[float]]:
 
 
 def bytes_per_record(model: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
-    """Bytes per record per plugin and signal; signals missing in a plugin's fixtures use the average over all fixtures."""
-    all_fixtures = sorted(d for d in os.listdir(FIXTURES_DIR) if os.path.isdir(os.path.join(FIXTURES_DIR, d)))
-    global_stats = _fixture_stats(all_fixtures)
+    """Bytes per record per plugin and signal, from the plugin's own fixtures or its explicit `bytes_override`.
+
+    There is deliberately no fallback to other plugins' fixtures: a missing size is reported by validate_model().
+    Signals the plugin does not emit get 0.
+    """
     result: Dict[str, Dict[str, float]] = {}
     for plugin, entry in model["plugins"].items():
         stats = _fixture_stats(entry["fixtures"])
-        result[plugin] = {signal: round(stats[signal] or global_stats[signal] or 0, 1) for signal in SIGNALS}
+        overrides = entry.get("bytes_override", {})
+        result[plugin] = {signal: round(overrides.get(signal, stats[signal] or 0), 1) for signal in SIGNALS}
     return result
 
 

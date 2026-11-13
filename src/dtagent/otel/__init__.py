@@ -111,10 +111,10 @@ class NoOpTelemetry:
         if name in ("flush_traces", "report_via_metrics_api"):
             return __bool_method
 
-        if name in ("discover_report_metrics"):
+        if name == "discover_report_metrics":
             return __dummy_discover_report_metrics
 
-        if name in ("generate_span"):
+        if name == "generate_span":
             return __zero_tuple_method(3)
 
         return _not_implemented

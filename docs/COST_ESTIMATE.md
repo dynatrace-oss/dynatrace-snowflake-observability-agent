@@ -15,6 +15,23 @@ The script is read-only and needs no privileges other than reading views. Run it
 GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE <role>;
 ```
 
+> **This grant is broader than the estimate needs.** `IMPORTED PRIVILEGES` gives `<role>` read access to every view in
+> the `SNOWFLAKE` database, not only the views listed below. That includes sensitive account history such as query
+> text in `QUERY_HISTORY`, login attempts and client IP addresses in `LOGIN_HISTORY`, and the full user list. The script
+> itself only reads row counts from these views and returns no row-level data, but the role can read everything.
+> It is the same grant the DSOA installation gives its own `DTAGENT_VIEWER` role.
+>
+> If you do not want a standing role with this access, create a dedicated role for the estimate, grant it only to the
+> person running the script, and remove it afterwards:
+>
+> ```sql
+> CREATE ROLE DSOA_COST_ESTIMATE;
+> GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE DSOA_COST_ESTIMATE;
+> GRANT ROLE DSOA_COST_ESTIMATE TO USER <user>;
+> -- run dsoa-cost-estimate.sql with USE ROLE DSOA_COST_ESTIMATE, plus a warehouse the role can use, then:
+> DROP ROLE DSOA_COST_ESTIMATE;
+> ```
+
 **Required.** Before measuring anything, the script checks that it can read each of these views:
 
 - `SNOWFLAKE.ACCOUNT_USAGE.TABLES`
@@ -44,6 +61,9 @@ A role such as `PUBLIC` typically fails on every view, with the error `Schema 'S
 |---|---|
 | `SNOWFLAKE.ACCOUNT_USAGE.RESOURCE_MONITORS` | resource monitor count (default: 1) |
 | `SNOWFLAKE.ACCOUNT_USAGE.DYNAMIC_TABLE_REFRESH_HISTORY` | dynamic table refreshes per day (default: 0) |
+| `SNOWFLAKE.ACCOUNT_USAGE.SERVERLESS_TASK_HISTORY` | serverless task runs per day, `tasks` plugin (default: 0) |
+| `SNOWFLAKE.ACCOUNT_USAGE.TASK_VERSIONS` | new task graph versions per day, `tasks` plugin (default: 0) |
+| `SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_EVENTS_HISTORY` | warehouse events per day, `warehouse_usage` plugin (default: 0) |
 | `SNOWFLAKE.TRUST_CENTER.FINDINGS` | Trust Center findings (default: 0) |
 | `SNOWFLAKE.TELEMETRY.EVENTS` | event table log, span and metric rows per day (default: 0). **Without it the `event_log` estimate is understated** (see below) |
 | `SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY` | whether this is an organization account (default: no, `org_costs` shows n/a) |
@@ -289,6 +309,13 @@ What this shows:
    estimated at about 202 thousand records/day against 109 thousand logged, so the model is about 1.9x too high there.
    The record check says nothing about the 37 metric data points per query, because no account in the sample runs
    `query_history`.
+
+   **The record figures above predate a model change.** After this comparison, contexts the first model left out were
+   added: `serverless_tasks` and `task_versions` (`tasks`), `warehouse_usage_load` and `warehouse_usage_metering`
+   (`warehouse_usage`, previously one combined row per warehouse and hour), `snowpipes_usage_history`,
+   `dynamic_table_graph_history`, the per-warehouse context of `resource_monitors`, and `spendings` (`budgets`). This raises
+   the estimated records, mostly through `warehouse_usage_load` (up to 288 rows per warehouse per day), so the 1.9x figure
+   no longer holds and has to be re-measured. Credits are not affected: they depend only on schedules and run times.
 3. **Snowflake credits: calibrated on measured run times.** The first version used placeholder run times and gave
    12.0 credits/day for every account. Three things changed:
    - The 5-minute Snowpipes task runs on cloud services only and does not keep the warehouse awake, so it is no

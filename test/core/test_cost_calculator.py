@@ -171,3 +171,24 @@ class TestCostCalculator:
         """The copy kept in the repository must equal what the generator produces, so a changed model needs a rebuild."""
         with open(gen.REPO_COPY, encoding="utf-8") as file:
             assert file.read() == sql
+
+
+class TestCostModelCoverage:
+    """Every plugin output must be modelled and priced from the plugin's own record sizes."""
+
+    def test_context_scan_finds_plugin_contexts(self):
+        """The context scan finds the contexts of a multi-context plugin (guards against a silently empty scan)."""
+        assert gen.code_contexts("tasks") == {"serverless_tasks", "task_versions", "task_history"}
+
+    def test_unmodelled_context_is_detected(self, model):
+        """A context the plugin processes but the model neither models, covers nor excludes must be reported."""
+        drifted = copy.deepcopy(model)
+        tasks = drifted["plugins"]["tasks"]
+        tasks["contexts"] = [c for c in tasks["contexts"] if c["name"] != "serverless_tasks"]
+        assert any("tasks/serverless_tasks: context is processed" in problem for problem in gen.validate_model(drifted))
+
+    def test_missing_record_size_is_detected(self, model):
+        """A signal without a fixture size and without a bytes_override must be reported, not priced from other plugins."""
+        drifted = copy.deepcopy(model)
+        del drifted["plugins"]["resource_monitors"]["bytes_override"]
+        assert any("resource_monitors: no fixture contains logs" in problem for problem in gen.validate_model(drifted))
