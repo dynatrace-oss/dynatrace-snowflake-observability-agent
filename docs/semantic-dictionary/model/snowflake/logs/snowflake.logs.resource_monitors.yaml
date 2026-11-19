@@ -42,9 +42,6 @@ model:
         - ref: snowflake.resource_monitor.frequency
         - ref: snowflake.resource_monitor.is_active
         - ref: snowflake.resource_monitor.level
-        - ref: snowflake.resource_monitor.threshold.direction
-        - ref: snowflake.resource_monitor.threshold.level
-        - ref: snowflake.resource_monitor.threshold.value
         - ref: snowflake.resource_monitor.warehouses
         - ref: snowflake.warehouse.event.trigger
         - ref: snowflake.warehouse.execution_state

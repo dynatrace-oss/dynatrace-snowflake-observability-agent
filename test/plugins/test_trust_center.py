@@ -56,39 +56,21 @@ class TestTrustCenter:
 
         # ======================================================================
 
-        # trust_center has one CRITICAL finding (routed as a Davis event) and one non-critical
-        # finding (routed as a log). Disabling "logs" alone drops the non-critical row entirely
-        # (it is never logged nor evented), rather than falling back to another channel.
-        # Disabling "events" alone routes both rows through logs instead.
-        trust_center_default = {"entries": 2, "log_lines": 1, "events": 1}
-        trust_center_logs_disabled = {"entries": 1, "log_lines": 0, "events": 1}
-        trust_center_events_disabled = {"entries": 2, "log_lines": 2, "events": 0}
+        # CRITICAL findings are no longer sent as events (alerting moved to the Data Observability app):
+        # every finding is routed through logs and no event is ever emitted.
+        trust_center_enabled = {"entries": 2, "log_lines": 2, "events": 0}
+        trust_center_logs_disabled = {"entries": 0, "log_lines": 0, "events": 0}
         metrics_enabled = {"entries": 2, "metrics": 2}
         metrics_disabled = {"entries": 0, "metrics": 0}
 
-        # the CRITICAL row now logs instead of eventing when events are disabled, so "logs"
-        # content diverges from the fixture recorded with events enabled; counts are still checked.
-        skip_logs_content = ["logs"]
-
         disabled_combinations_and_counts = [
-            ([], {"trust_center": trust_center_default, "trust_center_metrics": metrics_enabled}, None),
-            (["metrics"], {"trust_center": trust_center_default, "trust_center_metrics": metrics_disabled}, None),
+            ([], {"trust_center": trust_center_enabled, "trust_center_metrics": metrics_enabled}, None),
+            (["metrics"], {"trust_center": trust_center_enabled, "trust_center_metrics": metrics_disabled}, None),
             (["logs"], {"trust_center": trust_center_logs_disabled, "trust_center_metrics": metrics_enabled}, None),
-            (["events"], {"trust_center": trust_center_events_disabled, "trust_center_metrics": metrics_enabled}, skip_logs_content),
+            (["events"], {"trust_center": trust_center_enabled, "trust_center_metrics": metrics_enabled}, None),
             (
-                ["metrics", "logs"],
+                ["logs", "spans", "metrics", "events"],
                 {"trust_center": trust_center_logs_disabled, "trust_center_metrics": metrics_disabled},
-                None,
-            ),
-            (
-                ["metrics", "events"],
-                {"trust_center": trust_center_events_disabled, "trust_center_metrics": metrics_disabled},
-                skip_logs_content,
-            ),
-            (["logs", "events"], {"trust_center": trust_center_default, "trust_center_metrics": metrics_enabled}, None),
-            (
-                ["metrics", "logs", "events"],
-                {"trust_center": trust_center_default, "trust_center_metrics": metrics_disabled},
                 None,
             ),
         ]
@@ -98,7 +80,7 @@ class TestTrustCenter:
                 TestDynatraceSnowAgent,
                 test_name="test_trust_center",
                 disabled_telemetry=disabled_telemetry,
-                affecting_types_for_entries=["logs", "metrics", "events"],
+                affecting_types_for_entries=["logs", "metrics"],
                 base_count=base_count,
                 skip_content_check=skip_content_check,
             )

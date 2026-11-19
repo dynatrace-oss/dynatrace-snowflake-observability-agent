@@ -56,45 +56,22 @@ class TestLoginHist:
 
         # ======================================================================
 
-        # login_history has one failed-login row (routed as a Davis event) and one normal-login
-        # row (routed as a log). Disabling "logs" alone drops the normal-login row entirely
-        # (it is never logged nor evented), rather than falling back to another channel.
-        # Disabling "events" alone routes both rows through logs instead.
+        # Failed-login rows are no longer sent as events (alerting moved to the Data Observability app):
+        # every login_history row is routed through logs, and no event is ever emitted.
+        both_rows_logged = {
+            "login_history": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+            "sessions": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+        }
+        logs_disabled = {
+            "login_history": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+            "sessions": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+        }
         disabled_combinations_and_counts = [
-            (
-                [],
-                {
-                    "login_history": {"entries": 2, "log_lines": 1, "metrics": 0, "events": 1},
-                    "sessions": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
-                },
-                None,
-            ),
-            (
-                ["logs"],
-                {
-                    "login_history": {"entries": 1, "log_lines": 0, "metrics": 0, "events": 1},
-                    "sessions": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
-                },
-                None,
-            ),
-            (
-                ["events"],
-                {
-                    "login_history": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
-                    "sessions": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
-                },
-                # the failed-login row now logs instead of evening, so "logs" content diverges
-                # from the fixture recorded with events enabled; counts are still checked above.
-                ["logs"],
-            ),
-            (
-                ["logs", "events"],
-                {
-                    "login_history": {"entries": 2, "log_lines": 1, "metrics": 0, "events": 1},
-                    "sessions": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
-                },
-                None,
-            ),
+            ([], both_rows_logged, None),
+            (["metrics"], both_rows_logged, None),
+            (["logs"], logs_disabled, None),
+            (["logs", "spans", "metrics", "events"], logs_disabled, None),
+            (["events"], both_rows_logged, None),
         ]
 
         for disabled_telemetry, base_count, skip_content_check in disabled_combinations_and_counts:
@@ -102,7 +79,7 @@ class TestLoginHist:
                 TestDynatraceSnowAgent,
                 test_name="test_login_history",
                 disabled_telemetry=disabled_telemetry,
-                affecting_types_for_entries=["logs", "events"],
+                affecting_types_for_entries=["logs"],
                 base_count=base_count,
                 skip_content_check=skip_content_check,
             )

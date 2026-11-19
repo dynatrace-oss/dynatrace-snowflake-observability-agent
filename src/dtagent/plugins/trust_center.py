@@ -25,10 +25,9 @@
 #
 #
 import logging
-from dtagent.otel.events import EventType
 from dtagent.plugins import Plugin
 from dtagent.util import _unpack_json_dict
-from typing import Tuple, Dict, Optional, List
+from typing import Dict, Optional, List
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
@@ -71,11 +70,6 @@ class TrustCenterPlugin(Plugin):
 
         return True
 
-    def _prepare_event_payload_critical_risk(self, row_dict: dict) -> Tuple[EventType, str, Dict]:  # pylint: disable=unused-argument
-        """Defines what payload should be sent once vulnerability.risk.level is CRITICAL"""
-
-        return EventType.CUSTOM_ALERT, "Trust Center Critical problem", {}
-
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes data for trust center plugin.
 
@@ -117,16 +111,9 @@ class TrustCenterPlugin(Plugin):
             log_completion=False,
             start_time="EVENT_START",
             end_time="EVENT_END",
-            event_column_to_check="_SEVERITY",
-            event_value_to_check="CRITICAL",
-            event_payload_prepare=self._prepare_event_payload_critical_risk,
-            f_report_event=self._report_via_davis_events,
             f_report_log=self._report_instrumented_log,
             f_get_log_level=self._get_severity_log_level,
         )
-        if self._davis_events is not None:
-            events_sent_cnt += self._davis_events.flush_events()
-
         results_dict = {
             "trust_center": {
                 "entries": entries_cnt,

@@ -25,6 +25,33 @@
     }
   },
   {
+    "content": "login_history",
+    "authentiacation.factor.first": "PASSWORD",
+    "client.version": "1.21.0",
+    "event.id": 18260702004595858,
+    "event.related_id": 0,
+    "snowflake.status.code": "ERROR",
+    "snowflake.error.code": 390001,
+    "snowflake.status.message": "INCORRECT_USERNAME_PASSWORD",
+    "client.ip": "10.0.0.1",
+    "client.type": "OTHER",
+    "db.user": "SNOWAGENT_ADMIN",
+    "event.name": "FAILED_LOGIN",
+    "dsoa.run.plugin": "test_login_history",
+    "dsoa.run.context": "login_history",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
     "content": "New Sessions entry for TEST.USER",
     "snowflake.session.start": 1760681131300000000,
     "snowflake.session.id": 18260702004600001,
