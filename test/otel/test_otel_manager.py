@@ -23,12 +23,93 @@
 #
 import uuid
 import pytest
-from dtagent.otel.otel_manager import OtelManager
+from dtagent.otel.otel_manager import OtelManager, _sanitize_ua_segment
+from dtagent.otel import USER_AGENT
 from test._utils import LocalTelemetrySender, get_config, read_clean_data_from_file
 from test import _get_session
 import os
 
 ENV_VAR_NAME = "DTAGENT_TOKEN"
+
+
+class TestUserAgentHeaders:
+    """Unit tests for the dynamic User-Agent header logic in OtelManager."""
+
+    def setup_method(self):
+        """Reset class-level state before each test."""
+        OtelManager._run_environment = None
+        OtelManager._current_plugin = None
+
+    def test_base_headers_only(self):
+        """get_dsoa_headers() with no state returns bare version string."""
+        headers = OtelManager.get_dsoa_headers()
+        assert headers["User-Agent"] == USER_AGENT
+        assert headers["X-Dynatrace-Attr"] == "dt.ingest.origin=snowflake-dsoa"
+
+    def test_env_only(self):
+        """set_run_environment() adds env= segment."""
+        mgr = OtelManager()
+        mgr.set_run_environment("PROD")
+        assert OtelManager.get_dsoa_headers()["User-Agent"] == f"{USER_AGENT};env=PROD"
+
+    def test_plugin_only(self):
+        """set_current_plugin() adds plugin= segment."""
+        mgr = OtelManager()
+        mgr.set_current_plugin("query_history")
+        assert OtelManager.get_dsoa_headers()["User-Agent"] == f"{USER_AGENT};plugin=query_history"
+
+    def test_env_and_plugin(self):
+        """Both set gives full three-part header."""
+        mgr = OtelManager()
+        mgr.set_run_environment("STAGING")
+        mgr.set_current_plugin("data_volume")
+        assert OtelManager.get_dsoa_headers()["User-Agent"] == f"{USER_AGENT};env=STAGING;plugin=data_volume"
+
+    def test_none_env_omitted(self):
+        """None deployment_environment means env= is omitted."""
+        mgr = OtelManager()
+        mgr.set_run_environment(None)
+        mgr.set_current_plugin("shares")
+        assert "env=" not in OtelManager.get_dsoa_headers()["User-Agent"]
+
+    def test_empty_string_env_omitted(self):
+        """Empty string deployment_environment is treated as absent."""
+        mgr = OtelManager()
+        mgr.set_run_environment("")
+        mgr.set_current_plugin("shares")
+        assert "env=" not in OtelManager.get_dsoa_headers()["User-Agent"]
+
+    def test_class_level_state_shared(self):
+        """State set on one instance is visible via class-level call (for metrics/events)."""
+        mgr = OtelManager()
+        mgr.set_run_environment("DEV")
+        mgr.set_current_plugin("tasks")
+        # metrics.py calls OtelManager.get_dsoa_headers() as a class-level call
+        class_headers = OtelManager.get_dsoa_headers()
+        assert "env=DEV" in class_headers["User-Agent"]
+        assert "plugin=tasks" in class_headers["User-Agent"]
+
+    def test_sanitize_strips_crlf(self):
+        """_sanitize_ua_segment removes CR/LF characters."""
+        assert _sanitize_ua_segment("val\r\nue") == "value"
+
+    def test_sanitize_strips_control_chars(self):
+        """_sanitize_ua_segment removes ASCII control characters."""
+        assert _sanitize_ua_segment("val\x00ue") == "value"
+
+    def test_sanitize_none_returns_none(self):
+        assert _sanitize_ua_segment(None) is None
+
+    def test_sanitize_blank_returns_none(self):
+        assert _sanitize_ua_segment("  ") is None
+
+    def test_injection_sanitized(self):
+        """CRLF characters are removed so the value cannot split into new header lines."""
+        mgr = OtelManager()
+        mgr.set_current_plugin("evil\r\nX-Injected: header")
+        ua = OtelManager.get_dsoa_headers()["User-Agent"]
+        assert "\r" not in ua
+        assert "\n" not in ua
 
 
 class TestOtelManager:

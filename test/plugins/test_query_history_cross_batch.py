@@ -88,7 +88,7 @@ class TestQueryHistCrossBatch:
             from opentelemetry.sdk.resources import Resource
 
             def _get_spans(self, resource: Resource) -> Spans:
-                return TestSpans(resource, self._configuration)
+                return TestSpans(resource, self._configuration, self._otel_manager)
 
         def __local_get_plugin_class(source: str):
             return TestQueryHistoryPlugin
@@ -165,7 +165,7 @@ class TestQueryHistCrossBatch:
         (span_id_hex, trace_id_hex) tuple for the processed query ID.
         """
         import json as _json
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import MagicMock, Mock, patch
         from opentelemetry.sdk.resources import Resource
 
         from dtagent.otel.spans import Spans
@@ -195,7 +195,7 @@ class TestQueryHistCrossBatch:
         with patch("dtagent.otel.spans.OtelManager.verify_communication"):
             with patch("dtagent.otel.spans.OtelManager.get_dsoa_headers", return_value={}):
                 with patch("dtagent.otel.spans.CustomLoggingSession"):
-                    spans = Spans(resource, mock_config)
+                    spans = Spans(resource, mock_config, Mock())
 
         span_context_map: dict = {}
         mock_session = MagicMock()

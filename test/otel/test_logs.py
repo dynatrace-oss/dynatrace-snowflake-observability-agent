@@ -28,6 +28,7 @@ import time
 import pytest
 from unittest.mock import Mock, patch
 from opentelemetry._logs import SeverityNumber
+from dtagent.otel.otel_manager import OtelManager
 
 
 class TestLoggerNaming:
@@ -52,7 +53,7 @@ class TestLoggerNaming:
 
         mock_config.get = Mock(side_effect=mock_get)
 
-        logs = Logs(Mock(), mock_config)
+        logs = Logs(Mock(), mock_config, OtelManager())
         logger_name = logs._Logs__get_logger_name()
 
         assert logger_name == "DTAGENT_OTLP", f"Expected DTAGENT_OTLP but got {logger_name}"
@@ -76,7 +77,7 @@ class TestLoggerNaming:
 
         mock_config.get = Mock(side_effect=mock_get)
 
-        logs = Logs(Mock(), mock_config)
+        logs = Logs(Mock(), mock_config, OtelManager())
         logger_name = logs._Logs__get_logger_name()
 
         assert logger_name == "DTAGENT_ENV01_OTLP", f"Expected DTAGENT_ENV01_OTLP but got {logger_name}"
@@ -108,7 +109,7 @@ class TestLoggerNaming:
                 return kwargs.get("default_value", "http://test")
 
             mock_config.get = Mock(side_effect=mock_get)
-            logs = Logs(Mock(), mock_config)
+            logs = Logs(Mock(), mock_config, OtelManager())
             logger_name = logs._Logs__get_logger_name()
 
             assert logger_name == expected, f"For TAG={tag}, expected {expected} but got {logger_name}"
@@ -131,7 +132,7 @@ class TestLoggerNaming:
             return kwargs.get("default_value", "http://test")
 
         mock_config.get = Mock(side_effect=mock_get)
-        logs = Logs(Mock(), mock_config)
+        logs = Logs(Mock(), mock_config, OtelManager())
         logger_name = logs._Logs__get_logger_name()
 
         assert logger_name == "DTAGENT_TAG_OTLP"
@@ -155,7 +156,7 @@ class TestLoggerNaming:
             return kwargs.get("default_value", "http://test")
 
         mock_config.get = Mock(side_effect=mock_get)
-        logs = Logs(Mock(), mock_config)
+        logs = Logs(Mock(), mock_config, OtelManager())
         expected_name = logs._Logs__get_logger_name()
 
         mock_logger_provider.return_value.get_logger.assert_called_with(expected_name)
@@ -210,7 +211,7 @@ class TestEmitBoundary:
                 return kwargs.get("default_value", "http://test")
 
             mock_config.get = Mock(side_effect=mock_get)
-            self.logs = Logs(Mock(), mock_config)
+            self.logs = Logs(Mock(), mock_config, OtelManager())
             self.mock_otel_logger = mock_lp.return_value.get_logger.return_value
             yield
 
@@ -281,5 +282,5 @@ class TestEmitBoundary:
                 return kwargs.get("default_value", "http://test")
 
             mock_config.get = Mock(side_effect=mock_get)
-            Logs(Mock(), mock_config)
+            Logs(Mock(), mock_config, OtelManager())
             mock_lp.return_value.get_logger.assert_called_with("DTAGENT_T1_OTLP")
