@@ -40,10 +40,11 @@ packages = (
     'requests',
     'pandas',
     'tzlocal',
+    'croniter',
     'snowflake-snowpark-python',
-    'opentelemetry-api',
-    'opentelemetry-sdk',
-    'opentelemetry-exporter-otlp-proto-http'
+    'opentelemetry-api==1.40.0',
+    'opentelemetry-sdk==1.40.0',
+    'opentelemetry-exporter-otlp-proto-http==1.40.0'
 )
 handler = 'main'
 external_access_integrations = (DTAGENT_API_INTEGRATION)
@@ -76,6 +77,7 @@ call APP.DTAGENT(ARRAY_CONSTRUCT('data_volume'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('dynamic_tables'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('event_log'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('event_usage'));
+call APP.DTAGENT(ARRAY_CONSTRUCT('heartbeat'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('login_history'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('metering'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('org_costs'));

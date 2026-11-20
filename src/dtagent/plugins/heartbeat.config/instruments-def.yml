@@ -1,0 +1,234 @@
+#  *
+#  * These materials contain confidential information and
+#  * trade secrets of Dynatrace LLC.  You shall
+#  * maintain the materials as confidential and shall not
+#  * disclose its contents to any third party except as may
+#  * be required by law or regulation.  Use, disclosure,
+#  * or reproduction is prohibited without the prior express
+#  * written permission of Dynatrace LLC.
+#  *
+#  * All Compuware products listed within the materials are
+#  * trademarks of Dynatrace LLC.  All other company
+#  * or product names are trademarks of their respective owners.
+#  *
+#  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+attributes:
+  dsoa.heartbeat.configured_enabled:
+    __type: boolean
+    displayName: Heartbeat configured enabled
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: true
+    __description: "Whether the plugin owning the task is enabled in the configuration."
+  dsoa.heartbeat.configured_schedule:
+    __type: string
+    displayName: Heartbeat configured schedule
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: "USING CRON 0 6 * * * UTC"
+    __description: "The task schedule set in the configuration."
+  dsoa.heartbeat.actual_state:
+    __type: string
+    displayName: Heartbeat actual task state
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: "started"
+    __description: "The state of the task in Snowflake: started, suspended, or missing when the task is not deployed."
+  dsoa.heartbeat.actual_schedule:
+    __type: string
+    displayName: Heartbeat actual schedule
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: "USING CRON 0 6 * * * UTC"
+    __description: "The schedule of the task as deployed in Snowflake."
+  dsoa.heartbeat.schedule_supported:
+    __type: boolean
+    displayName: Heartbeat schedule supported
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: true
+    __description: >-
+      Whether the expected number of runs could be calculated; false for schedules depending on other tasks or unparsable schedules.
+    __is_defined_at_runtime: true
+  dsoa.heartbeat.is_missing:
+    __type: boolean
+    displayName: Heartbeat task missing
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: false
+    __description: "Whether the task is enabled in the configuration but not deployed in Snowflake."
+  dsoa.heartbeat.is_unexpected:
+    __type: boolean
+    displayName: Heartbeat task unexpected
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: false
+    __description: "Whether the task is started in Snowflake although it is disabled in the configuration."
+  dsoa.heartbeat.is_suspended:
+    __type: boolean
+    displayName: Heartbeat task suspended
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: false
+    __description: "Whether the task is enabled in the configuration but suspended in Snowflake."
+  dsoa.heartbeat.has_schedule_drift:
+    __type: boolean
+    displayName: Heartbeat schedule drift
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: false
+    __description: "Whether the deployed task schedule differs from the configured one."
+  dsoa.heartbeat.window_hours:
+    __type: long
+    displayName: Heartbeat window hours
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: 24
+    __description: "The length of the window, in hours, over which expected and actual runs are compared."
+dimensions:
+  db.namespace:
+    __semdict: ref
+    __type: string
+    displayName: Database namespace
+    __context_names:
+      - heartbeat
+    __example: "DTAGENT_DB"
+    __description: "The database of the Dynatrace Snowflake Observability Agent instance the task belongs to."
+  dsoa.heartbeat.plugin:
+    __type: string
+    displayName: Heartbeat plugin name
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: "budgets"
+    __description: "The Dynatrace Snowflake Observability Agent plugin the task belongs to."
+  dsoa.heartbeat.task:
+    __type: string
+    displayName: Heartbeat task name
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: "TASK_DTAGENT_BUDGETS"
+    __description: "The name of the Dynatrace Snowflake Observability Agent task."
+metrics:
+  dsoa.heartbeat.expected_runs:
+    __type: long
+    displayName: Heartbeat expected runs
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: 1
+    __description: "The number of task runs implied by the schedule within the window."
+    __is_defined_at_runtime: true
+    unit: count
+  dsoa.heartbeat.runs.succeeded:
+    __type: long
+    displayName: Heartbeat succeeded runs
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: 1
+    __description: "The number of task runs that succeeded within the window."
+    unit: count
+  dsoa.heartbeat.runs.failed:
+    __type: long
+    displayName: Heartbeat failed runs
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: 0
+    __description: "The number of task runs that failed within the window."
+    unit: count
+  dsoa.heartbeat.runs.skipped:
+    __type: long
+    displayName: Heartbeat skipped runs
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: 0
+    __description: "The number of task runs that were skipped within the window."
+    unit: count
+  dsoa.heartbeat.runs.cancelled:
+    __type: long
+    displayName: Heartbeat cancelled runs
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: 0
+    __description: "The number of task runs that were cancelled within the window."
+    unit: count
+dql_queries:
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "heartbeat"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent heartbeat log entries from Grail.
+    description_copilot: Search for all heartbeat plugin logs from the Snowflake observability agent.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "heartbeat"
+      | filter dsoa.heartbeat.is_missing == true
+          or dsoa.heartbeat.is_unexpected == true
+          or dsoa.heartbeat.is_suspended == true
+          or dsoa.heartbeat.has_schedule_drift == true
+      | fields timestamp, dsoa.heartbeat.task, dsoa.heartbeat.actual_state,
+          dsoa.heartbeat.configured_schedule, dsoa.heartbeat.actual_schedule
+      | sort timestamp desc
+      | limit 50
+    description: Fetch agent tasks that are missing, unexpected, suspended or have a schedule differing from the configuration.
+    description_copilot: Search for Snowflake agent tasks whose deployed state differs from the configuration.
+    context:
+      - logs
+  - query_string: |
+      timeseries {
+        expected = sum(dsoa.heartbeat.expected_runs),
+        succeeded = sum(dsoa.heartbeat.runs.succeeded)
+      },
+        by: { dsoa.heartbeat.task, deployment.environment.name }
+    description: Compare expected and succeeded agent task runs per task over time.
+    description_copilot: Timeseries comparing expected and succeeded Snowflake agent task runs per task.
+    context:
+      - metrics
+  - query_string: |
+      timeseries failed = sum(dsoa.heartbeat.runs.failed), by: { dsoa.heartbeat.task, deployment.environment.name }
+    description: Plot failed agent task runs per task over time.
+    description_copilot: Timeseries of failed Snowflake agent task runs per task.
+    context:
+      - metrics
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "heartbeat"
+      | filter dsoa.heartbeat.configured_enabled == true
+      | summarize runs = sum(dsoa.heartbeat.runs.succeeded),
+          expected = sum(dsoa.heartbeat.expected_runs),
+          by: { dsoa.heartbeat.task, deployment.environment.name }
+    description: Summarize succeeded versus expected runs of enabled agent tasks per task.
+    description_copilot: Compare succeeded and expected runs for enabled Snowflake agent tasks.
+    context:
+      - logs
+  - query_string: |
+      timeseries {
+        skipped = sum(dsoa.heartbeat.runs.skipped),
+        cancelled = sum(dsoa.heartbeat.runs.cancelled)
+      },
+        by: { dsoa.heartbeat.task, deployment.environment.name }
+    description: Plot skipped and cancelled agent task runs per task over time.
+    description_copilot: Timeseries of skipped and cancelled Snowflake agent task runs per task.
+    context:
+      - metrics

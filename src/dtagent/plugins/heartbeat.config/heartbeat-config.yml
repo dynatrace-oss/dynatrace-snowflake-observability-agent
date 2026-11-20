@@ -1,0 +1,8 @@
+plugins:
+  heartbeat:
+    schedule: USING CRON 0 6 * * * UTC
+    window_hours: 24
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
