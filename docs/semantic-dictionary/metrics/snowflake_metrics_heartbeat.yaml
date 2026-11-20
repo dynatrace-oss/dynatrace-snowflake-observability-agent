@@ -1,0 +1,79 @@
+model:
+  id: snowflake.metrics.heartbeat
+  title: Snowflake heartbeat metrics
+  brief: Metrics collected by the Dynatrace Snowflake Observability Agent heartbeat plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: snowflake.metrics
+  data_object: metric
+  interfaces: [ i.dsoa_resource, i.snowflake_database ]
+  dql_queries:
+    - query_string: |
+        timeseries {
+          expected = sum(dsoa.heartbeat.expected_runs),
+          succeeded = sum(dsoa.heartbeat.runs.succeeded)
+        },
+          by: { dsoa.heartbeat.task, deployment.environment.name }
+      description: Compare expected and succeeded agent task runs per task over time.
+      description_copilot: Timeseries comparing expected and succeeded Snowflake agent task runs per task.
+    - query_string: >
+        timeseries failed = sum(dsoa.heartbeat.runs.failed), by: { dsoa.heartbeat.task, deployment.environment.name }
+      description: Plot failed agent task runs per task over time.
+      description_copilot: Timeseries of failed Snowflake agent task runs per task.
+    - query_string: |
+        timeseries {
+          skipped = sum(dsoa.heartbeat.runs.skipped),
+          cancelled = sum(dsoa.heartbeat.runs.cancelled)
+        },
+          by: { dsoa.heartbeat.task, deployment.environment.name }
+      description: Plot skipped and cancelled agent task runs per task over time.
+      description_copilot: Timeseries of skipped and cancelled Snowflake agent task runs per task.
+  groups:
+    - id: dsoa.heartbeat.expected_runs
+      type: metric
+      metric_name: dsoa.heartbeat.expected_runs
+      instrument: gauge
+      brief: The number of task runs implied by the schedule within the window.
+      title: Heartbeat expected runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.runs.cancelled
+      type: metric
+      metric_name: dsoa.heartbeat.runs.cancelled
+      instrument: gauge
+      brief: The number of task runs that were cancelled within the window.
+      title: Heartbeat cancelled runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.runs.failed
+      type: metric
+      metric_name: dsoa.heartbeat.runs.failed
+      instrument: gauge
+      brief: The number of task runs that failed within the window.
+      title: Heartbeat failed runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.runs.skipped
+      type: metric
+      metric_name: dsoa.heartbeat.runs.skipped
+      instrument: gauge
+      brief: The number of task runs that were skipped within the window.
+      title: Heartbeat skipped runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.runs.succeeded
+      type: metric
+      metric_name: dsoa.heartbeat.runs.succeeded
+      instrument: gauge
+      brief: The number of task runs that succeeded within the window.
+      title: Heartbeat succeeded runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task
