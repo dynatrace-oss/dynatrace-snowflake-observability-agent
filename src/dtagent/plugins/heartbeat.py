@@ -45,7 +45,7 @@ _INTERVAL_SECONDS = {"SECOND": 1, "MINUTE": 60, "HOUR": 3600, "DAY": 86400}
 _MAX_CRON_ITERATIONS = 100000  # safety net against pathological schedules / huge windows
 
 
-def _resolve_timezone(name: str) -> Optional[ZoneInfo]:
+def _resolve_timezone(name: str) -> "Optional[ZoneInfo]":
     """Resolves an IANA time zone name case-insensitively (zoneinfo keys are case-sensitive on most file systems).
 
     Args:
