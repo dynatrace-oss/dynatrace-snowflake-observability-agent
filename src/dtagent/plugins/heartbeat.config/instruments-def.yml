@@ -52,7 +52,8 @@ attributes:
     __context_names:
       - heartbeat
     __example: true
-    __description: "Whether the expected number of runs could be calculated; false for schedules depending on other tasks or unparsable schedules."
+    __description: >-
+      Whether the expected number of runs could be calculated; false for schedules depending on other tasks or unparsable schedules.
     __is_defined_at_runtime: true
   dsoa.heartbeat.is_missing:
     __type: boolean
@@ -181,8 +182,12 @@ dql_queries:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "heartbeat"
-      | filter dsoa.heartbeat.is_missing == true or dsoa.heartbeat.is_unexpected == true or dsoa.heartbeat.is_suspended == true or dsoa.heartbeat.has_schedule_drift == true
-      | fields timestamp, dsoa.heartbeat.task, dsoa.heartbeat.actual_state, dsoa.heartbeat.configured_schedule, dsoa.heartbeat.actual_schedule
+      | filter dsoa.heartbeat.is_missing == true
+          or dsoa.heartbeat.is_unexpected == true
+          or dsoa.heartbeat.is_suspended == true
+          or dsoa.heartbeat.has_schedule_drift == true
+      | fields timestamp, dsoa.heartbeat.task, dsoa.heartbeat.actual_state,
+          dsoa.heartbeat.configured_schedule, dsoa.heartbeat.actual_schedule
       | sort timestamp desc
       | limit 50
     description: Fetch agent tasks that are missing, unexpected, suspended or have a schedule differing from the configuration.
@@ -210,7 +215,9 @@ dql_queries:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "heartbeat"
       | filter dsoa.heartbeat.configured_enabled == true
-      | summarize runs = sum(dsoa.heartbeat.runs.succeeded), expected = sum(dsoa.heartbeat.expected_runs), by: { dsoa.heartbeat.task, deployment.environment.name }
+      | summarize runs = sum(dsoa.heartbeat.runs.succeeded),
+          expected = sum(dsoa.heartbeat.expected_runs),
+          by: { dsoa.heartbeat.task, deployment.environment.name }
     description: Summarize succeeded versus expected runs of enabled agent tasks per task.
     description_copilot: Compare succeeded and expected runs for enabled Snowflake agent tasks.
     context:

@@ -30,7 +30,7 @@ import re
 import logging
 import datetime
 from typing import Tuple, Dict, Optional, List, Generator, Any
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, available_timezones
 from croniter import croniter
 from dtagent.plugins import Plugin
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
@@ -43,6 +43,24 @@ _CRON_PREFIX = re.compile(r"^\s*USING\s+CRON\s+", re.IGNORECASE)
 _INTERVAL = re.compile(r"^\s*(\d+)\s+(SECOND|MINUTE|HOUR|DAY)S?\s*$", re.IGNORECASE)
 _INTERVAL_SECONDS = {"SECOND": 1, "MINUTE": 60, "HOUR": 3600, "DAY": 86400}
 _MAX_CRON_ITERATIONS = 100000  # safety net against pathological schedules / huge windows
+
+
+def _resolve_timezone(name: str) -> Optional[ZoneInfo]:
+    """Resolves an IANA time zone name case-insensitively (zoneinfo keys are case-sensitive on most file systems).
+
+    Args:
+        name (str): time zone name, e.g. `UTC` or `europe/warsaw`
+
+    Returns:
+        Optional[ZoneInfo]: the time zone, or None if it is unknown
+    """
+    try:
+        return ZoneInfo(name)
+    except (KeyError, ValueError, OSError):  # ZoneInfoNotFoundError is a KeyError
+        pass
+    by_lower = {key.lower(): key for key in available_timezones()}
+    key = by_lower.get(name.lower())
+    return ZoneInfo(key) if key else None
 
 
 def _expected_runs(schedule: Optional[str], window_hours: float, now: Optional[datetime.datetime] = None) -> Optional[int]:
@@ -75,9 +93,8 @@ def _expected_runs(schedule: Optional[str], window_hours: float, now: Optional[d
     if not croniter.is_valid(expression):
         return None
 
-    try:
-        tz = ZoneInfo(timezone)
-    except (KeyError, ValueError, OSError):  # ZoneInfoNotFoundError is a KeyError
+    tz = _resolve_timezone(timezone)
+    if tz is None:
         return None
 
     # window arithmetic in UTC (real elapsed time), then expressed in the schedule's time zone for croniter

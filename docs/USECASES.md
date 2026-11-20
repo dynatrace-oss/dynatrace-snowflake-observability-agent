@@ -48,12 +48,12 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 ### Operations — Tier 1 — Data Infrastructure
 
 | Use case                       | In Details                                                                                                                                                        | Data                                                              |
-|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Warehouse lifecycle monitoring | Track warehouse events — creating, dropping, altering, resizing, resuming, suspending clusters — to maintain operational awareness of infrastructure changes.     | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec)     |
 | Predicting credits exhaustion  | Move beyond static threshold emails for resource monitor credits. Analyze trends to predict whether credits will suffice by the time the resource monitor resets. | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec) |
 | Resource monitor health        | Monitor resource monitor states including active status, frequency, quota usage percentages, and remaining credits with threshold-based alerting.                 | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec) |
 | Agent task health              | Detect agent tasks that are missing, suspended, started although disabled, or running on a schedule that differs from the configuration.                          | [Heartbeat plugin](PLUGINS.md#heartbeat_info_sec)                 |
-| Agent run coverage             | Compare how many runs each agent task's schedule implies per day with how many succeeded, failed, or were skipped, to find tasks that silently stop delivering. | [Heartbeat plugin](PLUGINS.md#heartbeat_info_sec)                 |
+| Agent run coverage             | Compare how many runs each agent task's schedule implies per day with how many succeeded, failed, or were skipped, to find tasks that silently stop delivering.   | [Heartbeat plugin](PLUGINS.md#heartbeat_info_sec)                 |
 
 ### Operations — Tier 2 — Data Apps & Pipelines
 
