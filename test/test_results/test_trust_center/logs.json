@@ -19,7 +19,7 @@
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
+      "telemetry.sdk.version": "1.40.0",
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
@@ -48,7 +48,7 @@
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
+      "telemetry.sdk.version": "1.40.0",
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",

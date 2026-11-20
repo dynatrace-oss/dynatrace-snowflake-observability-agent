@@ -561,6 +561,7 @@ customize_plugins_interactive() {
     PLUGIN_KNOBS[dynamic_tables]=""
     PLUGIN_KNOBS[tasks]="lookback_hours"
     PLUGIN_KNOBS[event_usage]="lookback_hours"
+    PLUGIN_KNOBS[heartbeat]="window_hours"
     PLUGIN_KNOBS[snowpipes]="lookback_hours"
     PLUGIN_KNOBS[shares]=""
     PLUGIN_KNOBS[active_queries]="fast_mode"
