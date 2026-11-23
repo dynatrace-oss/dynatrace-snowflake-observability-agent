@@ -829,13 +829,14 @@ check the `Context Name` column below.
 
 ### Metrics at the `Heartbeat` plugin
 
-| Identifier                                         | Name                     | Unit  | Description                                                        | Example | Stability | Context Name |
-| -------------------------------------------------- | ------------------------ | ----- | ------------------------------------------------------------------ | ------- | --------- | ------------ |
-| dsoa.&#8203;heartbeat.&#8203;expected_runs         | Heartbeat expected runs  | count | The number of task runs implied by the schedule within the window. | 1       | stable    | heartbeat    |
-| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;cancelled | Heartbeat cancelled runs | count | The number of task runs that were cancelled within the window.     | 0       | stable    | heartbeat    |
-| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;failed    | Heartbeat failed runs    | count | The number of task runs that failed within the window.             | 0       | stable    | heartbeat    |
-| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;skipped   | Heartbeat skipped runs   | count | The number of task runs that were skipped within the window.       | 0       | stable    | heartbeat    |
-| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;succeeded | Heartbeat succeeded runs | count | The number of task runs that succeeded within the window.          | 1       | stable    | heartbeat    |
+| Identifier                                         | Name                     | Unit  | Description                                                                                                                                              | Example | Stability | Context Name |
+| -------------------------------------------------- | ------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- | ------------ |
+| dsoa.&#8203;heartbeat.&#8203;expected_runs         | Heartbeat expected runs  | count | The number of task runs implied by the schedule within the window.                                                                                       | 1       | stable    | heartbeat    |
+| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;cancelled | Heartbeat cancelled runs | count | The number of task runs that were cancelled within the window.                                                                                           | 0       | stable    | heartbeat    |
+| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;executing | Heartbeat in-flight runs | count | The number of task runs scheduled or still executing when the heartbeat was taken. Their outcome is not known yet, so they are not counted as succeeded. | 1       | stable    | heartbeat    |
+| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;failed    | Heartbeat failed runs    | count | The number of task runs that failed within the window.                                                                                                   | 0       | stable    | heartbeat    |
+| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;skipped   | Heartbeat skipped runs   | count | The number of task runs that were skipped within the window.                                                                                             | 0       | stable    | heartbeat    |
+| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;succeeded | Heartbeat succeeded runs | count | The number of task runs that succeeded within the window.                                                                                                | 1       | stable    | heartbeat    |
 
 ### DQL query examples for the `heartbeat` plugin
 
@@ -855,8 +856,12 @@ Fetch agent tasks that are missing, unexpected, suspended or have a schedule dif
 fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "heartbeat"
-| filter dsoa.heartbeat.is_missing == true or dsoa.heartbeat.is_unexpected == true or dsoa.heartbeat.is_suspended == true or dsoa.heartbeat.has_schedule_drift == true
-| fields timestamp, dsoa.heartbeat.task, dsoa.heartbeat.actual_state, dsoa.heartbeat.configured_schedule, dsoa.heartbeat.actual_schedule
+| filter dsoa.heartbeat.is_missing == true
+    or dsoa.heartbeat.is_unexpected == true
+    or dsoa.heartbeat.is_suspended == true
+    or dsoa.heartbeat.has_schedule_drift == true
+| fields timestamp, dsoa.heartbeat.task, dsoa.heartbeat.actual_state,
+    dsoa.heartbeat.configured_schedule, dsoa.heartbeat.actual_schedule
 | sort timestamp desc
 | limit 50
 ```
@@ -884,7 +889,9 @@ fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "heartbeat"
 | filter dsoa.heartbeat.configured_enabled == true
-| summarize runs = sum(dsoa.heartbeat.runs.succeeded), expected = sum(dsoa.heartbeat.expected_runs), by: { dsoa.heartbeat.task, deployment.environment.name }
+| summarize runs = sum(dsoa.heartbeat.runs.succeeded),
+    expected = sum(dsoa.heartbeat.expected_runs),
+    by: { dsoa.heartbeat.task, deployment.environment.name }
 ```
 
 Plot skipped and cancelled agent task runs per task over time.

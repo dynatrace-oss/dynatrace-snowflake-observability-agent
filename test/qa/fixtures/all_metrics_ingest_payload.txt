@@ -4,6 +4,8 @@ dsoa.heartbeat.expected_runs 1
 #dsoa.heartbeat.expected_runs gauge dt.meta.displayName="Heartbeat expected runs",dt.meta.unit="count"
 dsoa.heartbeat.runs.cancelled 0
 #dsoa.heartbeat.runs.cancelled gauge dt.meta.displayName="Heartbeat cancelled runs",dt.meta.unit="count"
+dsoa.heartbeat.runs.executing 1
+#dsoa.heartbeat.runs.executing gauge dt.meta.displayName="Heartbeat in-flight runs",dt.meta.unit="count"
 dsoa.heartbeat.runs.failed 0
 #dsoa.heartbeat.runs.failed gauge dt.meta.displayName="Heartbeat failed runs",dt.meta.unit="count"
 dsoa.heartbeat.runs.skipped 0

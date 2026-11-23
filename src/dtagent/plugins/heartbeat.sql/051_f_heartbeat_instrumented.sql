@@ -50,6 +50,10 @@ declare
     WINDOW_HOURS    int;
     WINDOW_END      timestamp_ltz;
     QID             varchar;
+    ROLES_QID       varchar;
+    ADMIN_INSTALLED boolean;
+    V_TASK          varchar;
+    V_EXECUTING     int;
     RUNS            array default array_construct();
     res_tasks       resultset;
     res             resultset;
@@ -61,6 +65,11 @@ begin
     WINDOW_HOURS := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.heartbeat.window_hours', 24)::int);
 
     -- SHOW TASKS must be the last statement before the query reading its result; scoped to this instance's schema only
+    -- the optional admin scope (grants / cleanup tasks) is installed iff its role exists; independent of which tasks survive
+    show roles like 'DTAGENT_ADMIN';
+    ROLES_QID := last_query_id();
+    ADMIN_INSTALLED := (select count(*) > 0 from table(result_scan(:ROLES_QID)));
+
     show tasks in schema DTAGENT_DB.APP;
     QID := last_query_id();
     WINDOW_END := current_timestamp();
@@ -73,23 +82,25 @@ begin
         where "database_name" = upper('DTAGENT_DB') and "schema_name" = 'APP' and "name" like 'TASK_DTAGENT_%'
     );
     for rec in res_tasks do
+        V_TASK := rec.TASK_NAME;  -- record fields cannot be referenced directly inside SQL; bind a scripting variable instead
         select
-            -- the heartbeat's own run is still EXECUTING while it measures itself; count it so its coverage is not always one short
-            count_if(th.STATE = 'SUCCEEDED' or (th.STATE = 'EXECUTING' and th.NAME = 'TASK_DTAGENT_HEARTBEAT')),
+            count_if(th.STATE = 'SUCCEEDED'),
             count_if(th.STATE = 'FAILED'),
             count_if(th.STATE = 'SKIPPED'),
-            count_if(th.STATE = 'CANCELLED')
-        into :V_SUCCEEDED, :V_FAILED, :V_SKIPPED, :V_CANCELLED
+            count_if(th.STATE = 'CANCELLED'),
+            -- in-flight runs (incl. the heartbeat's own) have no outcome yet, so they are reported separately, never as succeeded
+            count_if(th.STATE in ('SCHEDULED', 'EXECUTING'))
+        into :V_SUCCEEDED, :V_FAILED, :V_SKIPPED, :V_CANCELLED, :V_EXECUTING
         from table(DTAGENT_DB.INFORMATION_SCHEMA.TASK_HISTORY(
-                TASK_NAME => rec.TASK_NAME,
+                TASK_NAME => :V_TASK,
                 SCHEDULED_TIME_RANGE_START => dateadd(hour, -1 * :WINDOW_HOURS, :WINDOW_END),
                 SCHEDULED_TIME_RANGE_END => :WINDOW_END,
                 RESULT_LIMIT => 10000)) th
         where th.DATABASE_NAME = upper('DTAGENT_DB') and th.SCHEMA_NAME = 'APP';
 
         RUNS := (select array_append(:RUNS, object_construct(
-                    'TASK_NAME', rec.TASK_NAME, 'SUCCEEDED', :V_SUCCEEDED, 'FAILED', :V_FAILED,
-                    'SKIPPED', :V_SKIPPED, 'CANCELLED', :V_CANCELLED)));
+                    'TASK_NAME', :V_TASK, 'SUCCEEDED', :V_SUCCEEDED, 'FAILED', :V_FAILED,
+                    'SKIPPED', :V_SKIPPED, 'CANCELLED', :V_CANCELLED, 'EXECUTING', :V_EXECUTING)));
     end for;
 
     res := (
@@ -139,7 +150,8 @@ begin
                 f.VALUE:SUCCEEDED::int      as SUCCEEDED,
                 f.VALUE:FAILED::int         as FAILED,
                 f.VALUE:SKIPPED::int        as SKIPPED,
-                f.VALUE:CANCELLED::int      as CANCELLED
+                f.VALUE:CANCELLED::int      as CANCELLED,
+                f.VALUE:EXECUTING::int      as EXECUTING
             from table(flatten(input => :RUNS)) f
         ),
         cte_joined as (
@@ -156,31 +168,29 @@ begin
                 NVL(r.SUCCEEDED, 0) as SUCCEEDED,
                 NVL(r.FAILED, 0)    as FAILED,
                 NVL(r.SKIPPED, 0)   as SKIPPED,
-                NVL(r.CANCELLED, 0) as CANCELLED
+                NVL(r.CANCELLED, 0) as CANCELLED,
+                NVL(r.EXECUTING, 0) as EXECUTING
             from cte_configured cfg
             full outer join cte_deployed dep on dep.TASK_NAME = cfg.TASK_NAME
             left join cte_runs r on r.TASK_NAME = NVL(cfg.TASK_NAME, dep.TASK_NAME)
         ),
-        -- grants / cleanup tasks belong to the optional admin scope; when none of them is deployed the scope is not installed
-        cte_admin_scope as (
-            select count_if(regexp_like(TASK_NAME, '.*_(GRANTS|CLEANUP)$')) > 0 as IS_INSTALLED from cte_deployed
-        ),
         cte_flags as (
             select
                 j.*,
-                NVL(j.IS_ENABLED, false) and j.ACTUAL_STATE = 'missing'
-                    and (not regexp_like(j.TASK_NAME, '.*_(GRANTS|CLEANUP)$') or a.IS_INSTALLED)    as IS_MISSING,
+                NVL(j.IS_ENABLED, false) and j.ACTUAL_STATE = 'missing'                         as IS_MISSING,
                 not NVL(j.IS_ENABLED, false) and j.ACTUAL_STATE = 'started'                     as IS_UNEXPECTED,
                 NVL(j.IS_ENABLED, false) and j.ACTUAL_STATE = 'suspended'                       as IS_SUSPENDED,
                 NVL(j.IS_ENABLED, false) and j.ACTUAL_STATE != 'missing' and NVL(j.CFG_NORM, '') != NVL(j.DEP_NORM, '') as HAS_SCHEDULE_DRIFT
             from cte_joined j
-            cross join cte_admin_scope a
+            -- grants / cleanup tasks belong to the optional admin scope: without it they were never meant to exist,
+            -- so they get no row at all (and hence no expected runs); with it, a missing one is reported as missing
+            where :ADMIN_INSTALLED or not (j.ACTUAL_STATE = 'missing' and regexp_like(j.TASK_NAME, '.*_(GRANTS|CLEANUP)$'))
         )
         select
             current_timestamp()                                                                 as TIMESTAMP,
             concat('Heartbeat for ', f.TASK_NAME, ': configured_enabled=', NVL(f.IS_ENABLED::varchar, 'unknown'),
                    ', state=', f.ACTUAL_STATE, ', runs succeeded=', f.SUCCEEDED, ' failed=', f.FAILED,
-                   ' skipped=', f.SKIPPED, ' cancelled=', f.CANCELLED, ' in last ', :WINDOW_HOURS, 'h')  as _MESSAGE,
+                   ' skipped=', f.SKIPPED, ' cancelled=', f.CANCELLED, ' executing=', f.EXECUTING, ' in last ', :WINDOW_HOURS, 'h')  as _MESSAGE,
             OBJECT_CONSTRUCT(
                 'db.namespace',                         upper('DTAGENT_DB'),
                 'dsoa.heartbeat.plugin',                f.PLUGIN,
@@ -201,7 +211,8 @@ begin
                 'dsoa.heartbeat.runs.succeeded',        f.SUCCEEDED,
                 'dsoa.heartbeat.runs.failed',           f.FAILED,
                 'dsoa.heartbeat.runs.skipped',          f.SKIPPED,
-                'dsoa.heartbeat.runs.cancelled',        f.CANCELLED
+                'dsoa.heartbeat.runs.cancelled',        f.CANCELLED,
+                'dsoa.heartbeat.runs.executing',        f.EXECUTING
             )                                                                                   as METRICS
         from cte_flags f
         order by f.TASK_NAME

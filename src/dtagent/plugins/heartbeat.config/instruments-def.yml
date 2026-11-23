@@ -167,6 +167,16 @@ metrics:
     __example: 0
     __description: "The number of task runs that were cancelled within the window."
     unit: count
+  dsoa.heartbeat.runs.executing:
+    __type: long
+    displayName: Heartbeat in-flight runs
+    __stability: stable
+    __context_names:
+      - heartbeat
+    __example: 1
+    __description: "The number of task runs scheduled or still executing when the heartbeat was taken.
+      Their outcome is not known yet, so they are not counted as succeeded."
+    unit: count
 dql_queries:
   - query_string: |
       fetch logs
