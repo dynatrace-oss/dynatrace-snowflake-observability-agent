@@ -37,7 +37,7 @@ The workflow runs two analyzer tasks in parallel, then merges results into a sin
    into a single list of Dynatrace event payloads. Each event carries an `anomaly.direction` property
    (`above` or `below`) to distinguish spike from drop anomalies.
 
-1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via the Environment V2 Events API.
+1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`).
 
 ## Telemetry Source
 
@@ -96,7 +96,7 @@ const CONFIG = {
 };
 ```
 
-- **`eventType`**: Switch to `EventIngestEventType.CustomAlert` to enable Davis problem
+- **`eventType`**: Switch to `CUSTOM_ALERT` to enable Davis problem
   correlation and receive problem notifications.
 - **`eventTimeout`**: Event lifetime in minutes before auto-close.
 

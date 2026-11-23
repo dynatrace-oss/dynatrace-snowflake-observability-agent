@@ -28,7 +28,7 @@ increasingly expensive full or near-full table scans and degraded query performa
    one per raised alert. Dimensions from the analyzer (table name, environment) are attached as
    event properties.
 
-1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via the Environment V2 Events API.
+1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`).
 
 ## Telemetry Source
 

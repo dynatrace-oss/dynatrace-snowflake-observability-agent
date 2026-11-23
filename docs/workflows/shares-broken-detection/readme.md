@@ -39,7 +39,7 @@ Complements the [Snowflake Shares & Governance](../../dashboards/snowflake-share
    Dynatrace event payloads. DQL results are mapped directly; Davis AI results use the
    standard `raisedAlerts` pattern.
 
-1. **`ingest_share_events`** — Sends each event to Dynatrace via the Environment V2 Events API.
+1. **`ingest_share_events`** — Sends each event to Dynatrace via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`).
 
 ## Telemetry Source
 

@@ -55,7 +55,7 @@ ad_long_running_by_user      ─┘
    both predecessors via `predecessors`, then JS try/catch skips any failed task so partial results
    are never lost.
 
-1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via the Environment V2 Events API.
+1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`).
 
 ## Telemetry Source
 

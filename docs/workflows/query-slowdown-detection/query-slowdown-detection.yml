@@ -87,13 +87,12 @@ tasks:
     input:
       script: |
         import { execution } from '@dynatrace-sdk/automation-utils';
-        import { EventIngestEventType } from '@dynatrace-sdk/client-classic-environment-v2';
 
         // === CONFIGURATION ===
-        // Change eventType to EventIngestEventType.CustomAlert to enable Davis problem correlation.
-        // CustomInfo (default) creates informational events without triggering Davis problems.
+        // Change eventType to CUSTOM_ALERT to enable Davis problem correlation.
+        // CUSTOM_INFO (default) creates informational events without triggering Davis problems.
         const CONFIG = {
-          eventType: EventIngestEventType.CustomInfo,
+          eventType: 'CUSTOM_INFO',
           eventTimeout: 360,
           adSource: 'dsoa.query_slowdown'
         };
@@ -185,24 +184,45 @@ tasks:
     input:
       script: |
         import { execution } from '@dynatrace-sdk/automation-utils';
-        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+        // Relative URL: the runtime attaches authentication automatically.
+        // Don't set an Authorization header, or the runtime overwrites it and you get a 403.
+        const EVENTS_INGEST_PATH = '/platform/classic/environment-api/v2/events/ingest';
+
+        async function createEvent(event) {
+          const res = await fetch(EVENTS_INGEST_PATH, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(event.body), // { eventType, title, properties, timeout }
+          });
+
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+          }
+          return res.json();
+        }
 
         async function ingestEvents(events) {
           let successCount = 0;
           const failed = [];
+
           for (let i = 0; i < events.length; ++i) {
-            const res = await eventsClient.createEvent(events[i]);
-            if (res.reportCount !== 1) {
-              failed.push({ reason: 'Invalid number of ingested events' });
-            } else {
-              const status = res.eventIngestResults[0];
-              if (status.status === 'OK') {
-                successCount += 1;
+            try {
+              const res = await createEvent(events[i]);
+              if (res.reportCount !== 1) {
+                failed.push({ reason: 'Invalid number of ingested events' });
               } else {
-                failed.push(JSON.stringify(status));
+                const status = res.eventIngestResults[0];
+                if (status.status === 'OK') {
+                  successCount += 1;
+                } else {
+                  failed.push(JSON.stringify(status));
+                }
               }
+            } catch (e) {
+              failed.push({ reason: String(e?.message ?? e) });
             }
           }
+
           if (successCount === 0 && failed.length === 0) {
             console.log('No events to ingest');
           }

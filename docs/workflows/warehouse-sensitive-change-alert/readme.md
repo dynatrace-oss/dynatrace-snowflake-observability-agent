@@ -25,7 +25,7 @@ in the sensitive allowlist (size, scaling policy, auto-suspend, cluster-count bo
 1. **`build_events`** — Constructs one Dynatrace event per detected change with the user,
    role, operation name, and raw query text as event properties.
 
-1. **`ingest_events`** — Pushes events via the Environment v2 events API. The event type
+1. **`ingest_events`** — Pushes events via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`). The event type
    is `CustomInfo` by default; switch to `CustomAlert` to enable Davis problem correlation.
 
 ## Telemetry Source

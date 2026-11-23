@@ -38,8 +38,7 @@ and `query_history` plugins.
    from each analyzer result, builds Dynatrace event objects with standard properties including
    `anomaly.direction`, `anomaly.subject`, and `anomaly.detector`, and returns them as a list.
 
-3. **`ingest_anomaly_events`** — Ingests the event list into Dynatrace via the Environment V2
-   Events API.
+3. **`ingest_anomaly_events`** — Ingests the event list into Dynatrace via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`).
 
 ## Prerequisites
 
