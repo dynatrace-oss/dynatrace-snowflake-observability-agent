@@ -77,3 +77,13 @@ model:
       attributes:
         - ref: dsoa.heartbeat.plugin
         - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.runs.executing
+      type: metric
+      metric_name: dsoa.heartbeat.runs.executing
+      instrument: gauge
+      brief: The number of task runs scheduled or still executing when the heartbeat was taken. Their outcome is not known yet, so they are not counted as succeeded.
+      title: Heartbeat in-flight runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task

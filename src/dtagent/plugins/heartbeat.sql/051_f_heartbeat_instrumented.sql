@@ -50,7 +50,6 @@ declare
     WINDOW_HOURS    int;
     WINDOW_END      timestamp_ltz;
     QID             varchar;
-    ROLES_QID       varchar;
     ADMIN_INSTALLED boolean;
     V_TASK          varchar;
     V_EXECUTING     int;
@@ -65,10 +64,13 @@ begin
     WINDOW_HOURS := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.heartbeat.window_hours', 24)::int);
 
     -- SHOW TASKS must be the last statement before the query reading its result; scoped to this instance's schema only
-    -- the optional admin scope (grants / cleanup tasks) is installed iff its role exists; independent of which tasks survive
-    show roles like 'DTAGENT_ADMIN';
-    ROLES_QID := last_query_id();
-    ADMIN_INSTALLED := (select count(*) > 0 from table(result_scan(:ROLES_QID)));
+    -- the optional admin scope (grants / cleanup tasks) is a deploy-time choice: the block below is stripped from the deployed
+    -- procedure when the dtagent_admin option is excluded, so this flag is per instance, needs no privileges (the viewer role
+    -- cannot see the admin role) and does not depend on which admin tasks happen to survive
+    ADMIN_INSTALLED := false;
+--%OPTION:dtagent_admin:
+    ADMIN_INSTALLED := true;
+--%:OPTION:dtagent_admin
 
     show tasks in schema DTAGENT_DB.APP;
     QID := last_query_id();
