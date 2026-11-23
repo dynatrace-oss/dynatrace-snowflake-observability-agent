@@ -63,32 +63,22 @@ def _resolve_timezone(name: str) -> "Optional[ZoneInfo]":
     return ZoneInfo(key) if key else None
 
 
-def _expected_runs(schedule: Optional[str], window_hours: float, now: Optional[datetime.datetime] = None) -> Optional[int]:
-    """Returns the number of runs a task schedule implies within the last window_hours, or None if the schedule is not supported.
-
-    Supported: `USING CRON <5-field expression> <time zone>` and fixed intervals like `30 MINUTES`.
-    Not supported (None): schedules depending on other tasks (`AFTER ...`) and anything unparsable.
+def _expected_cron_runs(schedule: str, window_hours: float, now: Optional[datetime.datetime]) -> Optional[int]:
+    """Returns the number of runs a `USING CRON <expression> <time zone>` schedule implies within the window, or None if it is invalid.
 
     Args:
-        schedule (Optional[str]): Snowflake task schedule string
+        schedule (str): Snowflake task schedule string starting with `USING CRON`
         window_hours (float): length of the window ending at `now`
         now (Optional[datetime.datetime]): end of the window, defaults to current UTC time
 
     Returns:
         Optional[int]: number of scheduled runs in the (now - window_hours, now] window
     """
-    if not schedule:
-        return None
-
-    interval = _INTERVAL.match(schedule)
-    if interval:
-        return int(window_hours * 3600) // (int(interval.group(1)) * _INTERVAL_SECONDS[interval.group(2).upper()])
-
-    if not _CRON_PREFIX.match(schedule):
-        return None
-
     # croniter understands neither the USING CRON prefix nor the trailing time zone: strip both, apply the time zone to the window
-    *expression, timezone = _CRON_PREFIX.sub("", schedule).split()
+    parts = _CRON_PREFIX.sub("", schedule).split()
+    if len(parts) < 2:  # an expression and a time zone are both required
+        return None
+    *expression, timezone = parts
     expression = " ".join(expression)
     if not croniter.is_valid(expression):
         return None
@@ -108,6 +98,36 @@ def _expected_runs(schedule: Optional[str], window_hours: float, now: Optional[d
         runs += 1
 
     return runs
+
+
+def _expected_runs(schedule: Optional[str], window_hours: float, now: Optional[datetime.datetime] = None) -> Optional[int]:
+    """Returns the number of runs a task schedule implies within the last window_hours, or None if the schedule is not supported.
+
+    Supported: `USING CRON <5-field expression> <time zone>` and fixed intervals like `30 MINUTES`.
+    Not supported (None): schedules depending on other tasks (`AFTER ...`) and anything unparsable.
+
+    Args:
+        schedule (Optional[str]): Snowflake task schedule string
+        window_hours (float): length of the window ending at `now`
+        now (Optional[datetime.datetime]): end of the window, defaults to current UTC time
+
+    Returns:
+        Optional[int]: number of scheduled runs in the (now - window_hours, now] window
+    """
+    if not schedule:
+        return None
+
+    interval = _INTERVAL.match(schedule)
+    if interval:
+        interval_seconds = int(interval.group(1)) * _INTERVAL_SECONDS[interval.group(2).upper()]
+        if interval_seconds <= 0:  # e.g. `0 MINUTES` - not a valid schedule
+            return None
+        return int(window_hours * 3600) // interval_seconds
+
+    if not _CRON_PREFIX.match(schedule):
+        return None
+
+    return _expected_cron_runs(schedule, window_hours, now)
 
 
 def _as_dict(value: Any) -> Dict:

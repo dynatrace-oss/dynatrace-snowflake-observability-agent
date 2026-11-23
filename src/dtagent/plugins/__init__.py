@@ -132,7 +132,9 @@ class Plugin(ABC):
         )
 
         self.processed_last_timestamp = None
-        self.processed_min_timestamp = None  # smallest TIMESTAMP seen during the current execution
+        self.processed_min_timestamp = (
+            None  # smallest TIMESTAMP seen since the last _report_execution (i.e. across all contexts of one execution)
+        )
         self._davis_events = None
 
     def _track_min_timestamp(self, ts: Any) -> None:
@@ -197,6 +199,8 @@ class Plugin(ABC):
             "dsoa.run.last_timestamp": None if isinstance(last_timestamp, snowpark.Column) else last_timestamp,
         }
         extra_timestamps = {k: str(v) for k, v in extra_timestamps.items() if v is not None and str(v) != "None"}
+        # the minimum spans all contexts processed since the previous report, so it is only reset once it has been reported
+        self.processed_min_timestamp = None
 
         self._logs.send_log(
             f"New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from {measurements_source}",
@@ -645,7 +649,6 @@ class Plugin(ABC):
         __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name=context_name, run_id=run_uuid)
 
         self.processed_last_timestamp = None
-        self.processed_min_timestamp = None
         processed_entries_cnt = 0
         processed_logs_cnt = 0
         processed_metrics_cnt = 0

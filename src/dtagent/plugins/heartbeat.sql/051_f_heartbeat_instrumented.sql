@@ -48,14 +48,49 @@ as
 $$
 declare
     WINDOW_HOURS    int;
+    WINDOW_END      timestamp_ltz;
     QID             varchar;
+    RUNS            array default array_construct();
+    res_tasks       resultset;
     res             resultset;
+    V_SUCCEEDED     int;
+    V_FAILED        int;
+    V_SKIPPED       int;
+    V_CANCELLED     int;
 begin
     WINDOW_HOURS := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.heartbeat.window_hours', 24)::int);
 
     -- SHOW TASKS must be the last statement before the query reading its result; scoped to this instance's schema only
     show tasks in schema DTAGENT_DB.APP;
     QID := last_query_id();
+    WINDOW_END := current_timestamp();
+
+    -- TASK_HISTORY applies RESULT_LIMIT before any other filter, so a single account-wide query could be truncated by unrelated
+    -- activity; instead the history is read per deployed task (RESULT_LIMIT is then per task) with an explicit window end
+    res_tasks := (
+        select "name" as TASK_NAME
+        from table(result_scan(:QID))
+        where "database_name" = upper('DTAGENT_DB') and "schema_name" = 'APP' and "name" like 'TASK_DTAGENT_%'
+    );
+    for rec in res_tasks do
+        select
+            -- the heartbeat's own run is still EXECUTING while it measures itself; count it so its coverage is not always one short
+            count_if(th.STATE = 'SUCCEEDED' or (th.STATE = 'EXECUTING' and th.NAME = 'TASK_DTAGENT_HEARTBEAT')),
+            count_if(th.STATE = 'FAILED'),
+            count_if(th.STATE = 'SKIPPED'),
+            count_if(th.STATE = 'CANCELLED')
+        into :V_SUCCEEDED, :V_FAILED, :V_SKIPPED, :V_CANCELLED
+        from table(DTAGENT_DB.INFORMATION_SCHEMA.TASK_HISTORY(
+                TASK_NAME => rec.TASK_NAME,
+                SCHEDULED_TIME_RANGE_START => dateadd(hour, -1 * :WINDOW_HOURS, :WINDOW_END),
+                SCHEDULED_TIME_RANGE_END => :WINDOW_END,
+                RESULT_LIMIT => 10000)) th
+        where th.DATABASE_NAME = upper('DTAGENT_DB') and th.SCHEMA_NAME = 'APP';
+
+        RUNS := (select array_append(:RUNS, object_construct(
+                    'TASK_NAME', rec.TASK_NAME, 'SUCCEEDED', :V_SUCCEEDED, 'FAILED', :V_FAILED,
+                    'SKIPPED', :V_SKIPPED, 'CANCELLED', :V_CANCELLED)));
+    end for;
 
     res := (
         with
@@ -95,21 +130,17 @@ begin
                 lower("state")  as STATE,
                 "schedule"      as SCHEDULE
             from table(result_scan(:QID))
-            where "database_name" = 'DTAGENT_DB' and "schema_name" = 'APP' and "name" like 'TASK_DTAGENT_%'
+            where "database_name" = upper('DTAGENT_DB') and "schema_name" = 'APP' and "name" like 'TASK_DTAGENT_%'
         ),
-        -- runs in the window; TASK_HISTORY spans all databases, so filter to this instance
+        -- runs in the window, collected per task above
         cte_runs as (
             select
-                th.NAME as TASK_NAME,
-                count_if(th.STATE = 'SUCCEEDED') as SUCCEEDED,
-                count_if(th.STATE = 'FAILED')    as FAILED,
-                count_if(th.STATE = 'SKIPPED')   as SKIPPED,
-                count_if(th.STATE = 'CANCELLED') as CANCELLED
-            from table(DTAGENT_DB.INFORMATION_SCHEMA.TASK_HISTORY(
-                    SCHEDULED_TIME_RANGE_START => dateadd(hour, -1 * :WINDOW_HOURS, current_timestamp()),
-                    RESULT_LIMIT => 10000)) th
-            where th.DATABASE_NAME = 'DTAGENT_DB' and th.SCHEMA_NAME = 'APP' and th.NAME like 'TASK_DTAGENT_%'
-            group by th.NAME
+                f.VALUE:TASK_NAME::varchar  as TASK_NAME,
+                f.VALUE:SUCCEEDED::int      as SUCCEEDED,
+                f.VALUE:FAILED::int         as FAILED,
+                f.VALUE:SKIPPED::int        as SKIPPED,
+                f.VALUE:CANCELLED::int      as CANCELLED
+            from table(flatten(input => :RUNS)) f
         ),
         cte_joined as (
             select
@@ -130,14 +161,20 @@ begin
             full outer join cte_deployed dep on dep.TASK_NAME = cfg.TASK_NAME
             left join cte_runs r on r.TASK_NAME = NVL(cfg.TASK_NAME, dep.TASK_NAME)
         ),
+        -- grants / cleanup tasks belong to the optional admin scope; when none of them is deployed the scope is not installed
+        cte_admin_scope as (
+            select count_if(regexp_like(TASK_NAME, '.*_(GRANTS|CLEANUP)$')) > 0 as IS_INSTALLED from cte_deployed
+        ),
         cte_flags as (
             select
                 j.*,
-                NVL(j.IS_ENABLED, false) and j.ACTUAL_STATE = 'missing'                         as IS_MISSING,
+                NVL(j.IS_ENABLED, false) and j.ACTUAL_STATE = 'missing'
+                    and (not regexp_like(j.TASK_NAME, '.*_(GRANTS|CLEANUP)$') or a.IS_INSTALLED)    as IS_MISSING,
                 not NVL(j.IS_ENABLED, false) and j.ACTUAL_STATE = 'started'                     as IS_UNEXPECTED,
                 NVL(j.IS_ENABLED, false) and j.ACTUAL_STATE = 'suspended'                       as IS_SUSPENDED,
                 NVL(j.IS_ENABLED, false) and j.ACTUAL_STATE != 'missing' and NVL(j.CFG_NORM, '') != NVL(j.DEP_NORM, '') as HAS_SCHEDULE_DRIFT
             from cte_joined j
+            cross join cte_admin_scope a
         )
         select
             current_timestamp()                                                                 as TIMESTAMP,
@@ -145,7 +182,7 @@ begin
                    ', state=', f.ACTUAL_STATE, ', runs succeeded=', f.SUCCEEDED, ' failed=', f.FAILED,
                    ' skipped=', f.SKIPPED, ' cancelled=', f.CANCELLED, ' in last ', :WINDOW_HOURS, 'h')  as _MESSAGE,
             OBJECT_CONSTRUCT(
-                'db.namespace',                         'DTAGENT_DB',
+                'db.namespace',                         upper('DTAGENT_DB'),
                 'dsoa.heartbeat.plugin',                f.PLUGIN,
                 'dsoa.heartbeat.task',                  f.TASK_NAME
             )                                                                                   as DIMENSIONS,
@@ -173,9 +210,9 @@ begin
     return table(res);
 exception
     when statement_error then
+        -- do not return an empty table: that would look like a successful heartbeat with nothing to report
         SYSTEM$LOG_ERROR(SQLERRM);
-        res := (select current_timestamp() as TIMESTAMP, null::varchar as _MESSAGE, null::object as DIMENSIONS, null::object as ATTRIBUTES, null::object as METRICS where false);
-        return table(res);
+        raise;
 end;
 $$
 ;

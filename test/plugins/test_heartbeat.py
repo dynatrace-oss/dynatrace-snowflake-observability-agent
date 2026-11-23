@@ -62,6 +62,10 @@ class TestExpectedRuns:
     def test_unsupported_schedules(self, schedule):
         assert _expected_runs(schedule, 24, NOW) is None
 
+    @pytest.mark.parametrize("schedule", ["0 MINUTES", "0 HOURS", "USING CRON", "USING CRON ", "USING CRON UTC", "USING CRON   "])
+    def test_malformed_schedules_are_unsupported_instead_of_raising(self, schedule):
+        assert _expected_runs(schedule, 24, NOW) is None
+
     @pytest.mark.parametrize("day", [datetime.datetime(2026, 10, 25, 12, tzinfo=UTC), datetime.datetime(2026, 3, 29, 12, tzinfo=UTC)])
     def test_hourly_cron_is_stable_across_dst_changes(self, day):
         # the window is 24 real hours, so an hourly schedule is expected 24 times even on 23h/25h local days
