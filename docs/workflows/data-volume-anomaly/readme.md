@@ -37,7 +37,7 @@ The workflow runs two analyzer tasks in parallel, then merges results into a sin
    into a single list of Dynatrace event payloads. Each event carries an `anomaly.direction` property
    (`above` or `below`) to distinguish spike from drop anomalies.
 
-1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via the Environment V2 Events API.
+1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`).
 
 ## Telemetry Source
 
@@ -55,7 +55,7 @@ Each ingested event carries:
 
 | Property                  | Value                             |
 |---------------------------|-----------------------------------|
-| `event.type`              | `CustomInfo` (default)            |
+| `event.type`              | `CUSTOM_INFO` (default)           |
 | `anomaly.detector`        | `dsoa.data_volume_anomaly`        |
 | `metric.key`              | `snowflake.data.rows`             |
 | `anomaly.direction`       | `above` (spike) or `below` (drop) |
@@ -90,13 +90,13 @@ At the top of the `extract_anomaly_events` task there is a `CONFIG` block:
 
 ```js
 const CONFIG = {
-  eventType: EventIngestEventType.CustomInfo,   // change to CustomAlert for Davis problems
+  eventType: 'CUSTOM_INFO',   // change to 'CUSTOM_ALERT' for Davis problems
   eventTimeout: 360,
   adSource: 'dsoa.data_volume_anomaly'
 };
 ```
 
-- **`eventType`**: Switch to `EventIngestEventType.CustomAlert` to enable Davis problem
+- **`eventType`**: Switch to `CUSTOM_ALERT` to enable Davis problem
   correlation and receive problem notifications.
 - **`eventTimeout`**: Event lifetime in minutes before auto-close.
 
@@ -138,7 +138,7 @@ signal than growth spikes.
 ### Too many spike alerts / alert fatigue
 
 - Raise `tolerance` on `detect_volume_spike` (e.g., from `4` to `6`).
-- Switch `eventType` to `CustomAlert` only for drops (requires splitting the CONFIG into two
+- Switch `eventType` to `CUSTOM_ALERT` only for drops (requires splitting the CONFIG into two
   separate `extract_anomaly_events` tasks).
 
 ### Tables with bursty load patterns generate false positives

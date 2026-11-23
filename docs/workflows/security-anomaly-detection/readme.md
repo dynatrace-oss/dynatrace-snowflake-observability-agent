@@ -38,8 +38,7 @@ and `query_history` plugins.
    from each analyzer result, builds Dynatrace event objects with standard properties including
    `anomaly.direction`, `anomaly.subject`, and `anomaly.detector`, and returns them as a list.
 
-3. **`ingest_anomaly_events`** — Ingests the event list into Dynatrace via the Environment V2
-   Events API.
+3. **`ingest_anomaly_events`** — Ingests the event list into Dynatrace via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`).
 
 ## Prerequisites
 
@@ -93,20 +92,20 @@ At the top of the `extract_anomaly_events` task, the `CONFIG` block controls eve
 
 ```javascript
 const CONFIG = {
-  eventType: EventIngestEventType.CustomInfo,  // Change to CustomAlert to trigger Davis problems
+  eventType: 'CUSTOM_INFO',  // Change to 'CUSTOM_ALERT' to trigger Davis problems
   eventTimeout: 360,
   adSource: 'dsoa.security_anomaly'
 };
 ```
 
-- **`CustomInfo`** (default) — informational events visible in the Events feed; no Davis problem created
-- **`CustomAlert`** — triggers Davis AI problem correlation; recommended for production security monitoring
+- **`CUSTOM_INFO`** (default) — informational events visible in the Events feed; no Davis problem created
+- **`CUSTOM_ALERT`** — triggers Davis AI problem correlation; recommended for production security monitoring
 
 ## Event Properties
 
 | Property                     | Example Value                                      | Description                                   |
 |------------------------------|----------------------------------------------------|-----------------------------------------------|
-| `event.type`                 | `CustomInfo`                                       | Event type (configurable)                     |
+| `event.type`                 | `CUSTOM_INFO`                                      | Event type (configurable)                     |
 | `anomaly.detector`           | `dsoa.security_anomaly`                            | Identifies the DSOA security anomaly workflow |
 | `metric.key`                 | `snowflake.login.count`                            | Metric that triggered the anomaly             |
 | `anomaly.direction`          | `above`                                            | Direction of anomaly relative to baseline     |

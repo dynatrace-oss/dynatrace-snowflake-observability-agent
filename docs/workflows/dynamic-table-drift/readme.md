@@ -27,7 +27,7 @@ reporting (suspended or failing) are also flagged.
    one per raised alert. Dimensions from the analyzer (table name, environment) are attached as
    event properties.
 
-1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via the Environment V2 Events API.
+1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`).
 
 ## Telemetry Source
 
@@ -49,7 +49,7 @@ Each ingested event carries:
 
 | Property                        | Value                                           |
 |---------------------------------|-------------------------------------------------|
-| `event.type`                    | `CustomInfo` (default)                          |
+| `event.type`                    | `CUSTOM_INFO` (default)                         |
 | `anomaly.detector`              | `dsoa.dynamic_table_drift`                      |
 | `metric.key`                    | `snowflake.table.dynamic.lag.excess`            |
 | `event.start/end`               | Anomaly timeframe from Davis                    |
@@ -62,13 +62,13 @@ At the top of the `extract_anomaly_events` task there is a `CONFIG` block:
 
 ```js
 const CONFIG = {
-  eventType: EventIngestEventType.CustomInfo,   // change to CustomAlert for Davis problems
+  eventType: 'CUSTOM_INFO',   // change to 'CUSTOM_ALERT' for Davis problems
   eventTimeout: 360,
   adSource: 'dsoa.dynamic_table_drift'
 };
 ```
 
-- **`eventType`**: Switch to `EventIngestEventType.CustomAlert` to enable Davis problem
+- **`eventType`**: Switch to `'CUSTOM_ALERT'` to enable Davis problem
   correlation and receive problem notifications.
 - **`eventTimeout`**: Event lifetime in minutes before auto-close.
 

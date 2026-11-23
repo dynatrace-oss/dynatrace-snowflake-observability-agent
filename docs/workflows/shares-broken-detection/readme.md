@@ -39,7 +39,7 @@ Complements the [Snowflake Shares & Governance](../../dashboards/snowflake-share
    Dynatrace event payloads. DQL results are mapped directly; Davis AI results use the
    standard `raisedAlerts` pattern.
 
-1. **`ingest_share_events`** — Sends each event to Dynatrace via the Environment V2 Events API.
+1. **`ingest_share_events`** — Sends each event to Dynatrace via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`).
 
 ## Telemetry Source
 
@@ -64,7 +64,7 @@ detection path (`anomaly.subject`):
 
 | Property                  | unavailable                    | disappeared                    | volume_drop                    |
 |---------------------------|--------------------------------|--------------------------------|--------------------------------|
-| `event.type`              | `CustomInfo`                   | `CustomInfo`                   | `CustomInfo`                   |
+| `event.type`              | `CUSTOM_INFO`                  | `CUSTOM_INFO`                  | `CUSTOM_INFO`                  |
 | `anomaly.detector`        | `dsoa.shares_broken_detection` | `dsoa.shares_broken_detection` | `dsoa.shares_broken_detection` |
 | `anomaly.subject`         | `unavailable`                  | `disappeared`                  | `volume_drop`                  |
 | `snowflake.share.name`    | share name                     | share name                     | share name                     |
@@ -80,13 +80,13 @@ At the top of the `extract_share_events` task there is a `CONFIG` block:
 
 ```js
 const CONFIG = {
-  eventType: EventIngestEventType.CustomInfo,   // change to CustomAlert for Davis problems
+  eventType: 'CUSTOM_INFO',   // change to 'CUSTOM_ALERT' for Davis problems
   eventTimeout: 360,
   adSource: 'dsoa.shares_broken_detection'
 };
 ```
 
-- **`eventType`**: Switch to `EventIngestEventType.CustomAlert` to enable Davis problem
+- **`eventType`**: Switch to `'CUSTOM_ALERT'` to enable Davis problem
   correlation and receive problem notifications.
 - **`eventTimeout`**: Event lifetime in minutes before auto-close.
 

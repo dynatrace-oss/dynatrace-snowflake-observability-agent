@@ -31,8 +31,8 @@ before the period resets.
    first day of crossing. Returns `{ violation: bool, violations: [] }`. Skips entries with
    `forecastQualityAssessment == 'NO_DATA'`.
 
-1. **`ingest_prediction_events`** — Sends one Dynatrace event per violating monitor via the
-   Environment V2 Events API. Only executes when `check_prediction` returns `violation == true`,
+1. **`ingest_prediction_events`** — Sends one Dynatrace event per violating monitor via a
+   direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`). Only executes when `check_prediction` returns `violation == true`,
    avoiding unnecessary API calls when no threshold is breached.
 
 ## Telemetry Source

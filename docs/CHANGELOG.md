@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 
 ## [1.0.1] - Unreleased
 
+### Changed — workflows post events directly to the Events API
+
+All Davis-event workflows under `docs/workflows` (`credits-exhaustion-prediction`, `data-volume-anomaly`, `dynamic-table-drift`, `long-running-queries`, `org-contract-balance-warning`, `query-slowdown-detection`, `security-anomaly-detection`, `shares-broken-detection`, `table-perf-degradation`, `warehouse-sensitive-change-alert`) no longer import `eventsClient` from `@dynatrace-sdk/client-classic-environment-v2`. They now POST each event with `fetch` to the relative platform path `/platform/classic/environment-api/v2/events/ingest` (the plain `/api/v2` path returns 404 on the apps domain), which the workflow runtime authenticates automatically. If any event fails to ingest (HTTP/network error or a non-OK ingest status), the batch is still processed in full and the task then throws an aggregate error, so the execution is marked failed instead of silently losing events. Workflow READMEs updated accordingly.
+
 ### Removed — alerting events (now provided by the Data Observability app)
 
 Alerts are now provided by the Data Observability app, so the agent no longer sends these events:

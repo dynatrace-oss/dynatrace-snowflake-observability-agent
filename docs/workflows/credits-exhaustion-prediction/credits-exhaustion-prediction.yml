@@ -164,7 +164,22 @@ tasks:
     input:
       script: |
         import { execution } from '@dynatrace-sdk/automation-utils';
-        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+        // Relative URL: the runtime attaches authentication automatically.
+        // Don't set an Authorization header, or the runtime overwrites it and you get a 403.
+        const EVENTS_INGEST_PATH = '/platform/classic/environment-api/v2/events/ingest';
+
+        async function createEvent(event) {
+          const res = await fetch(EVENTS_INGEST_PATH, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(event.body), // { eventType, title, properties, timeout }
+          });
+
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+          }
+          return res.json();
+        }
 
         async function ingestEvents(violations) {
           let successCount = 0;
@@ -188,16 +203,17 @@ tasks:
                 }
               }
             };
-            const res = await eventsClient.createEvent(eventBody);
-            if (res.reportCount !== 1) {
-              failed.push({ reason: 'Invalid number of ingested events', monitor: v.monitorName });
-            } else {
-              const status = res.eventIngestResults[0];
-              if (status.status === 'OK') {
+            try {
+              const res = await createEvent(eventBody);
+              if (res.reportCount !== 1) {
+                failed.push({ reason: 'Invalid number of ingested events' });
+              } else if (res.eventIngestResults[0].status === 'OK') {
                 successCount += 1;
               } else {
-                failed.push({ status: JSON.stringify(status), monitor: v.monitorName });
+                failed.push(JSON.stringify(res.eventIngestResults[0]));
               }
+            } catch (e) {
+              failed.push({ reason: String(e?.message ?? e) });
             }
           }
           if (successCount === 0 && failed.length === 0) {
@@ -208,6 +224,8 @@ tasks:
           }
           if (failed.length > 0) {
             console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+            // Fail the task so lost events are visible in the execution status
+            throw new Error(`Failed to ingest ${failed.length} event(s): ${JSON.stringify(failed)}`);
           }
         }
 

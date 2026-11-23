@@ -55,7 +55,7 @@ ad_long_running_by_user      ─┘
    both predecessors via `predecessors`, then JS try/catch skips any failed task so partial results
    are never lost.
 
-1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via the Environment V2 Events API.
+1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`).
 
 ## Telemetry Source
 
@@ -75,7 +75,7 @@ Each ingested event carries:
 
 | Property                    | Value                                        |
 |-----------------------------|----------------------------------------------|
-| `event.type`                | `CustomInfo` (default)                       |
+| `event.type`                | `CUSTOM_INFO` (default)                      |
 | `anomaly.detector`          | `dsoa.long_running_queries`                  |
 | `metric.key`                | `snowflake.query.execution_time.max`         |
 | `anomaly.direction`         | `above`                                      |
@@ -90,13 +90,13 @@ At the top of the `extract_anomaly_events` task there is a `CONFIG` block:
 
 ```js
 const CONFIG = {
-  eventType: EventIngestEventType.CustomInfo,   // change to CustomAlert for Davis problems
+  eventType: 'CUSTOM_INFO',   // change to 'CUSTOM_ALERT' for Davis problems
   eventTimeout: 360,
   adSource: 'dsoa.long_running_queries'
 };
 ```
 
-- **`eventType`**: Switch to `EventIngestEventType.CustomAlert` to enable Davis problem
+- **`eventType`**: Switch to `'CUSTOM_ALERT'` to enable Davis problem
   correlation and receive problem notifications.
 - **`eventTimeout`**: Event lifetime in minutes before auto-close (default: 360 = 6 h).
 
