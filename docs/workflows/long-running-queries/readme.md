@@ -75,7 +75,7 @@ Each ingested event carries:
 
 | Property                    | Value                                        |
 |-----------------------------|----------------------------------------------|
-| `event.type`                | `CustomInfo` (default)                       |
+| `event.type`                | `CUSTOM_INFO` (default)                      |
 | `anomaly.detector`          | `dsoa.long_running_queries`                  |
 | `metric.key`                | `snowflake.query.execution_time.max`         |
 | `anomaly.direction`         | `above`                                      |
@@ -90,13 +90,13 @@ At the top of the `extract_anomaly_events` task there is a `CONFIG` block:
 
 ```js
 const CONFIG = {
-  eventType: EventIngestEventType.CustomInfo,   // change to CustomAlert for Davis problems
+  eventType: 'CUSTOM_INFO',   // change to 'CUSTOM_ALERT' for Davis problems
   eventTimeout: 360,
   adSource: 'dsoa.long_running_queries'
 };
 ```
 
-- **`eventType`**: Switch to `EventIngestEventType.CustomAlert` to enable Davis problem
+- **`eventType`**: Switch to `'CUSTOM_ALERT'` to enable Davis problem
   correlation and receive problem notifications.
 - **`eventTimeout`**: Event lifetime in minutes before auto-close (default: 360 = 6 h).
 

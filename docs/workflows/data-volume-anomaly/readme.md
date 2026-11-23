@@ -55,7 +55,7 @@ Each ingested event carries:
 
 | Property                  | Value                             |
 |---------------------------|-----------------------------------|
-| `event.type`              | `CustomInfo` (default)            |
+| `event.type`              | `CUSTOM_INFO` (default)           |
 | `anomaly.detector`        | `dsoa.data_volume_anomaly`        |
 | `metric.key`              | `snowflake.data.rows`             |
 | `anomaly.direction`       | `above` (spike) or `below` (drop) |
@@ -90,7 +90,7 @@ At the top of the `extract_anomaly_events` task there is a `CONFIG` block:
 
 ```js
 const CONFIG = {
-  eventType: EventIngestEventType.CustomInfo,   // change to CustomAlert for Davis problems
+  eventType: 'CUSTOM_INFO',   // change to 'CUSTOM_ALERT' for Davis problems
   eventTimeout: 360,
   adSource: 'dsoa.data_volume_anomaly'
 };
@@ -138,7 +138,7 @@ signal than growth spikes.
 ### Too many spike alerts / alert fatigue
 
 - Raise `tolerance` on `detect_volume_spike` (e.g., from `4` to `6`).
-- Switch `eventType` to `CustomAlert` only for drops (requires splitting the CONFIG into two
+- Switch `eventType` to `CUSTOM_ALERT` only for drops (requires splitting the CONFIG into two
   separate `extract_anomaly_events` tasks).
 
 ### Tables with bursty load patterns generate false positives

@@ -64,7 +64,7 @@ detection path (`anomaly.subject`):
 
 | Property                  | unavailable                    | disappeared                    | volume_drop                    |
 |---------------------------|--------------------------------|--------------------------------|--------------------------------|
-| `event.type`              | `CustomInfo`                   | `CustomInfo`                   | `CustomInfo`                   |
+| `event.type`              | `CUSTOM_INFO`                  | `CUSTOM_INFO`                  | `CUSTOM_INFO`                  |
 | `anomaly.detector`        | `dsoa.shares_broken_detection` | `dsoa.shares_broken_detection` | `dsoa.shares_broken_detection` |
 | `anomaly.subject`         | `unavailable`                  | `disappeared`                  | `volume_drop`                  |
 | `snowflake.share.name`    | share name                     | share name                     | share name                     |
@@ -80,13 +80,13 @@ At the top of the `extract_share_events` task there is a `CONFIG` block:
 
 ```js
 const CONFIG = {
-  eventType: EventIngestEventType.CustomInfo,   // change to CustomAlert for Davis problems
+  eventType: 'CUSTOM_INFO',   // change to 'CUSTOM_ALERT' for Davis problems
   eventTimeout: 360,
   adSource: 'dsoa.shares_broken_detection'
 };
 ```
 
-- **`eventType`**: Switch to `EventIngestEventType.CustomAlert` to enable Davis problem
+- **`eventType`**: Switch to `'CUSTOM_ALERT'` to enable Davis problem
   correlation and receive problem notifications.
 - **`eventTimeout`**: Event lifetime in minutes before auto-close.
 

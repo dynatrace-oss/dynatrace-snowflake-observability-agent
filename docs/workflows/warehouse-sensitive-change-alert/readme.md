@@ -26,7 +26,7 @@ in the sensitive allowlist (size, scaling policy, auto-suspend, cluster-count bo
    role, operation name, and raw query text as event properties.
 
 1. **`ingest_events`** — Pushes events via a direct POST to the Events API v2 (`/platform/classic/environment-api/v2/events/ingest`). The event type
-   is `CustomInfo` by default; switch to `CustomAlert` to enable Davis problem correlation.
+   is `CUSTOM_INFO` by default; switch to `CUSTOM_ALERT` to enable Davis problem correlation.
 
 ## Telemetry Source
 
@@ -68,6 +68,6 @@ property changes (such as `COMMENT`) deliberately do not fire.
 
 Edit the JavaScript `CONFIG` block in `build_events` to:
 
-- switch the event type (`CustomInfo` → `CustomAlert`)
+- switch the event type (`CUSTOM_INFO` → `CUSTOM_ALERT`)
 - change the event timeout (default 60 min)
 - change the `anomaly.detector` tag used by Dynatrace for grouping

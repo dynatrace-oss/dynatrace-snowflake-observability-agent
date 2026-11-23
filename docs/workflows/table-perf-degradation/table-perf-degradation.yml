@@ -90,7 +90,7 @@ tasks:
         // Change eventType to CUSTOM_ALERT to enable Davis problem correlation.
         // CUSTOM_INFO (default) creates informational events without triggering Davis problems.
         const CONFIG = {
-          eventType: CUSTOM_INFO,
+          eventType: 'CUSTOM_INFO',
           eventTimeout: 360,
           adSource: 'dsoa.table_perf_degradation'
         };
@@ -229,6 +229,8 @@ tasks:
           }
           if (failed.length > 0) {
             console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+            // Fail the task so lost events are visible in the execution status
+            throw new Error(`Failed to ingest ${failed.length} event(s): ${JSON.stringify(failed)}`);
           }
         }
 

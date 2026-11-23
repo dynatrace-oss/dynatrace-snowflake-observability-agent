@@ -285,6 +285,8 @@ tasks:
           }
           if (failed.length > 0) {
             console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+            // Fail the task so lost events are visible in the execution status
+            throw new Error(`Failed to ingest ${failed.length} event(s): ${JSON.stringify(failed)}`);
           }
         }
 
