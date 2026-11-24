@@ -26,6 +26,15 @@ model:
           by: { dsoa.heartbeat.task, deployment.environment.name }
       description: Plot skipped and cancelled agent task runs per task over time.
       description_copilot: Timeseries of skipped and cancelled Snowflake agent task runs per task.
+    - query_string: |
+        timeseries {
+            attempted = sum(dsoa.heartbeat.export.attempted),
+            delivered = sum(dsoa.heartbeat.export.delivered)
+          },
+          by: { dsoa.export.plugin, dsoa.export.signal, deployment.environment.name }
+        | fieldsAdd success_rate_pct = 100 * delivered[] / attempted[]
+      description: Export success rate (delivered / attempted records) per plugin and signal as reported by the Dynatrace Snowflake Observability Agent heartbeat.
+      description_copilot: Calculate the percentage of telemetry records that the Snowflake observability agent successfully delivered to Dynatrace, per plugin and signal.
   groups:
     - id: dsoa.heartbeat.expected_runs
       type: metric
@@ -87,3 +96,23 @@ model:
       attributes:
         - ref: dsoa.heartbeat.plugin
         - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.export.attempted
+      type: metric
+      metric_name: dsoa.heartbeat.export.attempted
+      instrument: gauge
+      brief: The number of records of the signal that the plugin handed over for sending to Dynatrace within the window. Each record is counted once, no matter how many times its sending was retried.
+      title: Heartbeat export attempted records
+      unit: count
+      attributes:
+        - ref: dsoa.export.plugin
+        - ref: dsoa.export.signal
+    - id: dsoa.heartbeat.export.delivered
+      type: metric
+      metric_name: dsoa.heartbeat.export.delivered
+      instrument: gauge
+      brief: The number of records of the signal that Dynatrace accepted within the window. Records rejected by Dynatrace, also in partially successful requests, are not counted. Divide by dsoa.heartbeat.export.attempted for the success rate.
+      title: Heartbeat export delivered records
+      unit: count
+      attributes:
+        - ref: dsoa.export.plugin
+        - ref: dsoa.export.signal

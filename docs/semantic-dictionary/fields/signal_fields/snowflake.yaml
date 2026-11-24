@@ -2122,5 +2122,17 @@ groups:
         display_name: 'Heartbeat window hours'
         type: long
         stability: stable
-        brief: The length of the window, in hours, over which expected and actual runs are compared.
+        brief: The length of the window, in hours, over which expected and actual runs, and export statistics, are compared.
         examples: [ 24 ]
+      - id: dsoa.export.plugin
+        display_name: 'Export statistics plugin'
+        type: string
+        stability: stable
+        brief: The Dynatrace Snowflake Observability Agent plugin whose exported records are counted.
+        examples: [ 'query_history' ]
+      - id: dsoa.export.signal
+        display_name: 'Export statistics signal'
+        type: string
+        stability: stable
+        brief: 'The kind of telemetry the exported records belong to: logs, spans, metrics, events, davis_events or biz_events.'
+        examples: [ 'logs' ]
