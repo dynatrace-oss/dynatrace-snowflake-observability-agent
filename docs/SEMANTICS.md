@@ -9,6 +9,7 @@
 - [Dynamic Tables](#dynamic_tables_semantics_sec)
 - [Event Log](#event_log_semantics_sec)
 - [Event Usage](#event_usage_semantics_sec)
+- [Heartbeat](#heartbeat_semantics_sec)
 - [Login History](#login_history_semantics_sec)
 - [Metering](#metering_semantics_sec)
 - [Org Costs](#org_costs_semantics_sec)
@@ -792,6 +793,133 @@ Report total daily bytes ingested into the event table per Snowflake account.
 ```dql
 timeseries ingested = sum(snowflake.data.ingested), interval: 1d, by: { deployment.environment.name }
 | fieldsAdd total_ingested = arraySum(ingested)
+```
+
+<a name="heartbeat_semantics_sec"></a>
+
+## The `Heartbeat` plugin semantics
+
+[Show plugin description](PLUGINS.md#heartbeat_info_sec)
+
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
+
+### Dimensions at the `Heartbeat` plugin
+
+| Identifier                          | Description                                                                                                     | Example              | Stability | Context Name                 |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------- | --------- | ---------------------------- |
+| db.&#8203;namespace                 | The database of the Dynatrace Snowflake Observability Agent instance the task belongs to.                       | DTAGENT_DB           |           | heartbeat, heartbeat_exports |
+| dsoa.&#8203;export.&#8203;plugin    | The Dynatrace Snowflake Observability Agent plugin whose exported records are counted.                          | query_history        | stable    | heartbeat_exports            |
+| dsoa.&#8203;export.&#8203;signal    | The kind of telemetry the exported records belong to: logs, spans, metrics, events, davis_events or biz_events. | logs                 | stable    | heartbeat_exports            |
+| dsoa.&#8203;heartbeat.&#8203;plugin | The Dynatrace Snowflake Observability Agent plugin the task belongs to.                                         | budgets              | stable    | heartbeat                    |
+| dsoa.&#8203;heartbeat.&#8203;task   | The name of the Dynatrace Snowflake Observability Agent task.                                                   | TASK_DTAGENT_BUDGETS | stable    | heartbeat                    |
+
+### Attributes at the `Heartbeat` plugin
+
+| Identifier                                                | Description                                                                                                                                                                  | Example                             | Stability | Context Name      |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | --------- | ----------------- |
+| dsoa.&#8203;heartbeat.&#8203;actual_schedule              | The schedule of the task as deployed in Snowflake.                                                                                                                           | `USING CRON 0 6 * * * UTC`          | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;actual_state                 | The state of the task in Snowflake: started, suspended, or missing when the task is not deployed.                                                                            | started                             | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;configured_enabled           | Whether the plugin owning the task is enabled in the configuration.                                                                                                          | True                                | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;configured_schedule          | The task schedule set in the configuration.                                                                                                                                  | `USING CRON 0 6 * * * UTC`          | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;export.&#8203;reported_from  | The time of the oldest export statistics included in the report. It is older than the previous heartbeat when that heartbeat did not run or could not deliver its telemetry. | 2026-11-23T06:00:00.123456789+00:00 | stable    | heartbeat_exports |
+| dsoa.&#8203;heartbeat.&#8203;export.&#8203;reported_until | The time up to which export statistics are included in the report.                                                                                                           | 2026-11-24T05:59:00.000000000+00:00 | stable    | heartbeat_exports |
+| dsoa.&#8203;heartbeat.&#8203;has_schedule_drift           | Whether the deployed task schedule differs from the configured one.                                                                                                          | False                               | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;is_missing                   | Whether the task is enabled in the configuration but not deployed in Snowflake.                                                                                              | False                               | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;is_suspended                 | Whether the task is enabled in the configuration but suspended in Snowflake.                                                                                                 | False                               | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;is_unexpected                | Whether the task is started in Snowflake although it is disabled in the configuration.                                                                                       | False                               | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;schedule_supported           | Whether the expected number of runs could be calculated; false for schedules depending on other tasks or unparsable schedules.                                               | True                                | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;window_hours                 | The length of the window, in hours, over which expected and actual runs are compared.                                                                                        | 24                                  | stable    | heartbeat         |
+
+### Metrics at the `Heartbeat` plugin
+
+| Identifier                                           | Name                               | Unit  | Description                                                                                                                                                                                                                                  | Example | Stability | Context Name      |
+| ---------------------------------------------------- | ---------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- | ----------------- |
+| dsoa.&#8203;heartbeat.&#8203;expected_runs           | Heartbeat expected runs            | count | The number of task runs implied by the schedule within the window.                                                                                                                                                                           | 1       | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;export.&#8203;attempted | Heartbeat export attempted records | count | The number of records of the signal that the plugin handed over for sending to Dynatrace in the reported interval. Each record is counted once, no matter how many times its sending was retried.                                            | 1200    | stable    | heartbeat_exports |
+| dsoa.&#8203;heartbeat.&#8203;export.&#8203;delivered | Heartbeat export delivered records | count | The number of records of the signal that Dynatrace accepted in the reported interval. Records rejected by Dynatrace, also in partially successful requests, are not counted. Divide by dsoa.heartbeat.export.attempted for the success rate. | 1198    | stable    | heartbeat_exports |
+| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;cancelled   | Heartbeat cancelled runs           | count | The number of task runs that were cancelled within the window.                                                                                                                                                                               | 0       | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;executing   | Heartbeat in-flight runs           | count | The number of task runs scheduled or still executing when the heartbeat was taken. Their outcome is not known yet, so they are not counted as succeeded.                                                                                     | 1       | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;failed      | Heartbeat failed runs              | count | The number of task runs that failed within the window.                                                                                                                                                                                       | 0       | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;skipped     | Heartbeat skipped runs             | count | The number of task runs that were skipped within the window.                                                                                                                                                                                 | 0       | stable    | heartbeat         |
+| dsoa.&#8203;heartbeat.&#8203;runs.&#8203;succeeded   | Heartbeat succeeded runs           | count | The number of task runs that succeeded within the window.                                                                                                                                                                                    | 1       | stable    | heartbeat         |
+
+### DQL query examples for the `heartbeat` plugin
+
+Fetch the 100 most recent Dynatrace Snowflake Observability Agent heartbeat log entries from Grail.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "heartbeat"
+| sort timestamp desc
+| limit 100
+```
+
+Fetch agent tasks that are missing, unexpected, suspended or have a schedule differing from the configuration.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "heartbeat"
+| filter dsoa.heartbeat.is_missing == true
+    or dsoa.heartbeat.is_unexpected == true
+    or dsoa.heartbeat.is_suspended == true
+    or dsoa.heartbeat.has_schedule_drift == true
+| fields timestamp, dsoa.heartbeat.task, dsoa.heartbeat.actual_state,
+    dsoa.heartbeat.configured_schedule, dsoa.heartbeat.actual_schedule
+| sort timestamp desc
+| limit 50
+```
+
+Compare expected and succeeded agent task runs per task over time.
+
+```dql
+timeseries {
+  expected = sum(dsoa.heartbeat.expected_runs),
+  succeeded = sum(dsoa.heartbeat.runs.succeeded)
+},
+  by: { dsoa.heartbeat.task, deployment.environment.name }
+```
+
+Plot failed agent task runs per task over time.
+
+```dql
+timeseries failed = sum(dsoa.heartbeat.runs.failed), by: { dsoa.heartbeat.task, deployment.environment.name }
+```
+
+Summarize succeeded versus expected runs of enabled agent tasks per task.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "heartbeat"
+| filter dsoa.heartbeat.configured_enabled == true
+| summarize runs = sum(dsoa.heartbeat.runs.succeeded),
+    expected = sum(dsoa.heartbeat.expected_runs),
+    by: { dsoa.heartbeat.task, deployment.environment.name }
+```
+
+Plot skipped and cancelled agent task runs per task over time.
+
+```dql
+timeseries {
+  skipped = sum(dsoa.heartbeat.runs.skipped),
+  cancelled = sum(dsoa.heartbeat.runs.cancelled)
+},
+  by: { dsoa.heartbeat.task, deployment.environment.name }
+```
+
+Export success rate (delivered / attempted records) per plugin and signal as reported by the Dynatrace Snowflake Observability Agent
+heartbeat.
+
+```dql
+timeseries {
+    attempted = sum(dsoa.heartbeat.export.attempted),
+    delivered = sum(dsoa.heartbeat.export.delivered)
+  },
+  by: { dsoa.export.plugin, dsoa.export.signal, deployment.environment.name }
+| fieldsAdd success_rate_pct = 100 * delivered[] / attempted[]
 ```
 
 <a name="login_history_semantics_sec"></a>

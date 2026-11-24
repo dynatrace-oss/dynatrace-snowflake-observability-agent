@@ -30,6 +30,7 @@ import time
 from typing import Dict, Union, Optional, Tuple
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.otel.ingest_warnings import IngestWarningCollector
+from dtagent.otel.export_stats import ExportStatsCollector
 from dtagent.util import get_timestamp, get_now_timestamp, validate_timestamp
 from dtagent.otel import _log_warning
 
@@ -94,6 +95,9 @@ class Metrics:
                 else 0
             )
 
+            if _retries == 0:  # each metric line counts as attempted once, no matter how many times its payload is retried
+                ExportStatsCollector.add_attempted("metrics", data_sent_size)
+
             try:
                 response = requests.post(
                     self._configuration.get("metrics.http"),
@@ -108,10 +112,12 @@ class Metrics:
                     _log_warning(response, _payload, "metric")
                 else:
                     OtelManager.set_current_fail_count(0)
+                    lines_delivered = data_sent_size
                     try:
                         body = response.json()
                         if isinstance(body, dict):
                             lines_invalid = body.get("linesInvalid", 0)
+                            lines_delivered = max(0, data_sent_size - (lines_invalid or 0))
                             if lines_invalid:
                                 IngestWarningCollector.add_warning(
                                     "lines_invalid",
@@ -130,6 +136,7 @@ class Metrics:
                                     )
                     except Exception:  # pylint: disable=broad-except
                         pass
+                    ExportStatsCollector.add_delivered("metrics", lines_delivered)
 
             except requests.exceptions.RequestException as e:
                 if isinstance(e, requests.exceptions.Timeout):

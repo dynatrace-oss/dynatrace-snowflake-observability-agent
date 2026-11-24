@@ -1,5 +1,21 @@
 dsoa.agent.memory.peak_rss 42.5
 #dsoa.agent.memory.peak_rss gauge dt.meta.displayName="Agent peak memory (RSS)",dt.meta.unit="MiBy"
+dsoa.heartbeat.expected_runs 1
+#dsoa.heartbeat.expected_runs gauge dt.meta.displayName="Heartbeat expected runs",dt.meta.unit="count"
+dsoa.heartbeat.export.attempted 1200
+#dsoa.heartbeat.export.attempted gauge dt.meta.displayName="Heartbeat export attempted records",dt.meta.unit="count"
+dsoa.heartbeat.export.delivered 1198
+#dsoa.heartbeat.export.delivered gauge dt.meta.displayName="Heartbeat export delivered records",dt.meta.unit="count"
+dsoa.heartbeat.runs.cancelled 0
+#dsoa.heartbeat.runs.cancelled gauge dt.meta.displayName="Heartbeat cancelled runs",dt.meta.unit="count"
+dsoa.heartbeat.runs.executing 1
+#dsoa.heartbeat.runs.executing gauge dt.meta.displayName="Heartbeat in-flight runs",dt.meta.unit="count"
+dsoa.heartbeat.runs.failed 0
+#dsoa.heartbeat.runs.failed gauge dt.meta.displayName="Heartbeat failed runs",dt.meta.unit="count"
+dsoa.heartbeat.runs.skipped 0
+#dsoa.heartbeat.runs.skipped gauge dt.meta.displayName="Heartbeat skipped runs",dt.meta.unit="count"
+dsoa.heartbeat.runs.succeeded 1
+#dsoa.heartbeat.runs.succeeded gauge dt.meta.displayName="Heartbeat succeeded runs",dt.meta.unit="count"
 process.cpu.utilization 0.015
 #process.cpu.utilization gauge dt.meta.displayName="Process CPU utilization",dt.meta.unit="%"
 process.memory.usage 34844672

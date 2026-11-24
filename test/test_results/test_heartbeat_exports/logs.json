@@ -1,0 +1,48 @@
+[
+  {
+    "content": "Export statistics for query_history / logs: delivered 98 of 100 attempted records since 2026-11-23 06:00:00 +00:00",
+    "dsoa.heartbeat.export.attempted": 100,
+    "dsoa.heartbeat.export.delivered": 98,
+    "dsoa.heartbeat.export.reported_from": "2026-11-23T06:00:00.123456789+00:00",
+    "dsoa.heartbeat.export.reported_until": "2026-11-24T05:59:00.000000000+00:00",
+    "db.namespace": "DTAGENT_DB",
+    "dsoa.export.plugin": "query_history",
+    "dsoa.export.signal": "logs",
+    "dsoa.run.plugin": "test_heartbeat_exports",
+    "dsoa.run.context": "heartbeat_exports",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.40.0",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "content": "Export statistics for query_history / metrics: delivered 40 of 40 attempted records since 2026-11-23 06:00:00 +00:00",
+    "dsoa.heartbeat.export.attempted": 40,
+    "dsoa.heartbeat.export.delivered": 40,
+    "dsoa.heartbeat.export.reported_from": "2026-11-23T06:00:00.123456789+00:00",
+    "dsoa.heartbeat.export.reported_until": "2026-11-24T05:59:00.000000000+00:00",
+    "db.namespace": "DTAGENT_DB",
+    "dsoa.export.plugin": "query_history",
+    "dsoa.export.signal": "metrics",
+    "dsoa.run.plugin": "test_heartbeat_exports",
+    "dsoa.run.context": "heartbeat_exports",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.40.0",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  }
+]

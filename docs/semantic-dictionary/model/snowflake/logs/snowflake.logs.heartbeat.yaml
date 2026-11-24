@@ -1,0 +1,58 @@
+model:
+  id: snowflake.logs.heartbeat
+  title: Snowflake heartbeat log records
+  brief: Log records emitted by the Dynatrace Snowflake Observability Agent heartbeat plugin.
+  model_group_id: snowflake.logs
+  data_object: logs
+  interfaces: [ i.dsoa_resource ]
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "heartbeat"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent Dynatrace Snowflake Observability Agent heartbeat log entries from Grail.
+      description_copilot: Search for all heartbeat plugin logs from the Snowflake observability agent.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "heartbeat"
+        | filter dsoa.heartbeat.is_missing == true
+            or dsoa.heartbeat.is_unexpected == true
+            or dsoa.heartbeat.is_suspended == true
+            or dsoa.heartbeat.has_schedule_drift == true
+        | fields timestamp, dsoa.heartbeat.task, dsoa.heartbeat.actual_state,
+            dsoa.heartbeat.configured_schedule, dsoa.heartbeat.actual_schedule
+        | sort timestamp desc
+        | limit 50
+      description: Fetch agent tasks that are missing, unexpected, suspended or have a schedule differing from the configuration.
+      description_copilot: Search for Snowflake agent tasks whose deployed state differs from the configuration.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "heartbeat"
+        | filter dsoa.heartbeat.configured_enabled == true
+        | summarize runs = sum(dsoa.heartbeat.runs.succeeded),
+            expected = sum(dsoa.heartbeat.expected_runs),
+            by: { dsoa.heartbeat.task, deployment.environment.name }
+      description: Summarize succeeded versus expected runs of enabled agent tasks per task.
+      description_copilot: Compare succeeded and expected runs for enabled Snowflake agent tasks.
+  groups:
+    - id: snowflake.logs.heartbeat.fields
+      type: attribute_group
+      title: Heartbeat log record fields
+      brief: Attribute fields for heartbeat log records.
+      attributes:
+        - ref: dsoa.heartbeat.actual_schedule
+        - ref: dsoa.heartbeat.actual_state
+        - ref: dsoa.heartbeat.configured_enabled
+        - ref: dsoa.heartbeat.configured_schedule
+        - ref: dsoa.heartbeat.has_schedule_drift
+        - ref: dsoa.heartbeat.is_missing
+        - ref: dsoa.heartbeat.is_suspended
+        - ref: dsoa.heartbeat.is_unexpected
+        - ref: dsoa.heartbeat.schedule_supported
+        - ref: dsoa.heartbeat.window_hours
+        - ref: dsoa.heartbeat.export.reported_from
+        - ref: dsoa.heartbeat.export.reported_until

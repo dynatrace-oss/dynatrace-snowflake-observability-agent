@@ -1,0 +1,118 @@
+model:
+  id: snowflake.metrics.heartbeat
+  title: Snowflake heartbeat metrics
+  brief: Metrics collected by the Dynatrace Snowflake Observability Agent heartbeat plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: snowflake.metrics
+  data_object: metric
+  interfaces: [ i.dsoa_resource, i.snowflake_database ]
+  dql_queries:
+    - query_string: |
+        timeseries {
+          expected = sum(dsoa.heartbeat.expected_runs),
+          succeeded = sum(dsoa.heartbeat.runs.succeeded)
+        },
+          by: { dsoa.heartbeat.task, deployment.environment.name }
+      description: Compare expected and succeeded agent task runs per task over time.
+      description_copilot: Timeseries comparing expected and succeeded Snowflake agent task runs per task.
+    - query_string: >
+        timeseries failed = sum(dsoa.heartbeat.runs.failed), by: { dsoa.heartbeat.task, deployment.environment.name }
+      description: Plot failed agent task runs per task over time.
+      description_copilot: Timeseries of failed Snowflake agent task runs per task.
+    - query_string: |
+        timeseries {
+          skipped = sum(dsoa.heartbeat.runs.skipped),
+          cancelled = sum(dsoa.heartbeat.runs.cancelled)
+        },
+          by: { dsoa.heartbeat.task, deployment.environment.name }
+      description: Plot skipped and cancelled agent task runs per task over time.
+      description_copilot: Timeseries of skipped and cancelled Snowflake agent task runs per task.
+    - query_string: |
+        timeseries {
+            attempted = sum(dsoa.heartbeat.export.attempted),
+            delivered = sum(dsoa.heartbeat.export.delivered)
+          },
+          by: { dsoa.export.plugin, dsoa.export.signal, deployment.environment.name }
+        | fieldsAdd success_rate_pct = 100 * delivered[] / attempted[]
+      description: Export success rate (delivered / attempted records) per plugin and signal as reported by the Dynatrace Snowflake Observability Agent heartbeat.
+      description_copilot: Calculate the percentage of telemetry records that the Snowflake observability agent successfully delivered to Dynatrace, per plugin and signal.
+  groups:
+    - id: dsoa.heartbeat.expected_runs
+      type: metric
+      metric_name: dsoa.heartbeat.expected_runs
+      instrument: gauge
+      brief: The number of task runs implied by the schedule within the window.
+      title: Heartbeat expected runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.runs.cancelled
+      type: metric
+      metric_name: dsoa.heartbeat.runs.cancelled
+      instrument: gauge
+      brief: The number of task runs that were cancelled within the window.
+      title: Heartbeat cancelled runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.runs.failed
+      type: metric
+      metric_name: dsoa.heartbeat.runs.failed
+      instrument: gauge
+      brief: The number of task runs that failed within the window.
+      title: Heartbeat failed runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.runs.skipped
+      type: metric
+      metric_name: dsoa.heartbeat.runs.skipped
+      instrument: gauge
+      brief: The number of task runs that were skipped within the window.
+      title: Heartbeat skipped runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.runs.succeeded
+      type: metric
+      metric_name: dsoa.heartbeat.runs.succeeded
+      instrument: gauge
+      brief: The number of task runs that succeeded within the window.
+      title: Heartbeat succeeded runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.runs.executing
+      type: metric
+      metric_name: dsoa.heartbeat.runs.executing
+      instrument: gauge
+      brief: The number of task runs scheduled or still executing when the heartbeat was taken. Their outcome is not known yet, so they are not counted as succeeded.
+      title: Heartbeat in-flight runs
+      unit: count
+      attributes:
+        - ref: dsoa.heartbeat.plugin
+        - ref: dsoa.heartbeat.task
+    - id: dsoa.heartbeat.export.attempted
+      type: metric
+      metric_name: dsoa.heartbeat.export.attempted
+      instrument: gauge
+      brief: The number of records of the signal that the plugin handed over for sending to Dynatrace in the reported interval. Each record is counted once, no matter how many times its sending was retried.
+      title: Heartbeat export attempted records
+      unit: count
+      attributes:
+        - ref: dsoa.export.plugin
+        - ref: dsoa.export.signal
+    - id: dsoa.heartbeat.export.delivered
+      type: metric
+      metric_name: dsoa.heartbeat.export.delivered
+      instrument: gauge
+      brief: The number of records of the signal that Dynatrace accepted in the reported interval. Records rejected by Dynatrace, also in partially successful requests, are not counted. Divide by dsoa.heartbeat.export.attempted for the success rate.
+      title: Heartbeat export delivered records
+      unit: count
+      attributes:
+        - ref: dsoa.export.plugin
+        - ref: dsoa.export.signal

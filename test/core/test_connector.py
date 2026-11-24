@@ -196,6 +196,48 @@ class TestTelemetrySender:
         mock_teardown.assert_called_once()
 
     @pytest.mark.xdist_group(name="test_telemetry")
+    @pytest.mark.parametrize("fails", [False, True])
+    def test_main_persists_export_stats_after_teardown(self, fails):
+        """Custom telemetry takes part in the export statistics: they are persisted after teardown, also when sending failed."""
+        import dtagent.connector as connector_module
+
+        class _ConfiguredLocalSender(LocalTelemetrySender):
+            def __init__(self, session, params, exec_id):
+                super().__init__(session, params, exec_id, config=_utils.get_config())
+
+        calls = []
+        session = _get_session()
+
+        # patched by dotted path on the classes that define the methods: the sender classes are only built at runtime
+        with (
+            patch.object(connector_module, "TelemetrySender", _ConfiguredLocalSender),
+            patch("dtagent.connector.TelemetrySender.send_data", side_effect=ValueError("boom") if fails else None, return_value="ok"),
+            patch("dtagent.AbstractDynatraceSnowAgentConnector.handle_interrupted_run"),
+            patch("dtagent.AbstractDynatraceSnowAgentConnector.teardown", side_effect=lambda *_: calls.append("teardown")),
+            patch("dtagent.AbstractDynatraceSnowAgentConnector.persist_export_stats", side_effect=lambda *_: calls.append("persist")),
+        ):
+            connector_module.main(session, "irrelevant_source", {"auto_mode": False, "context": "test_main_export_stats"})
+
+        assert calls == ["teardown", "persist"]
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_send_data_attributes_export_stats_to_the_sender_run(self):
+        """send_data() tells the export statistics collector which run the records belong to."""
+        from dtagent.otel.export_stats import ExportStatsCollector
+
+        exec_id = str(uuid.uuid4().hex)
+        sender = LocalTelemetrySender(
+            _get_session(), {"auto_mode": False, "context": "test_export_stats_attribution"}, exec_id, config=_utils.get_config()
+        )
+        ExportStatsCollector.reset()
+        try:
+            sender.send_data([])
+            assert ExportStatsCollector.get_attribution() == ("telemetry_sender", exec_id)
+        finally:
+            ExportStatsCollector.reset()
+            sender.teardown()
+
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_automode(self):
         session = _get_session()
 

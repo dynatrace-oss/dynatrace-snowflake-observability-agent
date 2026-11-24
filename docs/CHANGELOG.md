@@ -11,6 +11,20 @@ All notable changes to this project will be documented in this file.
 
 ## [1.0.1] - Unreleased
 
+### Added — `heartbeat` plugin
+
+New `heartbeat` plugin that verifies, once a day, that the agent runs what it is configured to run. For every agent task it reports the configured and actual state and schedule, flags missing, unexpected, suspended, and drifted tasks, and compares the number of runs the schedule implies (cron or interval schedules) with the runs that actually succeeded, failed, were skipped, or were cancelled. Telemetry is scoped to the agent instance's own database and carries `db.namespace` and `deployment.environment.name`, so it is safe in multitenancy deployments. Runs daily at 06:00 UTC by default (`plugins.heartbeat.schedule`); the comparison window is `plugins.heartbeat.window_hours` (default 24).
+
+Adds the `croniter` package to the agent procedure.
+
+### Added — export success rate
+
+The agent now records, per plugin and signal (`logs`, `spans`, `metrics`, `events`, `davis_events`, `biz_events`), how many records it attempted to send to Dynatrace and how many Dynatrace accepted. The numbers are persisted in the new `STATUS.EXPORT_STATS` table (created by the upgrade script, 30 days of history by default) and reported by the `heartbeat` plugin in the new `heartbeat_exports` context as the metrics `dsoa.heartbeat.export.attempted` and `dsoa.heartbeat.export.delivered`, so `delivered / attempted` gives an export success rate per plugin and signal on the tenant. Statistics that a failed or missed heartbeat did not report are reported by the next one. Custom telemetry sent with `SEND_TELEMETRY` is included. Disable via `plugins.self_monitoring.export_stats_enabled: false`; change the retention via `plugins.self_monitoring.export_stats_retention_days`.
+
+### Added — self-monitoring run timestamps
+
+The `New entry to STATUS.LOG_PROCESSED_MEASUREMENTS` self-monitoring log now carries `dsoa.run.first_timestamp` (the smallest timestamp processed in the execution) and `dsoa.run.last_timestamp` (the timestamp recorded as the new watermark). Either is omitted when the plugin has no data timestamp.
+
 ### Removed — alerting events (now provided by the Data Observability app)
 
 Alerts are now provided by the Data Observability app, so the agent no longer sends these events:

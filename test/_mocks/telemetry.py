@@ -418,6 +418,9 @@ class MockTelemetryClient:
                     "endtime",
                     "event.start",
                     "event.end",
+                    # self-monitoring: first/last processed timestamps vary per run
+                    "dsoa.run.first_timestamp",
+                    "dsoa.run.last_timestamp",
                     # from event tests
                     "test.ts",
                     "test.event.dtagent.start_time",

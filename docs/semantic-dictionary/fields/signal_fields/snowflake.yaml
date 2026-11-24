@@ -2047,3 +2047,104 @@ groups:
         brief: The timestamp when the warehouse was last updated.
         examples: [ '2024-11-10 14:30:00.000' ]
         note: ISO 8601 timestamp string stored as string in Grail.
+  - id: snowflake.misc
+    type: attribute_group
+    title: Snowflake misc signal fields
+    brief: Signal-level fields for Snowflake misc telemetry.
+    attributes:
+      - id: dsoa.heartbeat.actual_schedule
+        display_name: 'Heartbeat actual schedule'
+        type: string
+        stability: stable
+        brief: The schedule of the task as deployed in Snowflake.
+        examples: [ 'USING CRON 0 6 * * * UTC' ]
+      - id: dsoa.heartbeat.actual_state
+        display_name: 'Heartbeat actual task state'
+        type: string
+        stability: stable
+        brief: 'The state of the task in Snowflake: started, suspended, or missing when the task is not deployed.'
+        examples: [ 'started' ]
+      - id: dsoa.heartbeat.configured_enabled
+        display_name: 'Heartbeat configured enabled'
+        type: boolean
+        stability: stable
+        brief: Whether the plugin owning the task is enabled in the configuration.
+        examples: [ true ]
+      - id: dsoa.heartbeat.configured_schedule
+        display_name: 'Heartbeat configured schedule'
+        type: string
+        stability: stable
+        brief: The task schedule set in the configuration.
+        examples: [ 'USING CRON 0 6 * * * UTC' ]
+      - id: dsoa.heartbeat.has_schedule_drift
+        display_name: 'Heartbeat schedule drift'
+        type: boolean
+        stability: stable
+        brief: Whether the deployed task schedule differs from the configured one.
+        examples: [ false ]
+      - id: dsoa.heartbeat.is_missing
+        display_name: 'Heartbeat task missing'
+        type: boolean
+        stability: stable
+        brief: Whether the task is enabled in the configuration but not deployed in Snowflake.
+        examples: [ false ]
+      - id: dsoa.heartbeat.is_suspended
+        display_name: 'Heartbeat task suspended'
+        type: boolean
+        stability: stable
+        brief: Whether the task is enabled in the configuration but suspended in Snowflake.
+        examples: [ false ]
+      - id: dsoa.heartbeat.is_unexpected
+        display_name: 'Heartbeat task unexpected'
+        type: boolean
+        stability: stable
+        brief: Whether the task is started in Snowflake although it is disabled in the configuration.
+        examples: [ false ]
+      - id: dsoa.heartbeat.plugin
+        display_name: 'Heartbeat plugin name'
+        type: string
+        stability: stable
+        brief: The Dynatrace Snowflake Observability Agent plugin the task belongs to.
+        examples: [ 'budgets' ]
+      - id: dsoa.heartbeat.schedule_supported
+        display_name: 'Heartbeat schedule supported'
+        type: boolean
+        stability: stable
+        brief: Whether the expected number of runs could be calculated; false for schedules depending on other tasks or unparsable schedules.
+        examples: [ true ]
+      - id: dsoa.heartbeat.task
+        display_name: 'Heartbeat task name'
+        type: string
+        stability: stable
+        brief: The name of the Dynatrace Snowflake Observability Agent task.
+        examples: [ 'TASK_DTAGENT_BUDGETS' ]
+      - id: dsoa.heartbeat.window_hours
+        display_name: 'Heartbeat window hours'
+        type: long
+        stability: stable
+        brief: The length of the window, in hours, over which expected and actual runs are compared.
+        examples: [ 24 ]
+      - id: dsoa.export.plugin
+        display_name: 'Export statistics plugin'
+        type: string
+        stability: stable
+        brief: The Dynatrace Snowflake Observability Agent plugin whose exported records are counted.
+        examples: [ 'query_history' ]
+      - id: dsoa.export.signal
+        display_name: 'Export statistics signal'
+        type: string
+        stability: stable
+        brief: 'The kind of telemetry the exported records belong to: logs, spans, metrics, events, davis_events or biz_events.'
+        examples: [ 'logs' ]
+      - id: dsoa.heartbeat.export.reported_from
+        display_name: 'Heartbeat export statistics reported from'
+        type: string
+        stability: stable
+        brief: The time of the oldest export statistics included in the report. It is older than the previous heartbeat when that heartbeat did not run or could not deliver its telemetry.
+        examples: [ '2026-11-23T06:00:00.123456789+00:00' ]
+      - id: dsoa.heartbeat.export.reported_until
+        display_name: 'Heartbeat export statistics reported until'
+        type: string
+        stability: stable
+        brief: The time up to which export statistics are included in the report.
+        examples: [ '2026-11-24T05:59:00.000000000+00:00' ]

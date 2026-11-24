@@ -27,7 +27,7 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
+      "telemetry.sdk.version": "1.40.0",
       "deployment.environment.name": "TEST"
     }
   },
@@ -54,7 +54,7 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1",
+      "telemetry.sdk.version": "1.40.0",
       "deployment.environment.name": "TEST"
     }
   }

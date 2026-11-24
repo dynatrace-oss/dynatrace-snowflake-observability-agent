@@ -105,6 +105,7 @@ class DavisEvents(GenericEvents):
 
                 if response.status_code == 201:
                     events_send += 1
+                    self._record_delivered([_payload], 1)
                     OtelManager.set_current_fail_count(0)
                 else:
                     _log_warning(response, _payload, "event")

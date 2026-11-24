@@ -32,6 +32,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
 from dtagent.util import process_timestamps_for_telemetry
 from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
+from dtagent.otel.export_stats import ExportStatsCollector
 
 ##endregion COMPILE_REMOVE
 
@@ -93,6 +94,17 @@ class Logs:
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 self._session.headers.update(OtelManager.get_dsoa_headers())
+
+            def export(self, batch):
+                """Exports the batch and records how many log records were attempted and delivered."""
+                # attribution is captured once, before exporting: the export runs in a background thread and can finish after
+                # the next plugin started, yet both counters must land in the same row; an exception must not hide the attempt
+                attribution = ExportStatsCollector.get_attribution()
+                OtelManager.record_export_attempt("logs", len(batch), attribution)
+                result = super().export(batch)
+                if result.name == "SUCCESS":
+                    OtelManager.record_export_delivered("logs", len(batch), self._session, attribution)
+                return result
 
         self._otel_logger_provider = LoggerProvider(resource=resource)
         self._otel_logger_provider.add_log_record_processor(

@@ -33,6 +33,7 @@ EXPECTED_CONTEXTS = {
     "DynamicTablesPlugin": ("dynamic_tables", "dynamic_table_refresh_history", "dynamic_table_graph_history"),
     "EventLogPlugin": ("event_log", "event_log_metrics", "event_log_spans"),
     "EventUsagePlugin": ("event_usage",),
+    "HeartbeatPlugin": ("heartbeat", "heartbeat_exports"),
     "LoginHistoryPlugin": ("login_history", "sessions"),
     "MeteringPlugin": ("metering",),
     "OrgCostsPlugin": (
@@ -64,6 +65,7 @@ def _import_all_plugin_classes():
     from dtagent.plugins.dynamic_tables import DynamicTablesPlugin
     from dtagent.plugins.event_log import EventLogPlugin
     from dtagent.plugins.event_usage import EventUsagePlugin
+    from dtagent.plugins.heartbeat import HeartbeatPlugin
     from dtagent.plugins.login_history import LoginHistoryPlugin
     from dtagent.plugins.metering import MeteringPlugin
     from dtagent.plugins.org_costs import OrgCostsPlugin
@@ -86,6 +88,7 @@ def _import_all_plugin_classes():
         "DynamicTablesPlugin": DynamicTablesPlugin,
         "EventLogPlugin": EventLogPlugin,
         "EventUsagePlugin": EventUsagePlugin,
+        "HeartbeatPlugin": HeartbeatPlugin,
         "LoginHistoryPlugin": LoginHistoryPlugin,
         "MeteringPlugin": MeteringPlugin,
         "OrgCostsPlugin": OrgCostsPlugin,

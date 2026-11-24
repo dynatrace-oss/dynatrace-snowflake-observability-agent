@@ -32,6 +32,7 @@ from opentelemetry.sdk.trace import TracerProvider, Tracer
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from dtagent.otel import logs
 from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
+from dtagent.otel.export_stats import ExportStatsCollector
 from dtagent.otel.ingest_warnings import AcquisitionProblemCollector
 
 ##endregion COMPILE_REMOVE
@@ -141,6 +142,17 @@ class Spans:
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 self._session.headers.update(OtelManager.get_dsoa_headers())
+
+            def export(self, spans):
+                """Exports the spans and records how many were attempted and delivered."""
+                # attribution is captured once, before exporting: the export runs in a background thread and can finish after
+                # the next plugin started, yet both counters must land in the same row; an exception must not hide the attempt
+                attribution = ExportStatsCollector.get_attribution()
+                OtelManager.record_export_attempt("spans", len(spans), attribution)
+                result = super().export(spans)
+                if result.name == "SUCCESS":
+                    OtelManager.record_export_delivered("spans", len(spans), self._session, attribution)
+                return result
 
         exporter = CustomUserAgentOTLPSpanExporter(
             endpoint=f'{self._configuration.get("spans.http")}',

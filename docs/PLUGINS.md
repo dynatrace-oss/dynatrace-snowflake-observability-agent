@@ -9,6 +9,7 @@
 - [Dynamic Tables](#dynamic_tables_info_sec)
 - [Event Log](#event_log_info_sec)
 - [Event Usage](#event_usage_info_sec)
+- [Heartbeat](#heartbeat_info_sec)
 - [Login History](#login_history_info_sec)
 - [Metering](#metering_info_sec)
 - [Org Costs](#org_costs_info_sec)
@@ -847,6 +848,164 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | Name                                        | Type | Privileges |
 | ------------------------------------------- | ---- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.EVENT_USAGE_HISTORY | view | SELECT     |
+
+<a name="heartbeat_info_sec"></a>
+
+## The Heartbeat plugin
+
+This plugin is the heartbeat of the Dynatrace Snowflake Observability Agent. Once a day it compares what the agent is configured to run with
+what actually runs in Snowflake.
+
+For every agent task (`TASK_DTAGENT_*`) it reports:
+
+- whether the owning plugin is enabled in the configuration, and the configured schedule,
+- whether the task is deployed in Snowflake, its state (`started`, `suspended`, or `missing`), and its actual schedule,
+- how many runs the schedule implies over the configured window (`expected_runs`) versus how many runs actually happened, split by outcome
+  (succeeded, failed, skipped, cancelled).
+
+Alongside the task health, the plugin reports the **export success rate**: for every plugin and signal (`logs`, `spans`, `metrics`,
+`events`, `davis_events`, `biz_events`) it reports how many records the agent attempted to send to Dynatrace and how many Dynatrace accepted
+since the previous successful report (see [Export success rate](#export-success-rate)).
+
+The plugin also raises flags that make misconfiguration easy to alert on:
+
+- `is_missing` - the task is enabled in the configuration but not deployed,
+- `is_unexpected` - the task is started although it is disabled in the configuration,
+- `is_suspended` - the task is enabled in the configuration but suspended,
+- `has_schedule_drift` - the deployed schedule differs from the configured one,
+- `schedule_supported` - `false` when the expected runs could not be calculated.
+
+Expected runs are calculated for cron schedules (`USING CRON ... <time zone>`) and fixed intervals (for example, `30 MINUTES`). Schedules
+that depend on other tasks (`AFTER ...`) are not supported; such tasks are flagged with `schedule_supported = false` and get no
+`expected_runs`.
+
+Log level reflects health: `ERROR` for a missing task; `WARN` for an unexpected, suspended, drifted, or unsupported-schedule task; `INFO`
+otherwise.
+
+By default, the plugin executes once a day at 06:00 UTC and compares the previous 24 hours.
+
+> **Note:** The heartbeat is itself an agent task. If the agent stops running, the heartbeat stops too; detect this in Dynatrace by alerting
+> on the **absence** of `heartbeat` logs for longer than the schedule interval (for example, 26 hours for the default schedule).
+
+> **Note:** A task that was resumed or suspended during the window is not corrected for: `expected_runs` always covers the whole window.
+> Read coverage together with `dsoa.heartbeat.actual_state`.
+
+## Export success rate
+
+After every run the agent records, for each plugin and signal, how many records it handed over for sending (`attempted`) and how many
+Dynatrace accepted (`delivered`), and keeps them in the `STATUS.EXPORT_STATS` table (30 days by default). The heartbeat sums the rows it has
+not reported yet and reports them in the `heartbeat_exports` context, one row per plugin and signal, as the metrics
+`dsoa.heartbeat.export.attempted` and `dsoa.heartbeat.export.delivered` with the dimensions `dsoa.export.plugin` and `dsoa.export.signal`.
+
+Both numbers come from the same rows, so `delivered / attempted` is an accurate success rate and does not depend on how the numbers are
+aligned in time on the tenant.
+
+- Every record is counted once as attempted, no matter how many times its sending was retried. Events that could not be sent are kept and
+  resent; they are counted as attempted only once.
+- Records that Dynatrace rejected, also in partially successful requests, are not counted as delivered.
+- Counts are persisted in Snowflake after the run, so runs during which Dynatrace was unreachable are reported by the next successful
+  heartbeat.
+- Every report covers the interval since the previous _successful_ one, not a fixed window (`plugins.heartbeat.window_hours` applies to task
+  runs only). The heartbeat marks the rows it reported (`REPORTED_TS`) only once its own telemetry was delivered, so a missed or failed
+  heartbeat is followed by one that also reports the missed interval; the rows carry `dsoa.heartbeat.export.reported_from` and
+  `dsoa.heartbeat.export.reported_until`. Delivery counts as confirmed when every signal the heartbeat sent delivered at least one record. A
+  report delivered but not marked (for example, when marking failed) is repeated, so `timeseries` sums can count such an interval twice.
+- Rows from the last minute are left for the next heartbeat, and the statistics of the heartbeat's own run appear in the next report.
+- Rows not reported within the retention period are deleted; an outage longer than that loses its statistics.
+- Turn the recording off with `plugins.self_monitoring.export_stats_enabled: false`; set the retention with
+  `plugins.self_monitoring.export_stats_retention_days` (default `30`).
+
+## Multitenancy
+
+Task names do not contain the multitenancy `TAG`, so several agent instances in one Snowflake account have identically named tasks. Run
+counts are therefore restricted to this instance's database and `APP` schema, and every row carries `db.namespace` (the instance's database)
+as a dimension. `deployment.environment.name` (and `deployment.environment.tag` when `core.tag` is set) are attached by the agent to every
+log and metric like for any other plugin.
+
+## Querying in Dynatrace
+
+Tasks that need attention:
+
+```dql
+fetch logs
+| filter db.system == "snowflake" and dsoa.run.plugin == "heartbeat"
+| filter dsoa.heartbeat.is_missing == true or dsoa.heartbeat.is_unexpected == true
+    or dsoa.heartbeat.is_suspended == true or dsoa.heartbeat.has_schedule_drift == true
+| fields timestamp, dsoa.heartbeat.task, dsoa.heartbeat.actual_state, dsoa.heartbeat.configured_schedule, dsoa.heartbeat.actual_schedule
+| sort timestamp desc
+```
+
+Run coverage per task:
+
+```dql
+timeseries {
+    expected = sum(dsoa.heartbeat.expected_runs),
+    succeeded = sum(dsoa.heartbeat.runs.succeeded)
+  },
+  by: { dsoa.heartbeat.task, deployment.environment.name }
+```
+
+Export success rate per plugin and signal:
+
+```dql
+timeseries {
+    attempted = sum(dsoa.heartbeat.export.attempted),
+    delivered = sum(dsoa.heartbeat.export.delivered)
+  },
+  by: { dsoa.export.plugin, dsoa.export.signal, deployment.environment.name }
+| fieldsAdd success_rate_pct = 100 * delivered[] / attempted[]
+```
+
+[Show semantics for this plugin](SEMANTICS.md#heartbeat_semantics_sec)
+
+### Heartbeat default configuration
+
+To disable this plugin, set `IS_DISABLED` to `true`.
+
+In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
+selected plugins; `IS_DISABLED` is not checked then.
+
+```yaml
+plugins:
+  heartbeat:
+    schedule: USING CRON 0 6 * * * UTC
+    window_hours: 24
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+```
+
+| Key                              | Type   | Default                    | Description                                                                                                                                         |
+| -------------------------------- | ------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.heartbeat.window_hours` | int    | `24`                       | Length (in hours) of the rolling window, ending at the heartbeat run, over which expected and actual task runs are compared.                        |
+| `plugins.heartbeat.schedule`     | string | `USING CRON 0 6 * * * UTC` | Cron schedule for the heartbeat task. With the default window, a daily run covers the previous 24 hours; keep the window in line with the schedule. |
+| `plugins.heartbeat.is_disabled`  | bool   | `false`                    | Set to `true` to disable this plugin entirely.                                                                                                      |
+| `plugins.heartbeat.telemetry`    | list   | `["metrics", "logs"]`      | Telemetry types to emit. Remove items to suppress specific output types.                                                                            |
+
+> **Note:** `TASK_HISTORY()` is queried with a result limit of 10,000 rows. On accounts where the agent tasks together run more often than
+> that within the window, the counts are truncated; shorten `window_hours` in that case.
+
+### Heartbeat bill of materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Heartbeat` plugin
+
+| Name                                              | Type      |
+| ------------------------------------------------- | --------- |
+| DTAGENT_DB.APP.F_HEARTBEAT_INSTRUMENTED()         | procedure |
+| DTAGENT_DB.APP.F_HEARTBEAT_EXPORTS_INSTRUMENTED() | procedure |
+| DTAGENT_DB.CONFIG.UPDATE_HEARTBEAT_CONF()         | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_HEARTBEAT             | task      |
+
+#### Objects referenced by the `Heartbeat` plugin
+
+| Name                                         | Type     | Privileges |
+| -------------------------------------------- | -------- | ---------- |
+| DTAGENT_DB.CONFIG.CONFIGURATIONS             | table    | SELECT     |
+| DTAGENT_DB.STATUS.EXPORT_STATS               | table    | SELECT     |
+| DTAGENT_DB.INFORMATION_SCHEMA.TASK_HISTORY() | function | USAGE      |
 
 <a name="login_history_info_sec"></a>
 

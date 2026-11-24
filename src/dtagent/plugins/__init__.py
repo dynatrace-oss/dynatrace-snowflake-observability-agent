@@ -132,7 +132,20 @@ class Plugin(ABC):
         )
 
         self.processed_last_timestamp = None
+        self.processed_min_timestamp = (
+            None  # smallest TIMESTAMP seen since the last _report_execution (i.e. across all contexts of one execution)
+        )
         self._davis_events = None
+
+    def _track_min_timestamp(self, ts: Any) -> None:
+        """Updates self.processed_min_timestamp with the smallest timestamp seen in the current execution; None values are ignored"""
+        if ts is None:
+            return
+        try:
+            if self.processed_min_timestamp is None or ts < self.processed_min_timestamp:
+                self.processed_min_timestamp = ts
+        except TypeError:  # incomparable types, e.g. naive vs. aware datetime - keep the previous value
+            pass
 
     def _has_event(
         self,
@@ -180,9 +193,18 @@ class Plugin(ABC):
         # we cannot use last timestamp when sending logs to DT,
         # because when it is set to snowpark.current_timestamp, the value is taken from a snowflake table
         # for DT it would look like 'Column[current_timestamp]'
+        # snowpark Columns (e.g. current_timestamp()) and missing values are not reported as timestamps
+        extra_timestamps = {
+            "dsoa.run.first_timestamp": self.processed_min_timestamp,
+            "dsoa.run.last_timestamp": None if isinstance(last_timestamp, snowpark.Column) else last_timestamp,
+        }
+        extra_timestamps = {k: str(v) for k, v in extra_timestamps.items() if v is not None and str(v) != "None"}
+        # the minimum spans all contexts processed since the previous report, so it is only reset once it has been reported
+        self.processed_min_timestamp = None
+
         self._logs.send_log(
             f"New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from {measurements_source}",
-            extra={"timestamp": get_now_timestamp_formatted(), "last_id": last_id, **entries_count},
+            extra={"timestamp": get_now_timestamp_formatted(), "last_id": last_id, **extra_timestamps, **entries_count},
             log_level=logging.INFO,
             context=__context,
         )
@@ -644,6 +666,7 @@ class Plugin(ABC):
                 was_processed |= _metrics_sent
 
             self.processed_last_timestamp = row_dict.get("TIMESTAMP", None)
+            self._track_min_timestamp(self.processed_last_timestamp)
 
             if (
                 report_timestamp_events
