@@ -50,7 +50,8 @@ create table if not exists DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG (
 grant select, insert, update, delete on table STATUS.PROCESSED_MEASUREMENTS_LOG to role DTAGENT_VIEWER;
 
 -- Export statistics: for every plugin run and signal the number of records the agent attempted to send to Dynatrace (ATTEMPTED)
--- and the number that Dynatrace accepted (DELIVERED); written by the agent after each run, reported by the heartbeat plugin.
+-- and the number that Dynatrace accepted (DELIVERED); written by the agent after each run, reported by the heartbeat plugin,
+-- which marks the rows it reported (REPORTED_TS) so that rows missed by a failed heartbeat are reported by the next one.
 
 create table if not exists DTAGENT_DB.STATUS.EXPORT_STATS (
     RUN_TS      timestamp_ltz not null default current_timestamp,
@@ -58,7 +59,11 @@ create table if not exists DTAGENT_DB.STATUS.EXPORT_STATS (
     PLUGIN      text not null,
     SIGNAL      text not null,
     ATTEMPTED   number not null default 0,
-    DELIVERED   number not null default 0
+    DELIVERED   number not null default 0,
+    REPORTED_TS timestamp_ltz -- set by the heartbeat plugin once the row was reported to Dynatrace; null until then
 );
+
+-- "create table if not exists" leaves a table created by an earlier build as it is: adding the column keeps redeployments working
+alter table if exists DTAGENT_DB.STATUS.EXPORT_STATS add column if not exists REPORTED_TS timestamp_ltz;
 
 grant select, insert, update, delete on table STATUS.EXPORT_STATS to role DTAGENT_VIEWER;

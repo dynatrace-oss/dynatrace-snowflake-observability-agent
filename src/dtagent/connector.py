@@ -27,6 +27,7 @@
 #
 import gc
 from dtagent import AbstractDynatraceSnowAgentConnector
+from dtagent.otel.export_stats import ExportStatsCollector
 
 from dtagent.config import Configuration
 from dtagent.util import get_now_timestamp_formatted, is_regular_mode
@@ -87,9 +88,9 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/context.py
 ##INSERT src/dtagent/util.py
 ##INSERT src/dtagent/config.py
+##INSERT src/dtagent/otel/export_stats.py
 ##INSERT src/dtagent/otel/otel_manager.py
 ##INSERT src/dtagent/otel/ingest_warnings.py
-##INSERT src/dtagent/otel/export_stats.py
 ##INSERT src/dtagent/otel/__init__.py
 ##INSERT build/_semantics.py
 ##INSERT src/dtagent/otel/spans.py
@@ -202,6 +203,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         from dtagent.context import RUN_ID_KEY, RUN_PLUGIN_KEY, RUN_VERSION_KEY, RUN_RESULTS_KEY  # COMPILE_REMOVE
 
         exec_id = self.__context[RUN_ID_KEY]
+        ExportStatsCollector.set_plugin(self._plugin_name, exec_id)  # custom telemetry is part of the export statistics too
 
         if is_regular_mode(self._session):
             self._session.query_tag = json.dumps({RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: self.__context_name, RUN_ID_KEY: exec_id})
@@ -332,6 +334,9 @@ def main(session: snowpark.Session, source: Union[str, dict, list], params: dict
     except Exception as e:  # pylint: disable=broad-except
         sender.handle_interrupted_run(source, exec_id, str(e))
     finally:
-        sender.teardown()
+        try:
+            sender.teardown()
+        finally:
+            sender.persist_export_stats()  # after teardown, so that the batches flushed there are counted too
 
     return results

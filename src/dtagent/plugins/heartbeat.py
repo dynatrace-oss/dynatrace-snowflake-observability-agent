@@ -33,6 +33,7 @@ from typing import Tuple, Dict, Optional, List, Generator, Any
 from zoneinfo import ZoneInfo, available_timezones
 from croniter import croniter
 from dtagent.plugins import Plugin
+from dtagent.otel.export_stats import ExportStatsCollector
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
@@ -152,12 +153,52 @@ class HeartbeatPlugin(Plugin):
     PLUGIN_NAME = "heartbeat"
     PLUGIN_CONTEXTS: tuple = ("heartbeat", "heartbeat_exports")
 
+    # cut-off up to which the export statistics read by the current run report; they are marked as reported once delivered
+    _export_stats_reported_until: Optional[str] = None
+
     def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
         """Adds the cron/interval based expected_runs to rows delivered by APP.F_HEARTBEAT_INSTRUMENTED();
-        rows of the export statistics (APP.F_HEARTBEAT_EXPORTS_INSTRUMENTED()) are passed through as they are
+        rows of the export statistics (APP.F_HEARTBEAT_EXPORTS_INSTRUMENTED()) are passed through as they are,
+        remembering the cut-off up to which they report, to mark it as reported once they were delivered
         """
         for row_dict in super()._get_table_rows(t_data):
-            yield self._add_expected_runs(row_dict) if t_data == _T_HEARTBEAT else row_dict
+            if t_data == _T_HEARTBEAT:
+                yield self._add_expected_runs(row_dict)
+                continue
+            if t_data == _T_HEARTBEAT_EXPORTS:
+                until = _as_dict(row_dict.get("ATTRIBUTES")).get("dsoa.heartbeat.export.reported_until")
+                if until:
+                    self._export_stats_reported_until = until
+            yield row_dict
+
+    def _mark_export_stats_reported(self, run_id: str) -> None:
+        """Marks the export statistics reported by this run in STATUS.EXPORT_STATS, so that the next heartbeat does not report them again.
+
+        Rows stay unmarked, and are therefore reported again by the next heartbeat, when nothing was reported or when the delivery of
+        this run's telemetry could not be confirmed (see ``ExportStatsCollector.delivery_confirmed``).  Failures are logged and swallowed.
+
+        Args:
+            run_id (str): unique run identifier
+        """
+        from dtagent import LOG  # COMPILE_REMOVE
+
+        until = self._export_stats_reported_until
+        if not until:
+            return
+
+        # logs are exported by a background thread: delivering them now makes the delivery check below reliable
+        self._logs.flush_logs()
+        if not ExportStatsCollector.delivery_confirmed(run_id):
+            LOG.warning("Export statistics were not marked as reported: delivery of the heartbeat telemetry could not be confirmed")
+            return
+
+        try:
+            self._session.sql(
+                "update DTAGENT_DB.STATUS.EXPORT_STATS set REPORTED_TS = current_timestamp() where REPORTED_TS is null and RUN_TS <= ?::timestamp_ltz",
+                params=[until],
+            ).collect()
+        except Exception as e:  # pylint: disable=broad-except
+            LOG.warning("Unable to mark export statistics as reported: %s", e)
 
     def _add_expected_runs(self, row_dict: Dict) -> Dict:
         """Sets dsoa.heartbeat.expected_runs (metric) and dsoa.heartbeat.schedule_supported (attribute) on a heartbeat row.
@@ -226,6 +267,7 @@ class HeartbeatPlugin(Plugin):
             }
         """
         results: Dict[str, Dict[str, int]] = {}
+        self._export_stats_reported_until = None
 
         if not contexts or "heartbeat" in contexts:
             entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
@@ -254,6 +296,8 @@ class HeartbeatPlugin(Plugin):
                 "metrics": metrics_cnt,
                 "events": events_cnt,
             }
+            if run_proc and entries_cnt > 0:
+                self._mark_export_stats_reported(run_id)
 
         return self._report_results(results, run_id)
 

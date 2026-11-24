@@ -158,3 +158,122 @@ class TestLogLevel:
     )
     def test_log_level(self, attributes, level):
         assert _plugin().get_log_level({"ATTRIBUTES": attributes}) == level
+
+
+class TestExportStatsReporting:
+    """Export statistics stay unreported (and are replayed by the next heartbeat) unless their delivery was confirmed"""
+
+    UNTIL = "2026-11-24T05:59:00.000000000+00:00"
+
+    @staticmethod
+    def _plugin_with_session():
+        from unittest.mock import MagicMock
+
+        plugin = _plugin()
+        plugin._session = MagicMock()
+        plugin._logs = MagicMock()
+        return plugin
+
+    @pytest.fixture(autouse=True)
+    def _collector(self):
+        from dtagent.otel.export_stats import ExportStatsCollector
+
+        ExportStatsCollector.reset()
+        yield
+        ExportStatsCollector.reset()
+
+    @staticmethod
+    def _delivered(delivered: int = 3, signal: str = "logs"):
+        from dtagent.otel.export_stats import ExportStatsCollector
+
+        ExportStatsCollector.set_plugin("heartbeat", "run1")
+        ExportStatsCollector.add_attempted(signal, 3)
+        ExportStatsCollector.add_delivered(signal, delivered)
+
+    def test_rows_remember_the_cutoff_they_report_until(self):
+        from unittest.mock import patch
+        from dtagent.plugins import Plugin
+        from dtagent.plugins.heartbeat import _T_HEARTBEAT_EXPORTS
+
+        plugin = _plugin()
+        rows = [_row({"dsoa.heartbeat.export.reported_until": self.UNTIL}, as_json=True)]
+        with patch.object(Plugin, "_get_table_rows", return_value=iter(rows)):
+            assert list(plugin._get_table_rows(_T_HEARTBEAT_EXPORTS)) == rows
+        assert plugin._export_stats_reported_until == self.UNTIL
+
+    def test_marked_as_reported_when_delivery_is_confirmed(self):
+        plugin = self._plugin_with_session()
+        plugin._export_stats_reported_until = self.UNTIL
+        self._delivered()
+
+        plugin._mark_export_stats_reported("run1")
+
+        plugin._logs.flush_logs.assert_called_once()
+        statement = plugin._session.sql.call_args
+        assert statement.args[0] == (
+            "update DTAGENT_DB.STATUS.EXPORT_STATS set REPORTED_TS = current_timestamp() "
+            "where REPORTED_TS is null and RUN_TS <= ?::timestamp_ltz"
+        )
+        assert statement.kwargs["params"] == [self.UNTIL]
+
+    def test_not_marked_when_a_signal_delivered_nothing(self):
+        """A failed signal leaves the rows unreported, so the next heartbeat reports them again."""
+        plugin = self._plugin_with_session()
+        plugin._export_stats_reported_until = self.UNTIL
+        self._delivered(delivered=0)
+
+        plugin._mark_export_stats_reported("run1")
+
+        plugin._session.sql.assert_not_called()
+
+    def test_not_marked_when_nothing_was_attempted(self):
+        plugin = self._plugin_with_session()
+        plugin._export_stats_reported_until = self.UNTIL
+
+        plugin._mark_export_stats_reported("run1")
+
+        plugin._session.sql.assert_not_called()
+
+    def test_not_marked_when_nothing_was_reported(self):
+        plugin = self._plugin_with_session()
+        plugin._export_stats_reported_until = None
+        self._delivered()
+
+        plugin._mark_export_stats_reported("run1")
+
+        plugin._session.sql.assert_not_called()
+
+    def test_failure_to_mark_is_swallowed(self):
+        plugin = self._plugin_with_session()
+        plugin._export_stats_reported_until = self.UNTIL
+        plugin._session.sql.side_effect = RuntimeError("no privileges")
+        self._delivered()
+
+        plugin._mark_export_stats_reported("run1")  # must not raise
+
+    @pytest.mark.parametrize(
+        "run_proc,entries,marked", [(True, 2, True), (False, 2, False), (True, 0, False)], ids=["reported", "no run_proc", "no rows"]
+    )
+    def test_process_marks_only_after_reporting_rows(self, run_proc, entries, marked):
+        from unittest.mock import MagicMock
+
+        plugin = _plugin()
+        plugin._log_entries = MagicMock(return_value=(entries, entries, entries, 0))
+        plugin._report_results = MagicMock(return_value={})
+        plugin._mark_export_stats_reported = MagicMock()
+
+        plugin.process("run1", run_proc=run_proc, contexts=["heartbeat_exports"])
+
+        assert plugin._mark_export_stats_reported.called is marked
+
+    def test_delivery_confirmed_requires_every_attempted_signal_to_deliver(self):
+        from dtagent.otel.export_stats import ExportStatsCollector
+
+        ExportStatsCollector.set_plugin("heartbeat", "run1")
+        ExportStatsCollector.add_attempted("logs", 2)
+        ExportStatsCollector.add_delivered("logs", 2)
+        ExportStatsCollector.add_attempted("metrics", 4)
+        assert ExportStatsCollector.delivery_confirmed("run1") is False
+        ExportStatsCollector.add_delivered("metrics", 1)  # partially rejected: the endpoint was reachable
+        assert ExportStatsCollector.delivery_confirmed("run1") is True
+        assert ExportStatsCollector.delivery_confirmed("other run") is False

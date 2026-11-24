@@ -132,6 +132,25 @@ class ExportStatsCollector:
             ]
 
     @staticmethod
+    def delivery_confirmed(run_id: str) -> bool:
+        """Tells whether the records of a run reached Dynatrace: something was attempted and every signal delivered at least one record.
+
+        A heuristic used to decide whether data kept for later reporting can be considered reported: a signal without any delivered
+        record means its requests failed, while a few rejected records (partial success) do not mean the endpoint was unreachable.
+
+        Args:
+            run_id (str): Run id of the plugin execution.
+
+        Returns:
+            bool: ``True`` if records were attempted and none of the signals ended up with zero delivered records.
+        """
+        with ExportStatsCollector._lock:
+            run_counts = [counts for (_, run, _), counts in ExportStatsCollector._counts.items() if run == run_id]
+        return any(counts["attempted"] for counts in run_counts) and all(
+            counts["delivered"] > 0 for counts in run_counts if counts["attempted"] > 0
+        )
+
+    @staticmethod
     def reset() -> None:
         """Clears all counts and the current plugin.  Call after the counts were persisted."""
         with ExportStatsCollector._lock:

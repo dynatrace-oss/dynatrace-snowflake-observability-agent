@@ -19,7 +19,7 @@ Adds the `croniter` package to the agent procedure.
 
 ### Added — export success rate
 
-The agent now records, per plugin and signal (`logs`, `spans`, `metrics`, `events`, `davis_events`, `biz_events`), how many records it attempted to send to Dynatrace and how many Dynatrace accepted. The numbers are persisted in the new `STATUS.EXPORT_STATS` table (created by the upgrade script, 30 days of history by default) and reported by the `heartbeat` plugin in the new `heartbeat_exports` context as the metrics `dsoa.heartbeat.export.attempted` and `dsoa.heartbeat.export.delivered`, so `delivered / attempted` gives an export success rate per plugin and signal on the tenant. Disable via `plugins.self_monitoring.export_stats_enabled: false`; change the retention via `plugins.self_monitoring.export_stats_retention_days`.
+The agent now records, per plugin and signal (`logs`, `spans`, `metrics`, `events`, `davis_events`, `biz_events`), how many records it attempted to send to Dynatrace and how many Dynatrace accepted. The numbers are persisted in the new `STATUS.EXPORT_STATS` table (created by the upgrade script, 30 days of history by default) and reported by the `heartbeat` plugin in the new `heartbeat_exports` context as the metrics `dsoa.heartbeat.export.attempted` and `dsoa.heartbeat.export.delivered`, so `delivered / attempted` gives an export success rate per plugin and signal on the tenant. Statistics that a failed or missed heartbeat did not report are reported by the next one. Custom telemetry sent with `SEND_TELEMETRY` is included. Disable via `plugins.self_monitoring.export_stats_enabled: false`; change the retention via `plugins.self_monitoring.export_stats_retention_days`.
 
 ### Added — self-monitoring run timestamps
 

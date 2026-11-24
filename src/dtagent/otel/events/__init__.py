@@ -228,17 +228,43 @@ class AbstractEvents(ABC):
 
         return events_count, _payload_to_repeat
 
+    def _attribution_of(self, event: Dict[str, Any]) -> Tuple[str, Optional[str]]:
+        """Returns the ``(plugin, run id)`` that queued the event, or the current one for an event that was not queued."""
+        return getattr(self, "_event_attribution", {}).get(id(event)) or ExportStatsCollector.get_attribution()
+
+    def _split_by_attribution(self, events: List[Dict[str, Any]]) -> Generator[List[Dict[str, Any]], None, None]:
+        """Splits events into consecutive groups that were queued by the same plugin run, keeping their order.
+
+        Every request then carries events of a single plugin run, so when Dynatrace rejects some events of a request, without
+        saying which, the rejection can only concern that plugin run.  Mixing happens only for events kept for resending
+        while a later plugin is already queueing its own, so this adds requests rarely.
+
+        Args:
+            events (List[Dict[str, Any]]): Events to be sent in one request.
+
+        Yields:
+            Generator[List[Dict[str, Any]], None, None]: lists of events, each queued by a single plugin run
+        """
+        group: List[Dict[str, Any]] = []
+        for event in events:
+            if group and self._attribution_of(event) != self._attribution_of(group[0]):
+                yield group
+                group = []
+            group.append(event)
+        if group:
+            yield group
+
     def _record_delivered(self, events: List[Dict[str, Any]], delivered: int) -> None:
         """Records delivered events for the plugin runs that queued them, not for the plugin that is running now.
 
         Args:
-            events (List[Dict[str, Any]]): Events of a request that Dynatrace accepted.
-            delivered (int):               How many of them were accepted. When Dynatrace rejected some events without saying which,
-                                           the rejected ones are assumed to be the last ones.
+            events (List[Dict[str, Any]]): Events of a request that Dynatrace accepted; sent by :meth:`_send_events` they all
+                                           come from a single plugin run.
+            delivered (int):               How many of them were accepted.
         """
         per_run: Dict[Tuple[str, Optional[str]], int] = {}
         for event in events[: max(0, delivered)]:
-            attribution = getattr(self, "_event_attribution", {}).get(id(event)) or ExportStatsCollector.get_attribution()
+            attribution = self._attribution_of(event)
             per_run[attribution] = per_run.get(attribution, 0) + 1
         for attribution, count in per_run.items():
             ExportStatsCollector.add_delivered(self._api_event_type, count, attribution)
@@ -304,9 +330,10 @@ class AbstractEvents(ABC):
         if payload is None or len(self.PAYLOAD_CACHE) >= self._max_event_count or self._cache_byte_estimate >= self._max_payload_bytes:
             collected_events_failed_to_send = []
             for events_chunk in self._split_payload(self.PAYLOAD_CACHE):
-                events_sent, events_failed_to_send = self._send(events_chunk)
-                events_count += events_sent
-                collected_events_failed_to_send += events_failed_to_send
+                for single_run_chunk in self._split_by_attribution(events_chunk):
+                    events_sent, events_failed_to_send = self._send(single_run_chunk)
+                    events_count += events_sent
+                    collected_events_failed_to_send += events_failed_to_send
             self.PAYLOAD_CACHE = collected_events_failed_to_send
             kept = {id(event) for event in self.PAYLOAD_CACHE}  # forgetting events that were delivered (or dropped)
             self._event_attribution = {

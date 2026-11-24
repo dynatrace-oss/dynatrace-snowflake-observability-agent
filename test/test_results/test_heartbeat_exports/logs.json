@@ -1,9 +1,10 @@
 [
   {
-    "content": "Export statistics for query_history / logs: delivered 98 of 100 attempted records in last 24h",
+    "content": "Export statistics for query_history / logs: delivered 98 of 100 attempted records since 2026-11-23 06:00:00 +00:00",
     "dsoa.heartbeat.export.attempted": 100,
     "dsoa.heartbeat.export.delivered": 98,
-    "dsoa.heartbeat.window_hours": 24,
+    "dsoa.heartbeat.export.reported_from": "2026-11-23T06:00:00.123456789+00:00",
+    "dsoa.heartbeat.export.reported_until": "2026-11-24T05:59:00.000000000+00:00",
     "db.namespace": "DTAGENT_DB",
     "dsoa.export.plugin": "query_history",
     "dsoa.export.signal": "logs",
@@ -22,10 +23,11 @@
     }
   },
   {
-    "content": "Export statistics for query_history / metrics: delivered 40 of 40 attempted records in last 24h",
+    "content": "Export statistics for query_history / metrics: delivered 40 of 40 attempted records since 2026-11-23 06:00:00 +00:00",
     "dsoa.heartbeat.export.attempted": 40,
     "dsoa.heartbeat.export.delivered": 40,
-    "dsoa.heartbeat.window_hours": 24,
+    "dsoa.heartbeat.export.reported_from": "2026-11-23T06:00:00.123456789+00:00",
+    "dsoa.heartbeat.export.reported_until": "2026-11-24T05:59:00.000000000+00:00",
     "db.namespace": "DTAGENT_DB",
     "dsoa.export.plugin": "query_history",
     "dsoa.export.signal": "metrics",

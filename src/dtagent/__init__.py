@@ -288,25 +288,23 @@ class AbstractDynatraceSnowAgentConnector:
         ):
             return
 
-        def _literal(value: Optional[str]) -> str:
-            return "null" if value is None else "'" + str(value).replace("'", "''") + "'"
-
         try:
-            rows = ", ".join(
-                f"({_literal(row['run_id'])}, {_literal(row['plugin'])}, {_literal(row['signal'])}, "
-                f"{int(row['attempted'])}, {int(row['delivered'])})"
-                for row in stats
-            )
+            # values are bound, never interpolated: plugin names can come from the caller of the agent procedure;
+            # the table is qualified, as the agent procedure runs as caller and the current database may be another one
             self._session.sql(
-                "insert into STATUS.EXPORT_STATS (RUN_ID, PLUGIN, SIGNAL, ATTEMPTED, DELIVERED) "
-                f"select column1, column2, column3, column4, column5 from values {rows}"
+                "insert into DTAGENT_DB.STATUS.EXPORT_STATS (RUN_ID, PLUGIN, SIGNAL, ATTEMPTED, DELIVERED) values "
+                + ", ".join(["(?, ?, ?, ?, ?)"] * len(stats)),
+                params=[
+                    value for row in stats for value in (row["run_id"], row["plugin"], row["signal"], row["attempted"], row["delivered"])
+                ],
             ).collect()
 
             retention_days = int(
                 self._configuration.get(plugin_name="self_monitoring", key="export_stats_retention_days", default_value=30)
             )
             self._session.sql(
-                f"delete from STATUS.EXPORT_STATS where RUN_TS < dateadd(day, -{retention_days}, current_timestamp())"
+                "delete from DTAGENT_DB.STATUS.EXPORT_STATS where RUN_TS < dateadd(day, ?, current_timestamp())",
+                params=[-retention_days],
             ).collect()
         except Exception as e:  # pylint: disable=broad-except
             LOG.warning("Unable to persist export statistics: %s", e)

@@ -31,7 +31,7 @@ from typing import Optional
 import requests
 from dtagent.otel import _log_warning, USER_AGENT
 from dtagent.otel.ingest_warnings import IngestWarningCollector
-from dtagent.otel.export_stats import ExportStatsCollector
+from dtagent.otel.export_stats import ExportStatsCollector, Attribution
 
 ##region ------------------------ OTEL base class---------------------------------
 
@@ -99,17 +99,21 @@ class OtelManager:
             raise RuntimeError(error_message)
 
     @staticmethod
-    def record_export_attempt(signal: str, records: int) -> None:
+    def record_export_attempt(signal: str, records: int, attribution: Optional[Attribution] = None) -> None:
         """Records that a batch of records is about to be exported.  Call before exporting, so the batch is counted even if the export raises.
 
         Args:
-            signal (str):   Exporter signal, e.g. ``logs`` or ``spans``.
-            records (int):  Number of records in the batch.
+            signal (str):                       Exporter signal, e.g. ``logs`` or ``spans``.
+            records (int):                      Number of records in the batch.
+            attribution (Optional[Attribution]): ``(plugin, run id)`` captured before the export started; pass the same value to
+                                                :meth:`record_export_delivered`, as the export can finish after the next plugin started.
         """
-        ExportStatsCollector.add_attempted(signal, records)
+        ExportStatsCollector.add_attempted(signal, records, attribution)
 
     @staticmethod
-    def record_export_delivered(signal: str, records: int, session: Optional[requests.Session] = None) -> None:
+    def record_export_delivered(
+        signal: str, records: int, session: Optional[requests.Session] = None, attribution: Optional[Attribution] = None
+    ) -> None:
         """Records that a batch of records was exported successfully.
 
         Args:
@@ -117,9 +121,10 @@ class OtelManager:
             records (int):                          Number of records in the exported batch.
             session (Optional[requests.Session]):   Session used for the export; its ``rejected_records`` (records rejected
                                                     by Dynatrace in a partially successful request) are not counted as delivered.
+            attribution (Optional[Attribution]):    ``(plugin, run id)`` that was given to :meth:`record_export_attempt`.
         """
         rejected = getattr(session, "rejected_records", 0) if session is not None else 0
-        ExportStatsCollector.add_delivered(signal, max(0, records - rejected))
+        ExportStatsCollector.add_delivered(signal, max(0, records - rejected), attribution)
 
     @staticmethod
     def get_dsoa_headers() -> dict:

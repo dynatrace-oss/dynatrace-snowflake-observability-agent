@@ -52,6 +52,11 @@ def _sql_statements(agent) -> list:
     return [c.args[0] for c in agent._session.sql.call_args_list]  # pylint: disable=protected-access
 
 
+def _sql_params(agent) -> list:
+    """Bound parameters of every executed statement (empty list for a statement without any)."""
+    return [c.kwargs.get("params", []) for c in agent._session.sql.call_args_list]  # pylint: disable=protected-access
+
+
 class TestAttribution:
     """DynatraceSnowAgent.process() attributes export statistics to the plugin run that is executing."""
 
@@ -85,10 +90,11 @@ class TestAttribution:
         assert all(r["run_id"] for r in stats)
         assert stats[0]["run_id"] != stats[1]["run_id"]
 
-    def test_logs_are_flushed_after_each_plugin(self):
-        """Logs are flushed after each plugin."""
+    def test_logs_and_spans_are_flushed_after_each_plugin(self):
+        """Logs and spans are flushed after each plugin."""
         agent = _agent()
         agent._logs = MagicMock()  # pylint: disable=protected-access
+        agent._spans = MagicMock()  # pylint: disable=protected-access
         agent.report_execution_status = MagicMock()
         dummy = TestAgentSourceParsing._make_dummy_plugin_class("table_health")  # pylint: disable=protected-access
 
@@ -98,6 +104,38 @@ class TestAttribution:
             agent.process(["table_health", "table_health"], run_proc=False)
 
         assert agent._logs.flush_logs.call_count == 2  # pylint: disable=protected-access
+        assert agent._spans.flush_traces.call_count == 2  # pylint: disable=protected-access
+
+    def test_spans_are_flushed_after_a_failed_plugin(self):
+        """Spans are flushed after a plugin that ended with an error, before the next plugin starts."""
+        from dtagent.plugins import Plugin
+
+        order = []
+        agent = _agent()
+        agent._spans = MagicMock()  # pylint: disable=protected-access
+        agent._spans.flush_traces.side_effect = lambda: order.append("flush")  # pylint: disable=protected-access
+        agent.report_execution_status = MagicMock()
+        agent.handle_interrupted_run = MagicMock()
+
+        def _plugin_class(name: str, fail: bool):
+            class _Plugin(Plugin):
+                PLUGIN_NAME = name
+
+                def process(self, run_id, run_proc=True, contexts=None):  # pylint: disable=arguments-differ
+                    order.append(f"run {name}")
+                    if fail:
+                        raise RuntimeError("Too many failed attempts")
+                    return {}
+
+            return _Plugin
+
+        classes = {"first": _plugin_class("first", True), "second": _plugin_class("second", False)}
+        with patch("dtagent.plugins._get_plugin_class", side_effect=lambda name: classes[name]), patch.object(
+            AbstractDynatraceSnowAgentConnector, "_emit_ingest_warnings"
+        ), patch.object(AbstractDynatraceSnowAgentConnector, "_emit_acquisition_problems"):
+            agent.process(["first", "second"], run_proc=False)
+
+        assert order == ["run first", "flush", "run second", "flush"]
 
 
 class TestPersistExportStats:
@@ -112,15 +150,24 @@ class TestPersistExportStats:
         ExportStatsCollector.add_delivered("metrics", 4)
 
     def test_inserts_one_row_per_plugin_run_and_signal(self):
-        """Inserts one row per plugin run and signal."""
+        """Inserts one row per plugin run and signal, with every value bound."""
         agent = _agent()
         self._collect()
         agent.persist_export_stats()
 
         insert = _sql_statements(agent)[0]
-        assert insert.startswith("insert into STATUS.EXPORT_STATS (RUN_ID, PLUGIN, SIGNAL, ATTEMPTED, DELIVERED)")
-        assert "('run1', 'query_history', 'logs', 10, 9)" in insert
-        assert "('run1', 'query_history', 'metrics', 4, 4)" in insert
+        assert insert == (
+            "insert into DTAGENT_DB.STATUS.EXPORT_STATS (RUN_ID, PLUGIN, SIGNAL, ATTEMPTED, DELIVERED) values (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)"
+        )
+        assert _sql_params(agent)[0] == ["run1", "query_history", "logs", 10, 9, "run1", "query_history", "metrics", 4, 4]
+
+    def test_statements_are_qualified_with_the_agent_database(self):
+        """The agent procedure runs as caller: both statements name the agent database, not the caller's current one."""
+        agent = _agent()
+        self._collect()
+        agent.persist_export_stats()
+
+        assert all("DTAGENT_DB.STATUS.EXPORT_STATS" in statement for statement in _sql_statements(agent))
 
     def test_prunes_with_default_retention(self):
         """Prunes with default retention."""
@@ -128,7 +175,8 @@ class TestPersistExportStats:
         self._collect()
         agent.persist_export_stats()
 
-        assert "delete from STATUS.EXPORT_STATS where RUN_TS < dateadd(day, -30, current_timestamp())" in _sql_statements(agent)[1]
+        assert _sql_statements(agent)[1] == "delete from DTAGENT_DB.STATUS.EXPORT_STATS where RUN_TS < dateadd(day, ?, current_timestamp())"
+        assert _sql_params(agent)[1] == [-30]
 
     def test_retention_is_configurable(self):
         """Retention is configurable."""
@@ -136,7 +184,7 @@ class TestPersistExportStats:
         self._collect()
         agent.persist_export_stats()
 
-        assert "dateadd(day, -7," in _sql_statements(agent)[1]
+        assert _sql_params(agent)[1] == [-7]
 
     def test_counts_are_reset_after_persisting(self):
         """Counts are reset after persisting."""
@@ -171,14 +219,18 @@ class TestPersistExportStats:
 
         assert not _sql_statements(agent)
 
-    def test_values_are_escaped(self):
-        """Values are escaped."""
+    def test_values_are_bound_not_interpolated(self):
+        """Quotes, backslashes and SQL fragments in a plugin name never reach the statement text, only the bound parameters."""
         agent = _agent()
-        ExportStatsCollector.set_plugin("it's", "run'1")
+        hostile = "x\\', 'run', 'logs', 1, 1), ('evil"
+        ExportStatsCollector.set_plugin(hostile, "run\\'1")
         ExportStatsCollector.add_attempted("logs", 1)
         agent.persist_export_stats()
 
-        assert "('run''1', 'it''s', 'logs', 1, 0)" in _sql_statements(agent)[0]
+        insert = _sql_statements(agent)[0]
+        assert "evil" not in insert and "run" not in insert and "\\" not in insert
+        assert insert.count("?") == 5
+        assert _sql_params(agent)[0] == ["run\\'1", hostile, "logs", 1, 0]
 
     def test_failure_is_swallowed(self):
         """A failing insert is logged and never propagates."""

@@ -75,6 +75,15 @@ class TestRecordExport:
         OtelManager.record_export_attempt("logs", 5)
         assert _stats() == {"logs": (5, 0)}
 
+    def test_explicit_attribution_is_used_for_both(self):
+        """The attribution captured before the export is used for both counters, whatever plugin is current later."""
+        ExportStatsCollector.set_plugin("first", "run1")
+        attribution = ExportStatsCollector.get_attribution()
+        OtelManager.record_export_attempt("logs", 4, attribution)
+        ExportStatsCollector.set_plugin("second", "run2")
+        OtelManager.record_export_delivered("logs", 4, None, attribution)
+        assert [(r["plugin"], r["attempted"], r["delivered"]) for r in ExportStatsCollector.get_stats()] == [("first", 4, 4)]
+
     def test_attempt_and_delivery(self):
         """An attempt followed by delivery counts both."""
         OtelManager.record_export_attempt("logs", 5)
@@ -206,6 +215,42 @@ class TestOtlpExporters:
             with pytest.raises(requests.exceptions.Timeout):
                 exporter.export([1, 2, 3])
         assert _stats() == {"logs": (3, 0)}
+
+    def test_logs_attempt_and_delivery_share_attribution_when_plugin_changes_mid_export(self):
+        """An export that finishes after the next plugin started still lands attempted and delivered in the same row."""
+        from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+        from opentelemetry.sdk._logs.export import LogRecordExportResult
+
+        exporter = self._log_exporter()
+        ExportStatsCollector.set_plugin("first", "run1")
+
+        def _export(_self, _batch):
+            ExportStatsCollector.set_plugin("second", "run2")  # processing advanced while the export was in flight
+            return LogRecordExportResult.SUCCESS
+
+        with patch.object(OTLPLogExporter, "export", _export):
+            exporter.export([1, 2, 3])
+        assert [(r["plugin"], r["run_id"], r["attempted"], r["delivered"]) for r in ExportStatsCollector.get_stats()] == [
+            ("first", "run1", 3, 3)
+        ]
+
+    def test_spans_attempt_and_delivery_share_attribution_when_plugin_changes_mid_export(self):
+        """A span export that finishes after the next plugin started still lands attempted and delivered in the same row."""
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+        from opentelemetry.sdk.trace.export import SpanExportResult
+
+        exporter = self._span_exporter()
+        ExportStatsCollector.set_plugin("first", "run1")
+
+        def _export(_self, _spans):
+            ExportStatsCollector.set_plugin("second", "run2")
+            return SpanExportResult.SUCCESS
+
+        with patch.object(OTLPSpanExporter, "export", _export):
+            exporter.export([1, 2])
+        assert [(r["plugin"], r["run_id"], r["attempted"], r["delivered"]) for r in ExportStatsCollector.get_stats()] == [
+            ("first", "run1", 2, 2)
+        ]
 
     def test_spans_exception_still_counts_the_attempt(self):
         """If the underlying exporter raises (e.g. on a timeout) the spans are still counted as attempted, not delivered."""
@@ -391,18 +436,37 @@ class TestRetainedEventsKeepTheirPlugin:
         assert be.PAYLOAD_CACHE == []
         assert not be._event_attribution  # pylint: disable=protected-access
 
-    def test_rejected_events_are_taken_from_the_end(self):
-        """When Dynatrace rejects some events of a mixed request, the shortfall is taken from the last events."""
+    def test_requests_never_mix_plugin_runs(self):
+        """Events queued by different plugin runs are sent in separate requests, so a rejection is attributed exactly."""
         be = TestEventsHook._bizevents()  # pylint: disable=protected-access
         ExportStatsCollector.set_plugin("first", "run1")
-        be._send_events([{"a": 1}])  # pylint: disable=protected-access
+        be._send_events([{"a": 1}, {"a": 2}])  # pylint: disable=protected-access
         ExportStatsCollector.set_plugin("second", "run2")
-        be._send_events([{"b": 1}])  # pylint: disable=protected-access
+        be._send_events([{"b": 1}, {"b": 2}])  # pylint: disable=protected-access
 
-        with patch("dtagent.otel.events.bizevents.requests.post", return_value=_mock_response(202, {"rejectedEventIngestInputCount": 1})):
+        sent = []
+
+        def _post(_url, **kwargs):
+            sent.append(json.loads(kwargs["data"]))
+            # Dynatrace rejects one event of the request that carries the second plugin's events
+            return _mock_response(202, {"rejectedEventIngestInputCount": 1} if sent[-1][0].get("b") else {})
+
+        with patch("dtagent.otel.events.bizevents.requests.post", side_effect=_post):
             be.flush_events()
 
-        assert self._by_plugin() == {("first", "biz_events"): (1, 1), ("second", "biz_events"): (1, 0)}
+        assert sent == [[{"a": 1}, {"a": 2}], [{"b": 1}, {"b": 2}]]
+        assert self._by_plugin() == {("first", "biz_events"): (2, 2), ("second", "biz_events"): (2, 1)}
+
+    def test_one_request_when_a_single_plugin_run_queued_the_events(self):
+        """Events of one plugin run still go out in a single request."""
+        be = TestEventsHook._bizevents()  # pylint: disable=protected-access
+        ExportStatsCollector.set_plugin("first", "run1")
+        be._send_events([{"a": 1}, {"a": 2}, {"a": 3}])  # pylint: disable=protected-access
+
+        with patch("dtagent.otel.events.bizevents.requests.post", return_value=_mock_response(202, {})) as post:
+            be.flush_events()
+
+        assert post.call_count == 1
 
     def test_davis_events_delivered_under_a_later_plugin(self):
         """Davis events resent in a later plugin are counted for the plugin that queued them."""

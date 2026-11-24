@@ -35,7 +35,11 @@ create table if not exists DTAGENT_DB.STATUS.EXPORT_STATS (
     PLUGIN      text not null,
     SIGNAL      text not null,
     ATTEMPTED   number not null default 0,
-    DELIVERED   number not null default 0
+    DELIVERED   number not null default 0,
+    REPORTED_TS timestamp_ltz -- set by the heartbeat plugin once the row was reported to Dynatrace; null until then
 );
+
+-- deployments that got the table before REPORTED_TS was introduced
+alter table if exists STATUS.EXPORT_STATS add column if not exists REPORTED_TS timestamp_ltz;
 
 grant select, insert, update, delete on table STATUS.EXPORT_STATS to role DTAGENT_VIEWER;

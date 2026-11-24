@@ -23,9 +23,11 @@
 --
 --
 --  Reports how many records the agent attempted to send to Dynatrace and how many Dynatrace accepted, per plugin and signal
---  (logs, spans, metrics, events, davis_events, biz_events), over the heartbeat window (plugins.heartbeat.window_hours).
---  Source: STATUS.EXPORT_STATS, which the agent fills after every run.
+--  (logs, spans, metrics, events, davis_events, biz_events), for all rows of STATUS.EXPORT_STATS not reported yet.
+--  The agent fills the table after every run; HeartbeatPlugin marks the rows it reported (REPORTED_TS) once they were delivered,
+--  so a heartbeat that did not run or could not deliver is followed by one that reports the missed interval as well.
 --  Attempted and delivered are read from the same rows, so delivered / attempted is an accurate success rate.
+--  Every row carries dsoa.heartbeat.export.reported_until, the cut-off HeartbeatPlugin marks as reported.
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
@@ -42,32 +44,45 @@ execute as caller
 as
 $$
 declare
-    WINDOW_HOURS    int;
+    CUTOFF          timestamp_ltz;
     res             resultset;
 begin
-    WINDOW_HOURS := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.heartbeat.window_hours', 24)::int);
+    -- rows of the last minute are left for the next heartbeat: an insert that is not visible yet must not be marked as reported
+    CUTOFF := dateadd(minute, -1, current_timestamp());
 
     res := (
+        with cte_stats as (
+            select
+                s.PLUGIN                                                                        as PLUGIN,
+                s.SIGNAL                                                                        as SIGNAL,
+                sum(s.ATTEMPTED)                                                                as ATTEMPTED,
+                sum(s.DELIVERED)                                                                as DELIVERED,
+                -- ISO 8601 with nanoseconds and offset: HeartbeatPlugin hands the cut-off back to Snowflake as it is, without losing precision
+                to_varchar(min(s.RUN_TS), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM')                 as REPORTED_FROM,
+                to_varchar(:CUTOFF, 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM')                       as REPORTED_UNTIL
+            from DTAGENT_DB.STATUS.EXPORT_STATS s
+            where s.REPORTED_TS is null and s.RUN_TS <= :CUTOFF
+            group by s.PLUGIN, s.SIGNAL
+        )
         select
             current_timestamp()                                                                 as TIMESTAMP,
-            concat('Export statistics for ', s.PLUGIN, ' / ', s.SIGNAL, ': delivered ', sum(s.DELIVERED), ' of ', sum(s.ATTEMPTED),
-                   ' attempted records in last ', :WINDOW_HOURS, 'h')                           as _MESSAGE,
+            concat('Export statistics for ', c.PLUGIN, ' / ', c.SIGNAL, ': delivered ', c.DELIVERED, ' of ', c.ATTEMPTED,
+                   ' attempted records since ', c.REPORTED_FROM)                                as _MESSAGE,
             OBJECT_CONSTRUCT(
                 'db.namespace',                         upper('DTAGENT_DB'),
-                'dsoa.export.plugin',                   s.PLUGIN,
-                'dsoa.export.signal',                   s.SIGNAL
+                'dsoa.export.plugin',                   c.PLUGIN,
+                'dsoa.export.signal',                   c.SIGNAL
             )                                                                                   as DIMENSIONS,
             OBJECT_CONSTRUCT(
-                'dsoa.heartbeat.window_hours',          :WINDOW_HOURS
+                'dsoa.heartbeat.export.reported_from',  c.REPORTED_FROM,
+                'dsoa.heartbeat.export.reported_until', c.REPORTED_UNTIL
             )                                                                                   as ATTRIBUTES,
             OBJECT_CONSTRUCT(
-                'dsoa.heartbeat.export.attempted',      sum(s.ATTEMPTED),
-                'dsoa.heartbeat.export.delivered',      sum(s.DELIVERED)
+                'dsoa.heartbeat.export.attempted',      c.ATTEMPTED,
+                'dsoa.heartbeat.export.delivered',      c.DELIVERED
             )                                                                                   as METRICS
-        from DTAGENT_DB.STATUS.EXPORT_STATS s
-        where s.RUN_TS >= dateadd(hour, -1 * :WINDOW_HOURS, current_timestamp())
-        group by s.PLUGIN, s.SIGNAL
-        order by s.PLUGIN, s.SIGNAL
+        from cte_stats c
+        order by c.PLUGIN, c.SIGNAL
     );
 
     return table(res);

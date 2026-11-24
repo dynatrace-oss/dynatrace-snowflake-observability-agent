@@ -474,7 +474,7 @@ Every exporter counts the records it hands over for sending (`attempted`) and th
 and signal (`logs`, `spans`, `metrics`, `events`, `davis_events`, `biz_events`). `DynatraceSnowAgent.process()` tells the collector
 (`ExportStatsCollector`) which plugin run is executing and flushes the logs after each plugin, so the counts are attributed to the right
 plugin. After the exporters are shut down (so the final batches are included), `main()` writes one row per plugin run and signal to
-`STATUS.EXPORT_STATS`; failures of that write are logged and never fail the run. The `heartbeat` plugin sums the rows over its window and
+`STATUS.EXPORT_STATS`; failures of that write are logged and never fail the run. The `heartbeat` plugin sums the rows it has not reported yet (`REPORTED_TS` is null), so an interval missed by a failed heartbeat is reported by the next one, and
 reports `dsoa.heartbeat.export.attempted` and `dsoa.heartbeat.export.delivered` (context `heartbeat_exports`).
 
 ```yaml

@@ -77,9 +77,9 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/context.py
 ##INSERT src/dtagent/util.py
 ##INSERT src/dtagent/config.py
+##INSERT src/dtagent/otel/export_stats.py
 ##INSERT src/dtagent/otel/otel_manager.py
 ##INSERT src/dtagent/otel/ingest_warnings.py
-##INSERT src/dtagent/otel/export_stats.py
 ##INSERT src/dtagent/otel/__init__.py
 ##INSERT build/_semantics.py
 ##INSERT src/dtagent/otel/spans.py
@@ -204,8 +204,10 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                 results[source] = {"not_implemented": c_source}
                 LOG.warning(f"""Requested measuring source {plugin_name} that is not implemented: {results[source]}""")
 
-            # delivering the logs of this plugin before the next one starts, so that their export is attributed to the right plugin
+            # delivering the logs and spans of this plugin before the next one starts - also when it ended with an error and did not
+            # flush them itself - so that their export is attributed to the right plugin
             self._logs.flush_logs()
+            self._spans.flush_traces()
 
         return results
 

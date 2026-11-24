@@ -96,11 +96,16 @@ class TestHeartbeat:
         export_rows = [
             {
                 "TIMESTAMP": 1713873600000000000,
-                "_MESSAGE": f"Export statistics for query_history / {signal}: delivered {delivered} of {attempted} attempted records in last 24h",
+                "_MESSAGE": f"Export statistics for query_history / {signal}: delivered {delivered} of {attempted} attempted records since 2026-11-23 06:00:00 +00:00",
                 "DIMENSIONS": json.dumps(
                     {"db.namespace": "DTAGENT_DB", "dsoa.export.plugin": "query_history", "dsoa.export.signal": signal}
                 ),
-                "ATTRIBUTES": json.dumps({"dsoa.heartbeat.window_hours": 24}),
+                "ATTRIBUTES": json.dumps(
+                    {
+                        "dsoa.heartbeat.export.reported_from": "2026-11-23T06:00:00.123456789+00:00",
+                        "dsoa.heartbeat.export.reported_until": "2026-11-24T05:59:00.000000000+00:00",
+                    }
+                ),
                 "METRICS": json.dumps({"dsoa.heartbeat.export.attempted": attempted, "dsoa.heartbeat.export.delivered": delivered}),
             }
             for signal, attempted, delivered in (("logs", 100, 98), ("metrics", 40, 40))

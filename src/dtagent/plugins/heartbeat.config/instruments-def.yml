@@ -93,9 +93,25 @@ attributes:
     __stability: stable
     __context_names:
       - heartbeat
-      - heartbeat_exports
     __example: 24
-    __description: "The length of the window, in hours, over which expected and actual runs, and export statistics, are compared."
+    __description: "The length of the window, in hours, over which expected and actual runs are compared."
+  dsoa.heartbeat.export.reported_from:
+    __type: string
+    displayName: Heartbeat export statistics reported from
+    __stability: stable
+    __context_names:
+      - heartbeat_exports
+    __example: "2026-11-23T06:00:00.123456789+00:00"
+    __description: "The time of the oldest export statistics included in the report. It is older than the previous heartbeat
+      when that heartbeat did not run or could not deliver its telemetry."
+  dsoa.heartbeat.export.reported_until:
+    __type: string
+    displayName: Heartbeat export statistics reported until
+    __stability: stable
+    __context_names:
+      - heartbeat_exports
+    __example: "2026-11-24T05:59:00.000000000+00:00"
+    __description: "The time up to which export statistics are included in the report."
 dimensions:
   db.namespace:
     __semdict: ref
@@ -202,7 +218,7 @@ metrics:
     __context_names:
       - heartbeat_exports
     __example: 1200
-    __description: "The number of records of the signal that the plugin handed over for sending to Dynatrace within the window.
+    __description: "The number of records of the signal that the plugin handed over for sending to Dynatrace in the reported interval.
       Each record is counted once, no matter how many times its sending was retried."
     unit: count
   dsoa.heartbeat.export.delivered:
@@ -212,7 +228,7 @@ metrics:
     __context_names:
       - heartbeat_exports
     __example: 1198
-    __description: "The number of records of the signal that Dynatrace accepted within the window. Records rejected by Dynatrace,
+    __description: "The number of records of the signal that Dynatrace accepted in the reported interval. Records rejected by Dynatrace,
       also in partially successful requests, are not counted. Divide by dsoa.heartbeat.export.attempted for the success rate."
     unit: count
 dql_queries:
