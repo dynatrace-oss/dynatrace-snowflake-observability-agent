@@ -39,6 +39,9 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 ##region ------------------ MEASUREMENT SOURCE: HEARTBEAT --------------------------------
 
+_T_HEARTBEAT = "call DTAGENT_DB.APP.F_HEARTBEAT_INSTRUMENTED()"
+_T_HEARTBEAT_EXPORTS = "call DTAGENT_DB.APP.F_HEARTBEAT_EXPORTS_INSTRUMENTED()"
+
 _CRON_PREFIX = re.compile(r"^\s*USING\s+CRON\s+", re.IGNORECASE)
 _INTERVAL = re.compile(r"^\s*(\d+)\s+(SECOND|MINUTE|HOUR|DAY)S?\s*$", re.IGNORECASE)
 _INTERVAL_SECONDS = {"SECOND": 1, "MINUTE": 60, "HOUR": 3600, "DAY": 86400}
@@ -147,12 +150,14 @@ class HeartbeatPlugin(Plugin):
     """Heartbeat plugin class."""
 
     PLUGIN_NAME = "heartbeat"
-    PLUGIN_CONTEXTS: tuple = ("heartbeat",)
+    PLUGIN_CONTEXTS: tuple = ("heartbeat", "heartbeat_exports")
 
     def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-        """Adds the cron/interval based expected_runs to rows delivered by APP.F_HEARTBEAT_INSTRUMENTED()"""
+        """Adds the cron/interval based expected_runs to rows delivered by APP.F_HEARTBEAT_INSTRUMENTED();
+        rows of the export statistics (APP.F_HEARTBEAT_EXPORTS_INSTRUMENTED()) are passed through as they are
+        """
         for row_dict in super()._get_table_rows(t_data):
-            yield self._add_expected_runs(row_dict)
+            yield self._add_expected_runs(row_dict) if t_data == _T_HEARTBEAT else row_dict
 
     def _add_expected_runs(self, row_dict: Dict) -> Dict:
         """Sets dsoa.heartbeat.expected_runs (metric) and dsoa.heartbeat.schedule_supported (attribute) on a heartbeat row.
@@ -191,14 +196,15 @@ class HeartbeatPlugin(Plugin):
         return logging.INFO
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
-        """Compares configured and actual agent tasks and their expected and actual runs.
+        """Compares configured and actual agent tasks and their expected and actual runs, and reports export statistics.
 
         Args:
             run_id (str): unique run identifier
             run_proc (bool): indicator whether processing should be logged as completed
+            contexts (Optional[List[str]]): context names to process; ``None`` means all contexts are processed
 
         Returns:
-            Dict[str,int]: A dictionary with telemetry counts for heartbeat.
+            Dict[str, Dict[str, int]]: A dictionary with telemetry counts for each processed context.
 
             Example:
             {
@@ -209,30 +215,47 @@ class HeartbeatPlugin(Plugin):
                     "metrics": metrics_cnt,
                     "events": events_cnt,
                 },
+                "heartbeat_exports": {
+                    "entries": exports_entries_cnt,
+                    "log_lines": exports_logs_cnt,
+                    "metrics": exports_metrics_cnt,
+                    "events": exports_events_cnt,
+                },
             },
             "dsoa.run.id": "uuid_string"
             }
         """
-        t_heartbeat = "call DTAGENT_DB.APP.F_HEARTBEAT_INSTRUMENTED()"
+        results: Dict[str, Dict[str, int]] = {}
 
-        entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
-            lambda: self._get_table_rows(t_heartbeat),
-            "heartbeat",
-            run_uuid=run_id,
-            log_completion=run_proc,
-        )
+        if not contexts or "heartbeat" in contexts:
+            entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
+                lambda: self._get_table_rows(_T_HEARTBEAT),
+                "heartbeat",
+                run_uuid=run_id,
+                log_completion=run_proc,
+            )
+            results["heartbeat"] = {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt,
+            }
 
-        return self._report_results(
-            {
-                "heartbeat": {
-                    "entries": entries_cnt,
-                    "log_lines": logs_cnt,
-                    "metrics": metrics_cnt,
-                    "events": events_cnt,
-                },
-            },
-            run_id,
-        )
+        if not contexts or "heartbeat_exports" in contexts:
+            entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
+                lambda: self._get_table_rows(_T_HEARTBEAT_EXPORTS),
+                "heartbeat_exports",
+                run_uuid=run_id,
+                log_completion=False,
+            )
+            results["heartbeat_exports"] = {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt,
+            }
+
+        return self._report_results(results, run_id)
 
 
 ##endregion

@@ -48,3 +48,17 @@ create table if not exists DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG (
 -- grants to the DTAGENT_VIEWER
 
 grant select, insert, update, delete on table STATUS.PROCESSED_MEASUREMENTS_LOG to role DTAGENT_VIEWER;
+
+-- Export statistics: for every plugin run and signal the number of records the agent attempted to send to Dynatrace (ATTEMPTED)
+-- and the number that Dynatrace accepted (DELIVERED); written by the agent after each run, reported by the heartbeat plugin.
+
+create table if not exists DTAGENT_DB.STATUS.EXPORT_STATS (
+    RUN_TS      timestamp_ltz not null default current_timestamp,
+    RUN_ID      text,
+    PLUGIN      text not null,
+    SIGNAL      text not null,
+    ATTEMPTED   number not null default 0,
+    DELIVERED   number not null default 0
+);
+
+grant select, insert, update, delete on table STATUS.EXPORT_STATS to role DTAGENT_VIEWER;

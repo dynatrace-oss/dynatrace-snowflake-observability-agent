@@ -89,6 +89,7 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/config.py
 ##INSERT src/dtagent/otel/otel_manager.py
 ##INSERT src/dtagent/otel/ingest_warnings.py
+##INSERT src/dtagent/otel/export_stats.py
 ##INSERT src/dtagent/otel/__init__.py
 ##INSERT build/_semantics.py
 ##INSERT src/dtagent/otel/spans.py

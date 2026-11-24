@@ -40,6 +40,7 @@ from dtagent.context import RUN_CONTEXT_KEY
 from dtagent.otel import _log_warning
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.otel.ingest_warnings import IngestWarningCollector
+from dtagent.otel.export_stats import ExportStatsCollector
 from dtagent.util import StringEnum, get_timestamp
 from dtagent.version import VERSION
 
@@ -164,11 +165,13 @@ class AbstractEvents(ABC):
 
             if response.status_code == 202:
                 events_count = payload_cnt
+                events_delivered = payload_cnt
                 OtelManager.set_current_fail_count(0)
                 try:
                     body = response.json()
                     if isinstance(body, dict):
                         rejected = body.get("rejectedEventIngestInputCount", 0)
+                        events_delivered = max(0, payload_cnt - (rejected or 0))
                         if rejected:
                             IngestWarningCollector.add_warning(
                                 "partial_success",
@@ -178,6 +181,7 @@ class AbstractEvents(ABC):
                             )
                 except Exception:  # pylint: disable=broad-except
                     pass
+                ExportStatsCollector.add_delivered(self._api_event_type, events_delivered)
             else:
                 _log_warning(response, _payload_list, self._api_event_type)
 
@@ -272,6 +276,8 @@ class AbstractEvents(ABC):
         events_count = 0
 
         if payload is not None:
+            # events are counted as attempted once, when they are enqueued - events kept for resend are not counted again
+            ExportStatsCollector.add_attempted(self._api_event_type, len(payload))
             for event in payload:
                 self.PAYLOAD_CACHE.append(event)
                 self._cache_byte_estimate += len(json.dumps(event, default=str))

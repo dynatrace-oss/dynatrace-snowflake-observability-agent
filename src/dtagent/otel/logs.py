@@ -94,6 +94,12 @@ class Logs:
                 super().__init__(*args, **kwargs)
                 self._session.headers.update(OtelManager.get_dsoa_headers())
 
+            def export(self, batch):
+                """Exports the batch and records how many log records were attempted and delivered."""
+                result = super().export(batch)
+                OtelManager.record_export("logs", len(batch), result.name == "SUCCESS", self._session)
+                return result
+
         self._otel_logger_provider = LoggerProvider(resource=resource)
         self._otel_logger_provider.add_log_record_processor(
             BatchLogRecordProcessor(

@@ -1,0 +1,46 @@
+[
+  {
+    "content": "Export statistics for query_history / logs: delivered 98 of 100 attempted records in last 24h",
+    "dsoa.heartbeat.export.attempted": 100,
+    "dsoa.heartbeat.export.delivered": 98,
+    "dsoa.heartbeat.window_hours": 24,
+    "db.namespace": "DTAGENT_DB",
+    "dsoa.export.plugin": "query_history",
+    "dsoa.export.signal": "logs",
+    "dsoa.run.plugin": "test_heartbeat_exports",
+    "dsoa.run.context": "heartbeat_exports",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.40.0",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "content": "Export statistics for query_history / metrics: delivered 40 of 40 attempted records in last 24h",
+    "dsoa.heartbeat.export.attempted": 40,
+    "dsoa.heartbeat.export.delivered": 40,
+    "dsoa.heartbeat.window_hours": 24,
+    "db.namespace": "DTAGENT_DB",
+    "dsoa.export.plugin": "query_history",
+    "dsoa.export.signal": "metrics",
+    "dsoa.run.plugin": "test_heartbeat_exports",
+    "dsoa.run.context": "heartbeat_exports",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.40.0",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  }
+]

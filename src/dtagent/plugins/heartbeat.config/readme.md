@@ -6,6 +6,8 @@ For every agent task (`TASK_DTAGENT_*`) it reports:
 - whether the task is deployed in Snowflake, its state (`started`, `suspended`, or `missing`), and its actual schedule,
 - how many runs the schedule implies over the configured window (`expected_runs`) versus how many runs actually happened, split by outcome (succeeded, failed, skipped, cancelled).
 
+Alongside the task health, the plugin reports the **export success rate**: for every plugin and signal (`logs`, `spans`, `metrics`, `events`, `davis_events`, `biz_events`) it reports how many records the agent attempted to send to Dynatrace and how many Dynatrace accepted over the window (see [Export success rate](#export-success-rate)).
+
 The plugin also raises flags that make misconfiguration easy to alert on:
 
 - `is_missing` - the task is enabled in the configuration but not deployed,
@@ -23,6 +25,17 @@ By default, the plugin executes once a day at 06:00 UTC and compares the previou
 > **Note:** The heartbeat is itself an agent task. If the agent stops running, the heartbeat stops too; detect this in Dynatrace by alerting on the **absence** of `heartbeat` logs for longer than the schedule interval (for example, 26 hours for the default schedule).
 
 > **Note:** A task that was resumed or suspended during the window is not corrected for: `expected_runs` always covers the whole window. Read coverage together with `dsoa.heartbeat.actual_state`.
+
+## Export success rate
+
+After every run the agent records, for each plugin and signal, how many records it handed over for sending (`attempted`) and how many Dynatrace accepted (`delivered`), and keeps them in the `STATUS.EXPORT_STATS` table (30 days by default). The heartbeat sums them over the window and reports them in the `heartbeat_exports` context, one row per plugin and signal, as the metrics `dsoa.heartbeat.export.attempted` and `dsoa.heartbeat.export.delivered` with the dimensions `dsoa.export.plugin` and `dsoa.export.signal`.
+
+Both numbers come from the same rows, so `delivered / attempted` is an accurate success rate and does not depend on how the numbers are aligned in time on the tenant.
+
+- Every record is counted once as attempted, no matter how many times its sending was retried. Events that could not be sent are kept and resent; they are counted as attempted only once.
+- Records that Dynatrace rejected, also in partially successful requests, are not counted as delivered.
+- Counts are persisted in Snowflake after the run, so runs during which Dynatrace was unreachable are reported by the next successful heartbeat.
+- Turn the recording off with `plugins.self_monitoring.export_stats_enabled: false`; set the retention with `plugins.self_monitoring.export_stats_retention_days` (default `30`).
 
 ## Multitenancy
 
@@ -49,4 +62,15 @@ timeseries {
     succeeded = sum(dsoa.heartbeat.runs.succeeded)
   },
   by: { dsoa.heartbeat.task, deployment.environment.name }
+```
+
+Export success rate per plugin and signal:
+
+```dql
+timeseries {
+    attempted = sum(dsoa.heartbeat.export.attempted),
+    delivered = sum(dsoa.heartbeat.export.delivered)
+  },
+  by: { dsoa.export.plugin, dsoa.export.signal, deployment.environment.name }
+| fieldsAdd success_rate_pct = 100 * delivered[] / attempted[]
 ```

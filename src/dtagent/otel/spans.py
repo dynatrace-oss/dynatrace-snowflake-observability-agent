@@ -142,6 +142,12 @@ class Spans:
                 super().__init__(*args, **kwargs)
                 self._session.headers.update(OtelManager.get_dsoa_headers())
 
+            def export(self, spans):
+                """Exports the spans and records how many were attempted and delivered."""
+                result = super().export(spans)
+                OtelManager.record_export("spans", len(spans), result.name == "SUCCESS", self._session)
+                return result
+
         exporter = CustomUserAgentOTLPSpanExporter(
             endpoint=f'{self._configuration.get("spans.http")}',
             headers={"Authorization": f'Api-Token {self._configuration.get("dt.token")}'},

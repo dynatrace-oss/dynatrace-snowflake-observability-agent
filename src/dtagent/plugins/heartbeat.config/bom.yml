@@ -1,6 +1,8 @@
 delivers:
   - name: DTAGENT_DB.APP.F_HEARTBEAT_INSTRUMENTED()
     type: procedure
+  - name: DTAGENT_DB.APP.F_HEARTBEAT_EXPORTS_INSTRUMENTED()
+    type: procedure
   - name: DTAGENT_DB.CONFIG.UPDATE_HEARTBEAT_CONF()
     type: procedure
   - name: DTAGENT_DB.APP.TASK_DTAGENT_HEARTBEAT
@@ -8,6 +10,9 @@ delivers:
 
 references:
   - name: DTAGENT_DB.CONFIG.CONFIGURATIONS
+    type: table
+    privileges: SELECT
+  - name: DTAGENT_DB.STATUS.EXPORT_STATS
     type: table
     privileges: SELECT
   - name: DTAGENT_DB.INFORMATION_SCHEMA.TASK_HISTORY()

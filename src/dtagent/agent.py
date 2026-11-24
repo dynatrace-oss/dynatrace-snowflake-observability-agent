@@ -26,6 +26,7 @@
 #
 #
 from dtagent import AbstractDynatraceSnowAgentConnector
+from dtagent.otel.export_stats import ExportStatsCollector
 from dtagent.version import VERSION
 from dtagent.util import is_regular_mode
 
@@ -78,6 +79,7 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/config.py
 ##INSERT src/dtagent/otel/otel_manager.py
 ##INSERT src/dtagent/otel/ingest_warnings.py
+##INSERT src/dtagent/otel/export_stats.py
 ##INSERT src/dtagent/otel/__init__.py
 ##INSERT build/_semantics.py
 ##INSERT src/dtagent/otel/spans.py
@@ -146,6 +148,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
 
             c_source = _get_plugin_class(plugin_name)
             run_id = str(uuid.uuid4().hex)
+            ExportStatsCollector.set_plugin(plugin_name, run_id)  # export statistics are attributed to the plugin that is running
 
             if inspect.isclass(c_source) and contexts:
                 known_contexts = getattr(c_source, "PLUGIN_CONTEXTS", ())
@@ -201,13 +204,21 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                 results[source] = {"not_implemented": c_source}
                 LOG.warning(f"""Requested measuring source {plugin_name} that is not implemented: {results[source]}""")
 
+            # delivering the logs of this plugin before the next one starts, so that their export is attributed to the right plugin
+            self._logs.flush_logs()
+
         return results
 
 
 def main(session: snowpark.Session, sources: List) -> dict:
     """MAIN entry to this stored procedure - this is where the fun begins"""
     agent = DynatraceSnowAgent(session)
-    results = agent.process(sources)
-    agent.teardown()
+    try:
+        results = agent.process(sources)
+    finally:
+        try:
+            agent.teardown()
+        finally:
+            agent.persist_export_stats()  # after teardown, so that the batches flushed there are counted too
 
     return results

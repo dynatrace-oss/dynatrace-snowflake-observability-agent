@@ -17,6 +17,10 @@ New `heartbeat` plugin that verifies, once a day, that the agent runs what it is
 
 Adds the `croniter` package to the agent procedure.
 
+### Added — export success rate
+
+The agent now records, per plugin and signal (`logs`, `spans`, `metrics`, `events`, `davis_events`, `biz_events`), how many records it attempted to send to Dynatrace and how many Dynatrace accepted. The numbers are persisted in the new `STATUS.EXPORT_STATS` table (created by the upgrade script, 30 days of history by default) and reported by the `heartbeat` plugin in the new `heartbeat_exports` context as the metrics `dsoa.heartbeat.export.attempted` and `dsoa.heartbeat.export.delivered`, so `delivered / attempted` gives an export success rate per plugin and signal on the tenant. Disable via `plugins.self_monitoring.export_stats_enabled: false`; change the retention via `plugins.self_monitoring.export_stats_retention_days`.
+
 ### Added — self-monitoring run timestamps
 
 The `New entry to STATUS.LOG_PROCESSED_MEASUREMENTS` self-monitoring log now carries `dsoa.run.first_timestamp` (the smallest timestamp processed in the execution) and `dsoa.run.last_timestamp` (the timestamp recorded as the new watermark). Either is omitted when the plugin has no data timestamp.

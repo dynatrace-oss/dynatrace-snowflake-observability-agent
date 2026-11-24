@@ -26,9 +26,12 @@
 #
 ##endregion COMPILE_REMOVE
 
+from typing import Optional
+
 import requests
 from dtagent.otel import _log_warning, USER_AGENT
 from dtagent.otel.ingest_warnings import IngestWarningCollector
+from dtagent.otel.export_stats import ExportStatsCollector
 
 ##region ------------------------ OTEL base class---------------------------------
 
@@ -96,6 +99,22 @@ class OtelManager:
             raise RuntimeError(error_message)
 
     @staticmethod
+    def record_export(signal: str, records: int, success: bool, session: Optional[requests.Session] = None) -> None:
+        """Records the outcome of exporting a batch of records for the export attempted / delivered statistics.
+
+        Args:
+            signal (str):                           Exporter signal, e.g. ``logs`` or ``spans``.
+            records (int):                          Number of records in the exported batch.
+            success (bool):                         Whether the export of the batch succeeded.
+            session (Optional[requests.Session]):   Session used for the export; its ``rejected_records`` (records rejected
+                                                    by Dynatrace in a partially successful request) are not counted as delivered.
+        """
+        ExportStatsCollector.add_attempted(signal, records)
+        if success:
+            rejected = getattr(session, "rejected_records", 0) if session is not None else 0
+            ExportStatsCollector.add_delivered(signal, max(0, records - rejected))
+
+    @staticmethod
     def get_dsoa_headers() -> dict:
         """Returns headers required for DSOA to DT communication"""
         return {"User-Agent": USER_AGENT, "X-Dynatrace-Attr": "dt.ingest.origin=snowflake-dsoa"}
@@ -104,8 +123,14 @@ class OtelManager:
 class CustomLoggingSession(requests.Session):
     """Session wrapper for logs and spans to capture responses when sending payload."""
 
+    def __init__(self, *args, **kwargs):
+        """Initializes the session; ``rejected_records`` holds the records rejected in the last (partially successful) request."""
+        super().__init__(*args, **kwargs)
+        self.rejected_records: int = 0
+
     def send(self, request, **kwargs):
         """Sends data using superclass method and calls OtelManager to handle response."""
+        self.rejected_records = 0
         response: requests.Response = super().send(request, **kwargs)
         if response.status_code >= 300:
             OtelManager.increase_current_fail_count(response)
@@ -119,6 +144,7 @@ class CustomLoggingSession(requests.Session):
                 partial = body.get("partialSuccess", {}) if isinstance(body, dict) else {}
                 rejected_logs = partial.get("rejectedLogRecords", 0)
                 rejected_spans = partial.get("rejectedSpans", 0)
+                self.rejected_records = (rejected_logs or 0) + (rejected_spans or 0)
                 if rejected_logs:
                     IngestWarningCollector.add_warning(
                         "partial_success", "logs", f"OTLP partial success: {rejected_logs} log record(s) rejected", rejected_logs

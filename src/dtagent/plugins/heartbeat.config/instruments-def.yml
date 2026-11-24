@@ -93,8 +93,9 @@ attributes:
     __stability: stable
     __context_names:
       - heartbeat
+      - heartbeat_exports
     __example: 24
-    __description: "The length of the window, in hours, over which expected and actual runs are compared."
+    __description: "The length of the window, in hours, over which expected and actual runs, and export statistics, are compared."
 dimensions:
   db.namespace:
     __semdict: ref
@@ -102,6 +103,7 @@ dimensions:
     displayName: Database namespace
     __context_names:
       - heartbeat
+      - heartbeat_exports
     __example: "DTAGENT_DB"
     __description: "The database of the Dynatrace Snowflake Observability Agent instance the task belongs to."
   dsoa.heartbeat.plugin:
@@ -120,6 +122,22 @@ dimensions:
       - heartbeat
     __example: "TASK_DTAGENT_BUDGETS"
     __description: "The name of the Dynatrace Snowflake Observability Agent task."
+  dsoa.export.plugin:
+    __type: string
+    displayName: Export statistics plugin
+    __stability: stable
+    __context_names:
+      - heartbeat_exports
+    __example: "query_history"
+    __description: "The Dynatrace Snowflake Observability Agent plugin whose exported records are counted."
+  dsoa.export.signal:
+    __type: string
+    displayName: Export statistics signal
+    __stability: stable
+    __context_names:
+      - heartbeat_exports
+    __example: "logs"
+    __description: "The kind of telemetry the exported records belong to: logs, spans, metrics, events, davis_events or biz_events."
 metrics:
   dsoa.heartbeat.expected_runs:
     __type: long
@@ -176,6 +194,26 @@ metrics:
     __example: 1
     __description: "The number of task runs scheduled or still executing when the heartbeat was taken.
       Their outcome is not known yet, so they are not counted as succeeded."
+    unit: count
+  dsoa.heartbeat.export.attempted:
+    __type: long
+    displayName: Heartbeat export attempted records
+    __stability: stable
+    __context_names:
+      - heartbeat_exports
+    __example: 1200
+    __description: "The number of records of the signal that the plugin handed over for sending to Dynatrace within the window.
+      Each record is counted once, no matter how many times its sending was retried."
+    unit: count
+  dsoa.heartbeat.export.delivered:
+    __type: long
+    displayName: Heartbeat export delivered records
+    __stability: stable
+    __context_names:
+      - heartbeat_exports
+    __example: 1198
+    __description: "The number of records of the signal that Dynatrace accepted within the window. Records rejected by Dynatrace,
+      also in partially successful requests, are not counted. Divide by dsoa.heartbeat.export.attempted for the success rate."
     unit: count
 dql_queries:
   - query_string: |
@@ -240,5 +278,20 @@ dql_queries:
         by: { dsoa.heartbeat.task, deployment.environment.name }
     description: Plot skipped and cancelled agent task runs per task over time.
     description_copilot: Timeseries of skipped and cancelled Snowflake agent task runs per task.
+    context:
+      - metrics
+  - query_string: |
+      timeseries {
+          attempted = sum(dsoa.heartbeat.export.attempted),
+          delivered = sum(dsoa.heartbeat.export.delivered)
+        },
+        by: { dsoa.export.plugin, dsoa.export.signal, deployment.environment.name }
+      | fieldsAdd success_rate_pct = 100 * delivered[] / attempted[]
+    description: >-
+      Export success rate (delivered / attempted records) per plugin and signal as reported by the
+      Dynatrace Snowflake Observability Agent heartbeat.
+    description_copilot: >-
+      Calculate the percentage of telemetry records that the Snowflake observability agent successfully
+      delivered to Dynatrace, per plugin and signal.
     context:
       - metrics

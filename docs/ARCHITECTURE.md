@@ -468,6 +468,22 @@ Example of task status bizevent payload.
 }
 ```
 
+### Export statistics
+
+Every exporter counts the records it hands over for sending (`attempted`) and the records Dynatrace accepted (`delivered`), per plugin run
+and signal (`logs`, `spans`, `metrics`, `events`, `davis_events`, `biz_events`). `DynatraceSnowAgent.process()` tells the collector
+(`ExportStatsCollector`) which plugin run is executing and flushes the logs after each plugin, so the counts are attributed to the right
+plugin. After the exporters are shut down (so the final batches are included), `main()` writes one row per plugin run and signal to
+`STATUS.EXPORT_STATS`; failures of that write are logged and never fail the run. The `heartbeat` plugin sums the rows over its window and
+reports `dsoa.heartbeat.export.attempted` and `dsoa.heartbeat.export.delivered` (context `heartbeat_exports`).
+
+```yaml
+plugins:
+  self_monitoring:
+    export_stats_enabled: true
+    export_stats_retention_days: 30
+```
+
 With `SEND_BIZEVENTS_ON_DEPLOY`, Dynatrace Snowflake Observability Agent will send a bizevent to DT with each deployment run. Depending on
 the type of deployment, the event titles will be set as follows:
 

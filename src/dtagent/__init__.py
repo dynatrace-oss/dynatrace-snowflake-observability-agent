@@ -37,6 +37,7 @@ from dtagent.otel.events.generic import GenericEvents
 from dtagent.otel.events.davis import DavisEvents
 from dtagent.otel.events.bizevents import BizEvents
 from dtagent.otel.ingest_warnings import IngestWarningCollector, AcquisitionProblemCollector
+from dtagent.otel.export_stats import ExportStatsCollector
 from dtagent.version import VERSION
 from dtagent.context import get_context_name_and_run_id, RUN_VERSION_KEY  # COMPILE_REMOVE
 from dtagent.util import get_now_timestamp_formatted, is_regular_mode
@@ -268,6 +269,47 @@ class AbstractDynatraceSnowAgentConnector:
             self.report_execution_status("FAILED", source, exec_id, {"message": str(original_error)})
         except RuntimeError as e2:
             LOG.error("Unable to report failed run due to: %s", str(e2))
+
+    def persist_export_stats(self) -> None:
+        """Persists the attempted / delivered record counts collected during this run to ``STATUS.EXPORT_STATS``.
+
+        Call after :meth:`teardown`, so the batches flushed while shutting down the exporters are included.  The counts are
+        written (one row per plugin run and signal) when ``plugins.self_monitoring.export_stats_enabled`` is on, and rows older
+        than ``plugins.self_monitoring.export_stats_retention_days`` are removed.  Any failure is logged and swallowed:
+        statistics must never fail a run.
+        """
+        stats = ExportStatsCollector.get_stats()
+        ExportStatsCollector.reset()
+
+        if (
+            not stats
+            or not is_regular_mode(self._session)
+            or not self._configuration.get(plugin_name="self_monitoring", key="export_stats_enabled", default_value=True)
+        ):
+            return
+
+        def _literal(value: Optional[str]) -> str:
+            return "null" if value is None else "'" + str(value).replace("'", "''") + "'"
+
+        try:
+            rows = ", ".join(
+                f"({_literal(row['run_id'])}, {_literal(row['plugin'])}, {_literal(row['signal'])}, "
+                f"{int(row['attempted'])}, {int(row['delivered'])})"
+                for row in stats
+            )
+            self._session.sql(
+                "insert into STATUS.EXPORT_STATS (RUN_ID, PLUGIN, SIGNAL, ATTEMPTED, DELIVERED) "
+                f"select column1, column2, column3, column4, column5 from values {rows}"
+            ).collect()
+
+            retention_days = int(
+                self._configuration.get(plugin_name="self_monitoring", key="export_stats_retention_days", default_value=30)
+            )
+            self._session.sql(
+                f"delete from STATUS.EXPORT_STATS where RUN_TS < dateadd(day, -{retention_days}, current_timestamp())"
+            ).collect()
+        except Exception as e:  # pylint: disable=broad-except
+            LOG.warning("Unable to persist export statistics: %s", e)
 
     def teardown(self) -> None:
         """Wrapping up, shutting logger and tracer"""
