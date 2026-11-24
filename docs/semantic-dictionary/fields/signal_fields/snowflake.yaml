@@ -2122,7 +2122,7 @@ groups:
         display_name: 'Heartbeat window hours'
         type: long
         stability: stable
-        brief: The length of the window, in hours, over which expected and actual runs, and export statistics, are compared.
+        brief: The length of the window, in hours, over which expected and actual runs are compared.
         examples: [ 24 ]
       - id: dsoa.export.plugin
         display_name: 'Export statistics plugin'
@@ -2136,3 +2136,15 @@ groups:
         stability: stable
         brief: 'The kind of telemetry the exported records belong to: logs, spans, metrics, events, davis_events or biz_events.'
         examples: [ 'logs' ]
+      - id: dsoa.heartbeat.export.reported_from
+        display_name: 'Heartbeat export statistics reported from'
+        type: string
+        stability: stable
+        brief: The time of the oldest export statistics included in the report. It is older than the previous heartbeat when that heartbeat did not run or could not deliver its telemetry.
+        examples: [ '2026-11-23T06:00:00.123456789+00:00' ]
+      - id: dsoa.heartbeat.export.reported_until
+        display_name: 'Heartbeat export statistics reported until'
+        type: string
+        stability: stable
+        brief: The time up to which export statistics are included in the report.
+        examples: [ '2026-11-24T05:59:00.000000000+00:00' ]

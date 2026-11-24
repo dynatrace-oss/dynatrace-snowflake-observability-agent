@@ -100,7 +100,7 @@ model:
       type: metric
       metric_name: dsoa.heartbeat.export.attempted
       instrument: gauge
-      brief: The number of records of the signal that the plugin handed over for sending to Dynatrace within the window. Each record is counted once, no matter how many times its sending was retried.
+      brief: The number of records of the signal that the plugin handed over for sending to Dynatrace in the reported interval. Each record is counted once, no matter how many times its sending was retried.
       title: Heartbeat export attempted records
       unit: count
       attributes:
@@ -110,7 +110,7 @@ model:
       type: metric
       metric_name: dsoa.heartbeat.export.delivered
       instrument: gauge
-      brief: The number of records of the signal that Dynatrace accepted within the window. Records rejected by Dynatrace, also in partially successful requests, are not counted. Divide by dsoa.heartbeat.export.attempted for the success rate.
+      brief: The number of records of the signal that Dynatrace accepted in the reported interval. Records rejected by Dynatrace, also in partially successful requests, are not counted. Divide by dsoa.heartbeat.export.attempted for the success rate.
       title: Heartbeat export delivered records
       unit: count
       attributes:

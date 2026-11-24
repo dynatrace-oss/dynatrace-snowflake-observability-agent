@@ -54,3 +54,5 @@ model:
         - ref: dsoa.heartbeat.is_unexpected
         - ref: dsoa.heartbeat.schedule_supported
         - ref: dsoa.heartbeat.window_hours
+        - ref: dsoa.heartbeat.export.reported_from
+        - ref: dsoa.heartbeat.export.reported_until
