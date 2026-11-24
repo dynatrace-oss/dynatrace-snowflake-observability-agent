@@ -68,28 +68,31 @@ def _mock_response(status_code: int, body: dict) -> MagicMock:
 
 
 class TestRecordExport:
-    """OtelManager.record_export"""
+    """OtelManager.record_export_attempt / record_export_delivered"""
 
-    def test_success(self):
-        """Test success."""
-        OtelManager.record_export("logs", 5, True)
-        assert _stats() == {"logs": (5, 5)}
-
-    def test_failure_counts_only_attempted(self):
-        """Test failure counts only attempted."""
-        OtelManager.record_export("logs", 5, False)
+    def test_attempt_only(self):
+        """An attempt without delivery counts only as attempted."""
+        OtelManager.record_export_attempt("logs", 5)
         assert _stats() == {"logs": (5, 0)}
 
+    def test_attempt_and_delivery(self):
+        """An attempt followed by delivery counts both."""
+        OtelManager.record_export_attempt("logs", 5)
+        OtelManager.record_export_delivered("logs", 5)
+        assert _stats() == {"logs": (5, 5)}
+
     def test_rejected_records_are_not_delivered(self):
-        """Test rejected records are not delivered."""
+        """Records rejected in a partially successful request are not delivered."""
         session = Mock(rejected_records=2)
-        OtelManager.record_export("spans", 5, True, session)
+        OtelManager.record_export_attempt("spans", 5)
+        OtelManager.record_export_delivered("spans", 5, session)
         assert _stats() == {"spans": (5, 3)}
 
     def test_rejected_more_than_batch_does_not_go_negative(self):
-        """Test rejected more than batch does not go negative."""
+        """Rejected records exceeding the batch size leave delivered at 0."""
         session = Mock(rejected_records=9)
-        OtelManager.record_export("spans", 5, True, session)
+        OtelManager.record_export_attempt("spans", 5)
+        OtelManager.record_export_delivered("spans", 5, session)
         assert _stats() == {"spans": (5, 0)}
 
 
@@ -193,6 +196,26 @@ class TestOtlpExporters:
         with patch.object(OTLPLogExporter, "export", _export):
             exporter.export([1, 2, 3])
         assert _stats() == {"logs": (3, 2)}
+
+    def test_logs_exception_still_counts_the_attempt(self):
+        """If the underlying exporter raises (e.g. on a timeout) the batch is still counted as attempted, not delivered."""
+        from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+
+        exporter = self._log_exporter()
+        with patch.object(OTLPLogExporter, "export", side_effect=requests.exceptions.Timeout("timed out")):
+            with pytest.raises(requests.exceptions.Timeout):
+                exporter.export([1, 2, 3])
+        assert _stats() == {"logs": (3, 0)}
+
+    def test_spans_exception_still_counts_the_attempt(self):
+        """If the underlying exporter raises (e.g. on a timeout) the spans are still counted as attempted, not delivered."""
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+        exporter = self._span_exporter()
+        with patch.object(OTLPSpanExporter, "export", side_effect=requests.exceptions.Timeout("timed out")):
+            with pytest.raises(requests.exceptions.Timeout):
+                exporter.export([1, 2])
+        assert _stats() == {"spans": (2, 0)}
 
     def test_spans_success_and_failure(self):
         """Test spans success and failure."""
@@ -340,3 +363,65 @@ class TestEventsHook:
         ):
             self._davis()._send([{"a": 1}])
         assert _stats() == {}
+
+
+class TestRetainedEventsKeepTheirPlugin:
+    """Events kept for resending are delivered while a later plugin is active, yet counted for the plugin that queued them"""
+
+    @staticmethod
+    def _by_plugin() -> dict:
+        return {(r["plugin"], r["signal"]): (r["attempted"], r["delivered"]) for r in ExportStatsCollector.get_stats()}
+
+    def test_bizevents_delivered_under_a_later_plugin(self):
+        """Biz events queued by the first plugin and delivered during the second are counted for the first plugin."""
+        be = TestEventsHook._bizevents()  # pylint: disable=protected-access
+        be._max_event_count = 2  # pylint: disable=protected-access
+
+        ExportStatsCollector.set_plugin("first", "run1")
+        with patch("dtagent.otel.events.bizevents.requests.post", return_value=_mock_response(503, {})):
+            be._send_events([{"a": 1}, {"a": 2}])  # fails, stays queued
+        assert len(be.PAYLOAD_CACHE) == 2
+
+        ExportStatsCollector.set_plugin("second", "run2")
+        with patch("dtagent.otel.events.bizevents.requests.post", return_value=_mock_response(202, {})):
+            be._send_events([{"b": 1}])  # triggers a send of the retained events and the new one
+            be.flush_events()
+
+        assert self._by_plugin() == {("first", "biz_events"): (2, 2), ("second", "biz_events"): (1, 1)}
+        assert be.PAYLOAD_CACHE == []
+        assert not be._event_attribution  # pylint: disable=protected-access
+
+    def test_rejected_events_are_taken_from_the_end(self):
+        """When Dynatrace rejects some events of a mixed request, the shortfall is taken from the last events."""
+        be = TestEventsHook._bizevents()  # pylint: disable=protected-access
+        ExportStatsCollector.set_plugin("first", "run1")
+        be._send_events([{"a": 1}])  # pylint: disable=protected-access
+        ExportStatsCollector.set_plugin("second", "run2")
+        be._send_events([{"b": 1}])  # pylint: disable=protected-access
+
+        with patch("dtagent.otel.events.bizevents.requests.post", return_value=_mock_response(202, {"rejectedEventIngestInputCount": 1})):
+            be.flush_events()
+
+        assert self._by_plugin() == {("first", "biz_events"): (1, 1), ("second", "biz_events"): (1, 0)}
+
+    def test_davis_events_delivered_under_a_later_plugin(self):
+        """Davis events resent in a later plugin are counted for the plugin that queued them."""
+        de = TestEventsHook._davis()  # pylint: disable=protected-access
+        de._max_event_count = 2  # pylint: disable=protected-access
+        de._max_payload_bytes = 1000000  # pylint: disable=protected-access
+        de._cache_byte_estimate = 0  # pylint: disable=protected-access
+        de.PAYLOAD_CACHE = []
+
+        ExportStatsCollector.set_plugin("first", "run1")
+        # the first event hits a connection error and stays queued; the second one is refused outright and dropped (Davis keeps only
+        # events that failed with an exception); a response is needed to report the failed attempt
+        responses = [requests.exceptions.ConnectionError("down"), _mock_response(500, {})]
+        with patch("dtagent.otel.events.davis.requests.post", side_effect=responses), patch.object(OtelManager, "verify_communication"):
+            de._send_events([{"a": 1}, {"a": 2}])  # pylint: disable=protected-access
+        assert de.PAYLOAD_CACHE == [{"a": 1}]
+
+        ExportStatsCollector.set_plugin("second", "run2")
+        with patch("dtagent.otel.events.davis.requests.post", return_value=_mock_response(201, {})):
+            de.flush_events()
+
+        assert self._by_plugin() == {("first", "davis_events"): (2, 1)}

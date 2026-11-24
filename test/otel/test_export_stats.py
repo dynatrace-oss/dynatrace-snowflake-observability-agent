@@ -89,6 +89,20 @@ class TestExportStatsCollector:
         ExportStatsCollector.add_attempted("logs", 2)
         assert [(r["run_id"], r["attempted"]) for r in ExportStatsCollector.get_stats()] == [("run1", 1), ("run2", 2)]
 
+    def test_explicit_attribution_overrides_current_plugin(self):
+        """Counts recorded with an explicit attribution do not go to the plugin that is running now."""
+        ExportStatsCollector.set_plugin("first", "run1")
+        attribution = ExportStatsCollector.get_attribution()
+        assert attribution == ("first", "run1")
+        ExportStatsCollector.set_plugin("second", "run2")
+        ExportStatsCollector.add_attempted("events", 2, attribution)
+        ExportStatsCollector.add_delivered("events", 2, attribution)
+        ExportStatsCollector.add_attempted("events", 1)
+        assert [(r["plugin"], r["attempted"], r["delivered"]) for r in ExportStatsCollector.get_stats()] == [
+            ("first", 2, 2),
+            ("second", 1, 0),
+        ]
+
     def test_empty_plugin_name_falls_back_to_unknown(self):
         """Test empty plugin name falls back to unknown."""
         ExportStatsCollector.set_plugin("")

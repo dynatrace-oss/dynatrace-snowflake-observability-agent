@@ -144,8 +144,10 @@ class Spans:
 
             def export(self, spans):
                 """Exports the spans and records how many were attempted and delivered."""
+                OtelManager.record_export_attempt("spans", len(spans))  # before exporting: an exception must not hide the attempt
                 result = super().export(spans)
-                OtelManager.record_export("spans", len(spans), result.name == "SUCCESS", self._session)
+                if result.name == "SUCCESS":
+                    OtelManager.record_export_delivered("spans", len(spans), self._session)
                 return result
 
         exporter = CustomUserAgentOTLPSpanExporter(

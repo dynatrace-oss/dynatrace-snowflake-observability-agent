@@ -38,7 +38,6 @@ import requests
 from dtagent.context import RUN_CONTEXT_KEY
 from dtagent.otel import _log_warning
 from dtagent.otel.otel_manager import OtelManager
-from dtagent.otel.export_stats import ExportStatsCollector
 from dtagent.otel.events import EventType, AbstractEvents
 from dtagent.otel.events.generic import GenericEvents
 from dtagent.util import StringEnum, get_timestamp
@@ -106,7 +105,7 @@ class DavisEvents(GenericEvents):
 
                 if response.status_code == 201:
                     events_send += 1
-                    ExportStatsCollector.add_delivered(self._api_event_type)
+                    self._record_delivered([_payload], 1)
                     OtelManager.set_current_fail_count(0)
                 else:
                     _log_warning(response, _payload, "event")

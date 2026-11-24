@@ -33,7 +33,7 @@ EXPECTED_CONTEXTS = {
     "DynamicTablesPlugin": ("dynamic_tables", "dynamic_table_refresh_history", "dynamic_table_graph_history"),
     "EventLogPlugin": ("event_log", "event_log_metrics", "event_log_spans"),
     "EventUsagePlugin": ("event_usage",),
-    "HeartbeatPlugin": ("heartbeat",),
+    "HeartbeatPlugin": ("heartbeat", "heartbeat_exports"),
     "LoginHistoryPlugin": ("login_history", "sessions"),
     "MeteringPlugin": ("metering",),
     "OrgCostsPlugin": (

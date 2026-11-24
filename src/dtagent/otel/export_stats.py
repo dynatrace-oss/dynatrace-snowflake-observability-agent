@@ -34,6 +34,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 UNKNOWN_PLUGIN = "unknown"
 
+Attribution = Tuple[str, Optional[str]]  # (plugin, run id)
+
 
 class ExportStatsCollector:
     """Thread-safe collector of attempted and delivered record counts per ``(plugin, run id, signal)``.
@@ -71,35 +73,48 @@ class ExportStatsCollector:
             ExportStatsCollector._run_id = run_id
 
     @staticmethod
-    def _add(signal: str, attempted: int, delivered: int) -> None:
-        """Adds the given amounts to the counters of the current plugin and given signal."""
+    def get_attribution() -> Attribution:
+        """Returns the ``(plugin, run id)`` to which counts are currently attributed.
+
+        Exporters that keep records beyond the plugin run that produced them (e.g. events queued for resending) store this
+        and pass it back when recording the outcome, so that attempted and delivered counts end up with the same plugin run.
+        """
         with ExportStatsCollector._lock:
-            key = (ExportStatsCollector._plugin, ExportStatsCollector._run_id, signal)
+            return ExportStatsCollector._plugin, ExportStatsCollector._run_id
+
+    @staticmethod
+    def _add(signal: str, attempted: int, delivered: int, attribution: Optional[Attribution] = None) -> None:
+        """Adds the given amounts to the counters of the given (default: current) plugin run and the given signal."""
+        with ExportStatsCollector._lock:
+            plugin, run_id = attribution or (ExportStatsCollector._plugin, ExportStatsCollector._run_id)
+            key = (plugin, run_id, signal)
             counts = ExportStatsCollector._counts.setdefault(key, {"attempted": 0, "delivered": 0})
             counts["attempted"] += attempted
             counts["delivered"] += delivered
 
     @staticmethod
-    def add_attempted(signal: str, count: int = 1) -> None:
+    def add_attempted(signal: str, count: int = 1, attribution: Optional[Attribution] = None) -> None:
         """Records that ``count`` records of the given signal were handed over for sending.
 
         Args:
-            signal (str): Exporter signal, e.g. ``logs`` or ``metrics``.
-            count (int): Number of records.  Non-positive values are ignored.
+            signal (str):                       Exporter signal, e.g. ``logs`` or ``metrics``.
+            count (int):                        Number of records.  Non-positive values are ignored.
+            attribution (Optional[Attribution]): ``(plugin, run id)`` the records belong to; defaults to the current one.
         """
         if count > 0:
-            ExportStatsCollector._add(signal, count, 0)
+            ExportStatsCollector._add(signal, count, 0, attribution)
 
     @staticmethod
-    def add_delivered(signal: str, count: int = 1) -> None:
+    def add_delivered(signal: str, count: int = 1, attribution: Optional[Attribution] = None) -> None:
         """Records that ``count`` records of the given signal were accepted by Dynatrace.
 
         Args:
-            signal (str): Exporter signal, e.g. ``logs`` or ``metrics``.
-            count (int): Number of records.  Non-positive values are ignored.
+            signal (str):                       Exporter signal, e.g. ``logs`` or ``metrics``.
+            count (int):                        Number of records.  Non-positive values are ignored.
+            attribution (Optional[Attribution]): ``(plugin, run id)`` the records belong to; defaults to the current one.
         """
         if count > 0:
-            ExportStatsCollector._add(signal, 0, count)
+            ExportStatsCollector._add(signal, 0, count, attribution)
 
     @staticmethod
     def get_stats() -> List[Dict[str, Any]]:

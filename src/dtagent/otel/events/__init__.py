@@ -84,6 +84,7 @@ class AbstractEvents(ABC):
         _default_params = default_params or {}
 
         self.PAYLOAD_CACHE: List[Dict[str, Any]] = []
+        self._event_attribution: Dict[int, Tuple[str, Optional[str]]] = {}  # id(event) -> (plugin, run id) of the run that queued it
         self._cache_byte_estimate: int = 0
         self._configuration = configuration
         self._resource_attributes = self._configuration.get("resource.attributes")
@@ -181,7 +182,7 @@ class AbstractEvents(ABC):
                             )
                 except Exception:  # pylint: disable=broad-except
                     pass
-                ExportStatsCollector.add_delivered(self._api_event_type, events_delivered)
+                self._record_delivered(_payload_list, events_delivered)
             else:
                 _log_warning(response, _payload_list, self._api_event_type)
 
@@ -226,6 +227,21 @@ class AbstractEvents(ABC):
             OtelManager.verify_communication()
 
         return events_count, _payload_to_repeat
+
+    def _record_delivered(self, events: List[Dict[str, Any]], delivered: int) -> None:
+        """Records delivered events for the plugin runs that queued them, not for the plugin that is running now.
+
+        Args:
+            events (List[Dict[str, Any]]): Events of a request that Dynatrace accepted.
+            delivered (int):               How many of them were accepted. When Dynatrace rejected some events without saying which,
+                                           the rejected ones are assumed to be the last ones.
+        """
+        per_run: Dict[Tuple[str, Optional[str]], int] = {}
+        for event in events[: max(0, delivered)]:
+            attribution = getattr(self, "_event_attribution", {}).get(id(event)) or ExportStatsCollector.get_attribution()
+            per_run[attribution] = per_run.get(attribution, 0) + 1
+        for attribution, count in per_run.items():
+            ExportStatsCollector.add_delivered(self._api_event_type, count, attribution)
 
     def _split_payload(self, payload: List[Dict[str, Any]]) -> Generator[List[Dict[str, Any]], None, None]:
         """Enables to iterate over "ingestible" chunks of events payload
@@ -276,9 +292,12 @@ class AbstractEvents(ABC):
         events_count = 0
 
         if payload is not None:
-            # events are counted as attempted once, when they are enqueued - events kept for resend are not counted again
-            ExportStatsCollector.add_attempted(self._api_event_type, len(payload))
+            # events are counted as attempted once, when they are enqueued - events kept for resend are not counted again;
+            # the plugin run is remembered per event, as events that failed to be sent can be delivered while a later plugin is running
+            attribution = ExportStatsCollector.get_attribution()
+            ExportStatsCollector.add_attempted(self._api_event_type, len(payload), attribution)
             for event in payload:
+                self.__dict__.setdefault("_event_attribution", {})[id(event)] = attribution
                 self.PAYLOAD_CACHE.append(event)
                 self._cache_byte_estimate += len(json.dumps(event, default=str))
 
@@ -289,6 +308,10 @@ class AbstractEvents(ABC):
                 events_count += events_sent
                 collected_events_failed_to_send += events_failed_to_send
             self.PAYLOAD_CACHE = collected_events_failed_to_send
+            kept = {id(event) for event in self.PAYLOAD_CACHE}  # forgetting events that were delivered (or dropped)
+            self._event_attribution = {
+                event_id: attr for event_id, attr in getattr(self, "_event_attribution", {}).items() if event_id in kept
+            }
             self._cache_byte_estimate = sum(len(json.dumps(e, default=str)) for e in self.PAYLOAD_CACHE)
 
         return events_count

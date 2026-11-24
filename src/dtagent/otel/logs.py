@@ -96,8 +96,10 @@ class Logs:
 
             def export(self, batch):
                 """Exports the batch and records how many log records were attempted and delivered."""
+                OtelManager.record_export_attempt("logs", len(batch))  # before exporting: an exception must not hide the attempt
                 result = super().export(batch)
-                OtelManager.record_export("logs", len(batch), result.name == "SUCCESS", self._session)
+                if result.name == "SUCCESS":
+                    OtelManager.record_export_delivered("logs", len(batch), self._session)
                 return result
 
         self._otel_logger_provider = LoggerProvider(resource=resource)
