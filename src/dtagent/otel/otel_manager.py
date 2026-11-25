@@ -26,7 +26,8 @@
 #
 ##endregion COMPILE_REMOVE
 
-from typing import Optional
+import re
+from typing import Dict, Optional
 
 import requests
 from dtagent.otel import _log_warning, USER_AGENT
@@ -35,6 +36,25 @@ from dtagent.otel.export_stats import ExportStatsCollector, Attribution
 
 ##region ------------------------ OTEL base class---------------------------------
 
+_UNSAFE_CHARS_RE = re.compile(r"[\r\n\x00-\x1f\x7f;]")
+MAX_USER_AGENT_LENGTH = 64  # the self-monitoring side truncates the User-Agent beyond this many characters
+MAX_REPORT_ENVIRONMENT_LENGTH = 16  # keeps the segments of a report within MAX_USER_AGENT_LENGTH
+USER_AGENT_REPORT_PAYLOAD = ""  # empty on purpose: the endpoint answers 400, but the User-Agent of the request is routed all the same
+
+
+def _sanitize_ua_segment(value: Optional[str]) -> Optional[str]:
+    """Strips control characters, CR/LF and the ``;`` separator from a User-Agent segment value (header injection guard).
+
+    Args:
+        value (Optional[str]): Raw segment value, may be None or empty.
+
+    Returns:
+        Optional[str]: Sanitized value, or None when blank after stripping.
+    """
+    if not value:
+        return None
+    return _UNSAFE_CHARS_RE.sub("", str(value)).strip() or None
+
 
 class OtelManager:
     """Class containing methods managing the failures of otel modules"""
@@ -42,6 +62,8 @@ class OtelManager:
     _max_consecutive_fails: int = 0
     _consecutive_fail_count: int = 0
     _to_abort: bool = False
+    _run_environment: Optional[str] = None
+    _current_plugin: Optional[str] = None
     _last_response: requests.Response
 
     @staticmethod
@@ -127,9 +149,132 @@ class OtelManager:
         ExportStatsCollector.add_delivered(signal, max(0, records - rejected), attribution)
 
     @staticmethod
-    def get_dsoa_headers() -> dict:
-        """Returns headers required for DSOA to DT communication"""
-        return {"User-Agent": USER_AGENT, "X-Dynatrace-Attr": "dt.ingest.origin=snowflake-dsoa"}
+    def set_run_environment(deployment_environment: Optional[str]) -> None:
+        """Stores the deployment environment for inclusion in the User-Agent (``env=`` segment).
+
+        Args:
+            deployment_environment (Optional[str]): Value of core.deployment_environment from the configuration.
+        """
+        OtelManager._run_environment = _sanitize_ua_segment(deployment_environment)
+
+    @staticmethod
+    def set_current_plugin(plugin_name: Optional[str]) -> None:
+        """Stores the name of the plugin that is running for inclusion in the User-Agent (``plugin=`` segment).
+
+        Args:
+            plugin_name (Optional[str]): Name of the plugin about to execute; ``None`` clears it.
+        """
+        OtelManager._current_plugin = _sanitize_ua_segment(plugin_name)
+
+    @staticmethod
+    def build_user_agent(segments: Optional[Dict[str, object]] = None, report: bool = False, shrink_key: Optional[str] = None) -> str:
+        """Builds the User-Agent ``dsoa/{version};env={env};plugin={plugin};{segments}`` of at most ``MAX_USER_AGENT_LENGTH`` characters.
+
+        Parts are added by importance - version, plugin, environment, then the given segments in the given order - and a part that
+        does not fit is dropped (an environment name is truncated instead), so the limit is never exceeded.  Segment keys and values
+        are sanitized; blank ones are skipped.
+
+        Args:
+            segments (Optional[Dict[str, object]]): Extra ``key=value`` segments, the most important first.
+            report (bool):                          Build the User-Agent of a report request: it has no ``plugin`` segment (the report
+                                                    type says what it is) and the environment is cut to ``MAX_REPORT_ENVIRONMENT_LENGTH``.
+            shrink_key (Optional[str]):             Key of a segment whose value (e.g. a task name) is shortened, if necessary, so
+                                                    that all the other segments fit; it is dropped if not even one character fits.
+
+        Returns:
+            str: the User-Agent value
+        """
+        plugin = f";plugin={OtelManager._current_plugin}" if OtelManager._current_plugin and not report else ""
+        if len(USER_AGENT) + len(plugin) > MAX_USER_AGENT_LENGTH:
+            plugin = ""
+
+        environment = ""
+        if OtelManager._run_environment:
+            prefix = ";env="
+            room = min(
+                MAX_USER_AGENT_LENGTH - len(USER_AGENT) - len(plugin) - len(prefix),
+                MAX_REPORT_ENVIRONMENT_LENGTH if report else MAX_USER_AGENT_LENGTH,
+            )
+            if room > 0:
+                environment = prefix + OtelManager._run_environment[:room]
+
+        user_agent = f"{USER_AGENT}{environment}{plugin}"
+
+        cleaned = [(_sanitize_ua_segment(key), _sanitize_ua_segment(value)) for key, value in (segments or {}).items()]
+        cleaned = [(key, value) for key, value in cleaned if key and value]
+        if shrink_key:
+            others = sum(len(key) + len(value) + 2 for key, value in cleaned if key != shrink_key)
+            room = MAX_USER_AGENT_LENGTH - len(user_agent) - others - len(shrink_key) - 2
+            cleaned = [(key, value[: max(room, 0)] if key == shrink_key else value) for key, value in cleaned]
+            cleaned = [(key, value) for key, value in cleaned if value]
+
+        for key, value in cleaned:
+            if len(user_agent) + len(key) + len(value) + 2 <= MAX_USER_AGENT_LENGTH:
+                user_agent = f"{user_agent};{key}={value}"
+        return user_agent
+
+    @staticmethod
+    def get_dsoa_headers(segments: Optional[Dict[str, object]] = None, report: bool = False, shrink_key: Optional[str] = None) -> dict:
+        """Returns headers required for DSOA to DT communication.
+
+        Falls back to the bare version on any error, so building the User-Agent can never break ingestion.
+
+        Args:
+            segments (Optional[Dict[str, object]]): Extra User-Agent segments, see :meth:`build_user_agent`.
+            report (bool):                          Headers of a report request, see :meth:`build_user_agent`.
+            shrink_key (Optional[str]):             Segment to shorten if necessary, see :meth:`build_user_agent`.
+        """
+        try:
+            user_agent = OtelManager.build_user_agent(segments, report, shrink_key)
+        except Exception:  # pylint: disable=broad-except
+            user_agent = USER_AGENT
+        return {"User-Agent": user_agent, "X-Dynatrace-Attr": "dt.ingest.origin=snowflake-dsoa"}
+
+    @staticmethod
+    def send_user_agent_report(
+        url: str, token: str, segments: Dict[str, object], timeout: int = 10, shrink_key: Optional[str] = None
+    ) -> bool:
+        """Sends a minimal request whose only purpose is to carry the given segments in its User-Agent (routed to the self-monitoring tenant).
+
+        The request is independent of the exporters: it is not counted in the export statistics or the failure counter,
+        and a failure never raises.  Only the User-Agent matters, so the status of the response does not: the (empty) body is rejected
+        by the endpoint, which does not keep the User-Agent from being routed.
+
+        Args:
+            url (str):                              Metrics ingest URL.
+            token (str):                            Dynatrace API token.
+            segments (Dict[str, object]):           User-Agent segments to report, see :meth:`build_user_agent`.
+            timeout (int):                          Request timeout in seconds.
+            shrink_key (Optional[str]):             Segment to shorten if necessary, see :meth:`build_user_agent`.
+
+        Returns:
+            bool: ``True`` if the request was sent and answered (with any status), ``False`` if it could not be sent
+        """
+        from dtagent import LOG  # COMPILE_REMOVE
+
+        try:
+            response = requests.post(
+                url,
+                headers={"Authorization": f"Api-Token {token}", "Content-Type": "text/plain"}
+                | OtelManager.get_dsoa_headers(segments, report=True, shrink_key=shrink_key),
+                data=USER_AGENT_REPORT_PAYLOAD,
+                timeout=timeout,
+            )
+            LOG.debug("User-Agent report sent, response: %s", response.status_code)
+            return True
+        except requests.RequestException as e:
+            LOG.warning("Unable to send the User-Agent report: %s", e)
+            return False
+
+
+class SessionUserAgentMixin:
+    """Mixin for exporters holding a ``requests.Session`` in ``_session``, to refresh its User-Agent before each export."""
+
+    def refresh_user_agent(self) -> None:
+        """Updates the HTTP session headers with the current dynamic User-Agent."""
+        session = getattr(self, "_session", None)
+        if session is not None:
+            session.headers.update(OtelManager.get_dsoa_headers())
 
 
 class CustomLoggingSession(requests.Session):

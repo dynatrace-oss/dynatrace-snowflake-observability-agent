@@ -28,6 +28,7 @@
 import gc
 from dtagent import AbstractDynatraceSnowAgentConnector
 from dtagent.otel.export_stats import ExportStatsCollector
+from dtagent.otel.otel_manager import OtelManager
 
 from dtagent.config import Configuration
 from dtagent.util import get_now_timestamp_formatted, is_regular_mode
@@ -204,6 +205,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
 
         exec_id = self.__context[RUN_ID_KEY]
         ExportStatsCollector.set_plugin(self._plugin_name, exec_id)  # custom telemetry is part of the export statistics too
+        OtelManager.set_current_plugin(self._plugin_name)  # the plugin is reported in the User-Agent of every request
 
         if is_regular_mode(self._session):
             self._session.query_tag = json.dumps({RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: self.__context_name, RUN_ID_KEY: exec_id})

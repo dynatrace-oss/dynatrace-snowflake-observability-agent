@@ -517,6 +517,30 @@ it whenever the apikey is (re)deployed means the token is verified right when it
 need it. It is gated by the same `SEND_BIZEVENTS_ON_DEPLOY` flag, and a failed send is caught and
 reported without failing the deployment.
 
+### Heartbeat summary in the User-Agent
+
+`OtelManager.build_user_agent()` builds the `User-Agent` of every request to Dynatrace as
+`dsoa/<version>;env=<deployment environment>;plugin=<running plugin>[;<segments>]`. The logs and spans exporters refresh it before each
+export; metrics and events build it per request. Segments are sanitized (control characters and `;` removed), and the whole value is limited to
+`MAX_USER_AGENT_LENGTH` (64) characters, as the self-monitoring side cuts it there: version, plugin, environment (truncated if needed) and then
+the segments are added by importance, and a segment that does not fit is dropped whole. Dynatrace routes the `User-Agent` content to the DSOA
+self-monitoring tenant, which the `heartbeat` plugin uses to report, unless `plugins.heartbeat.report_via_user_agent` is `false`.
+
+Such a limit is too short for the whole summary, so the plugin sends one small request per report with `OtelManager.send_user_agent_report()`.
+The request is separate from the exporters (own call to the metrics endpoint with an empty body, which it answers with `400` - only the `User-Agent` matters - not counted in the export statistics or the failure counter),
+so a rejected one cannot affect the plugin's telemetry. A report has no `plugin` segment and its environment is cut to
+`MAX_REPORT_ENVIRONMENT_LENGTH` (16) characters. Each report is complete on its own and is told apart by `hb`; the period it ends at is the time
+the request arrived at the tenant:
+
+- `hb=t` (`exp`, `ok`, `fail`) - expected, succeeded and failed task runs in the configured window.
+- `hb=l`, `s`, `m`, `e`, `d`, `b` (`exp`, `dlv`) - records of a signal (logs, spans, metrics, events, davis events, biz events) attempted and
+  delivered since the previous report.
+- `tk=<task>` (`exp`, `ok`) - task completion, one report per task: how many times it should have run (omitted if its schedule cannot be
+  evaluated) and how many times it succeeded. The task name (without `TASK_DTAGENT_`, lower case) is the segment shortened, if necessary, to keep
+  the counts within the limit (`shrink_key`). Tasks that are neither expected nor ran are skipped, and sending stops at the first report that cannot be sent (connection error or timeout), whatever the status of the responses.
+
+Task counts are window totals (take the latest report); export counts are deltas (sum them).
+
 ### Build Artifacts
 
 The build process creates staged SQL scripts in the `build/` directory:

@@ -29,7 +29,10 @@ import logging
 
 import pytest
 
-from dtagent.plugins.heartbeat import HeartbeatPlugin, _expected_runs
+from unittest.mock import Mock, patch
+
+from dtagent.otel.otel_manager import OtelManager
+from dtagent.plugins.heartbeat import HeartbeatPlugin, _build_user_agent_reports, _expected_runs
 
 UTC = datetime.timezone.utc
 NOW = datetime.datetime(2026, 11, 19, 12, 0, tzinfo=UTC)
@@ -261,10 +264,12 @@ class TestExportStatsReporting:
         plugin._log_entries = MagicMock(return_value=(entries, entries, entries, 0))
         plugin._report_results = MagicMock(return_value={})
         plugin._mark_export_stats_reported = MagicMock()
+        plugin._report_via_user_agent = MagicMock()
 
         plugin.process("run1", run_proc=run_proc, contexts=["heartbeat_exports"])
 
         assert plugin._mark_export_stats_reported.called is marked
+        plugin._report_via_user_agent.assert_called_once_with()  # reported before the stats are marked as reported
 
     def test_delivery_confirmed_requires_every_attempted_signal_to_deliver(self):
         from dtagent.otel.export_stats import ExportStatsCollector
@@ -277,3 +282,153 @@ class TestExportStatsReporting:
         ExportStatsCollector.add_delivered("metrics", 1)  # partially rejected: the endpoint was reachable
         assert ExportStatsCollector.delivery_confirmed("run1") is True
         assert ExportStatsCollector.delivery_confirmed("other run") is False
+
+
+class TestUserAgentSummary:
+    """Aggregation of the heartbeat rows into the User-Agent summary, and its delivery."""
+
+    @staticmethod
+    def _aggregating_plugin() -> HeartbeatPlugin:
+        plugin = _plugin()
+        plugin._ua_tasks, plugin._ua_exports, plugin._ua_task_runs = {}, {}, {}
+        return plugin
+
+    def test_summary_aggregates_tasks_and_exports(self):
+        """Summary aggregates tasks and exports."""
+        plugin = self._aggregating_plugin()
+        for succeeded, failed, expected in ((10, 1, 12), (3, 0, 3)):
+            plugin._aggregate_tasks(
+                _row(
+                    {"dsoa.heartbeat.window_hours": 24},
+                    {
+                        "dsoa.heartbeat.runs.succeeded": succeeded,
+                        "dsoa.heartbeat.runs.failed": failed,
+                        "dsoa.heartbeat.expected_runs": expected,
+                    },
+                )
+            )
+        for plugin_name, attempted, delivered in (("a", 100, 99), ("b", 50, 50)):
+            row = _row({}, {"dsoa.heartbeat.export.attempted": attempted, "dsoa.heartbeat.export.delivered": delivered})
+            row["DIMENSIONS"] = {"dsoa.export.plugin": plugin_name, "dsoa.export.signal": "logs"}
+            plugin._aggregate_exports(row)
+
+        reports = _build_user_agent_reports(plugin._ua_tasks, plugin._ua_exports)
+
+        assert reports == [{"hb": "t", "exp": 15, "ok": 13, "fail": 1}, {"hb": "l", "exp": 150, "dlv": 149}]
+
+    def test_task_runs_are_aggregated_per_task(self):
+        """Task runs are aggregated per task, without the task prefix."""
+        plugin = self._aggregating_plugin()
+        for task, expected, succeeded in (("TASK_DTAGENT_QUERY_HISTORY", 48, 47), ("TASK_DTAGENT_TABLE_HEALTH_CLUSTERING", None, 3)):
+            metrics = {"dsoa.heartbeat.runs.succeeded": succeeded, "dsoa.heartbeat.runs.failed": 0}
+            if expected is not None:
+                metrics["dsoa.heartbeat.expected_runs"] = expected
+            row = _row({}, metrics)
+            row["DIMENSIONS"] = {"dsoa.heartbeat.task": task}
+            plugin._aggregate_tasks(row)
+
+        assert plugin._ua_task_runs == {
+            "query_history": {"succeeded": 47, "failed": 0, "expected": 48},
+            "table_health_clustering": {"succeeded": 3, "failed": 0},  # the schedule could not be evaluated: nothing is expected
+        }
+
+    def test_task_reports_have_expected_and_succeeded_runs(self):
+        """Task reports have expected and succeeded runs; tasks with nothing to report are skipped."""
+        task_runs = {
+            "query_history": {"expected": 48, "succeeded": 47, "failed": 1},
+            "snowpipes": {"succeeded": 3, "failed": 0},
+            "shares": {"expected": 0, "succeeded": 0, "failed": 0},  # disabled plugin
+            "users": {"expected": 0, "succeeded": 2, "failed": 0},  # not expected, but running
+        }
+        assert _build_user_agent_reports({}, {}, task_runs) == [
+            {"tk": "query_history", "exp": 48, "ok": 47},
+            {"tk": "snowpipes", "ok": 3},
+            {"tk": "users", "exp": 0, "ok": 2},
+        ]
+
+    def test_every_task_report_fits_the_user_agent(self):
+        """Every task report fits the user agent, with the counts intact."""
+        OtelManager.set_run_environment("PRODUCTION_EU_WEST_1_LONG_NAME")
+        runs = {"expected": 288, "succeeded": 287, "failed": 1}
+        for task in ("table_health_clustering", "table_health_snapshot", "snowpipes_history", "query_history"):
+            for report in _build_user_agent_reports({}, {}, {task: runs}):
+                ua = OtelManager.build_user_agent(report, report=True, shrink_key="tk")
+                assert len(ua) <= 64 and ua.endswith(";exp=288;ok=287"), ua
+        OtelManager.set_run_environment(None)
+
+    def test_rejected_reports_do_not_stop_the_sending(self):
+        """Every report is posted although the endpoint rejects them all (400 on the empty body), only the User-Agent matters."""
+        plugin = self._reporting_plugin()
+        plugin._ua_task_runs = {"query_history": {"expected": 4, "succeeded": 3, "failed": 1}}
+        with patch("dtagent.otel.otel_manager.requests.post", return_value=Mock(status_code=400, text="")) as post:
+            plugin._report_via_user_agent()
+        sent = [call.kwargs["headers"]["User-Agent"] for call in post.call_args_list]
+        assert [";hb=t;" in sent[0], ";hb=l;" in sent[1], ";tk=query_history;" in sent[2]] == [True, True, True] and len(sent) == 3
+
+    def test_sending_stops_after_the_first_rejected_report(self):
+        """Sending stops after the first report that could not be sent."""
+        plugin = self._reporting_plugin()
+        plugin._ua_task_runs = {"query_history": {"expected": 4, "succeeded": 3, "failed": 1}}
+        with patch("dtagent.plugins.heartbeat.OtelManager.send_user_agent_report", return_value=False) as send:
+            plugin._report_via_user_agent()
+        assert send.call_count == 1
+
+    def test_no_task_rows_give_no_task_report(self):
+        """No task rows give no task report."""
+        assert _build_user_agent_reports({}, {"metrics": {"attempted": 2, "delivered": 2}}) == [{"hb": "m", "exp": 2, "dlv": 2}]
+
+    def test_every_report_fits_the_user_agent(self):
+        """Every report fits the user agent of a realistic instance with large counts."""
+        OtelManager.set_run_environment("PRODUCTION_EU_WEST_1_LONG_NAME")
+        OtelManager.set_current_plugin("heartbeat")
+        exports = {
+            signal: {"attempted": 12345678, "delivered": 12345678}
+            for signal in ("logs", "spans", "metrics", "events", "davis_events", "biz_events")
+        }
+        reports = _build_user_agent_reports({"expected": 10000, "succeeded": 9999, "failed": 1}, exports)
+        assert len(reports) == 7
+        for report in reports:
+            ua = OtelManager.build_user_agent(report, report=True)
+            assert len(ua) <= 64
+            assert all(f"{key}={value}" in ua for key, value in report.items()), ua
+        OtelManager.set_run_environment(None)
+        OtelManager.set_current_plugin(None)
+
+    def _reporting_plugin(self, enabled: bool = True):
+        plugin = self._aggregating_plugin()
+        plugin._ua_tasks = {"expected": 4, "succeeded": 3, "failed": 1}
+        plugin._ua_exports = {"logs": {"attempted": 5, "delivered": 5}}
+        plugin._configuration = Mock()
+        plugin._configuration.get.side_effect = lambda key, **kwargs: enabled if key == "report_via_user_agent" else key
+        return plugin
+
+    def test_one_request_per_report_through_the_dedicated_sender(self):
+        """One request per report through the dedicated sender."""
+        plugin = self._reporting_plugin()
+        with patch("dtagent.plugins.heartbeat.OtelManager.send_user_agent_report", return_value=True) as send:
+            plugin._report_via_user_agent()
+        assert [call.args[2]["hb"] for call in send.call_args_list] == ["t", "l"]
+        assert all(call.kwargs["shrink_key"] == "tk" for call in send.call_args_list)
+        assert send.call_args_list[0].args[:2] == ("metrics.http", "dt.token")
+
+    def test_the_number_of_sent_reports_is_logged(self):
+        """The number of sent reports is logged, to see what the heartbeat reported."""
+        plugin = self._reporting_plugin()
+        plugin._ua_task_runs = {"query_history": {"expected": 4, "succeeded": 3, "failed": 1}, "shares": {"expected": 0, "succeeded": 0}}
+        with patch("dtagent.plugins.heartbeat.OtelManager.send_user_agent_report", return_value=True), patch("dtagent.LOG") as log:
+            plugin._report_via_user_agent()
+        args = log.info.call_args.args
+        assert args[1:] == (3, 3, 1, 1, 1, 2)  # sent, built, overview, signals, tasks sent, tasks known (shares has nothing to report)
+
+    def test_opt_out_sends_nothing(self):
+        """Opt out sends nothing."""
+        plugin = self._reporting_plugin(enabled=False)
+        with patch("dtagent.plugins.heartbeat.OtelManager.send_user_agent_report") as send:
+            plugin._report_via_user_agent()
+        send.assert_not_called()
+
+    def test_sender_failure_is_swallowed(self):
+        """Sender failure is swallowed."""
+        plugin = self._reporting_plugin()
+        with patch("dtagent.plugins.heartbeat.OtelManager.send_user_agent_report", side_effect=RuntimeError("boom")):
+            plugin._report_via_user_agent()  # must not raise

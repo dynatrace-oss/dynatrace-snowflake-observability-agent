@@ -31,7 +31,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider, Tracer
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from dtagent.otel import logs
-from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
+from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager, SessionUserAgentMixin
 from dtagent.otel.export_stats import ExportStatsCollector
 from dtagent.otel.ingest_warnings import AcquisitionProblemCollector
 
@@ -136,7 +136,7 @@ class Spans:
             OTLPSpanExporter,
         )
 
-        class CustomUserAgentOTLPSpanExporter(OTLPSpanExporter):
+        class CustomUserAgentOTLPSpanExporter(SessionUserAgentMixin, OTLPSpanExporter):
             """Custom OTLP Span Exporter that sets a custom User-Agent header."""
 
             def __init__(self, *args, **kwargs):
@@ -145,6 +145,7 @@ class Spans:
 
             def export(self, spans):
                 """Exports the spans and records how many were attempted and delivered."""
+                self.refresh_user_agent()  # plugin / heartbeat summary may have changed since the exporter was created
                 # attribution is captured once, before exporting: the export runs in a background thread and can finish after
                 # the next plugin started, yet both counters must land in the same row; an exception must not hide the attempt
                 attribution = ExportStatsCollector.get_attribution()

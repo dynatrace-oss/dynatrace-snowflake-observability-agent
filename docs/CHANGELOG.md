@@ -21,6 +21,10 @@ Adds the `croniter` package to the agent procedure.
 
 The agent now records, per plugin and signal (`logs`, `spans`, `metrics`, `events`, `davis_events`, `biz_events`), how many records it attempted to send to Dynatrace and how many Dynatrace accepted. The numbers are persisted in the new `STATUS.EXPORT_STATS` table (created by the upgrade script, 30 days of history by default) and reported by the `heartbeat` plugin in the new `heartbeat_exports` context as the metrics `dsoa.heartbeat.export.attempted` and `dsoa.heartbeat.export.delivered`, so `delivered / attempted` gives an export success rate per plugin and signal on the tenant. Statistics that a failed or missed heartbeat did not report are reported by the next one. Custom telemetry sent with `SEND_TELEMETRY` is included. Disable via `plugins.self_monitoring.export_stats_enabled: false`; change the retention via `plugins.self_monitoring.export_stats_retention_days`.
 
+### Added — heartbeat summary in the User-Agent
+
+Every request to Dynatrace now carries a dynamic `User-Agent` of the form `dsoa/<version>;env=<deployment environment>;plugin=<plugin>`, limited to 64 characters (the self-monitoring side cuts it there). The `heartbeat` plugin additionally sends small dedicated requests whose `User-Agent` carries its summary to the DSOA self-monitoring tenant: one report for task runs (`hb=t`: `exp`ected, `ok` and `fail`ed runs in the configured window) one per signal (`hb=l|s|m|e|d|b`: records attempted `exp` and delivered `dlv` since the previous report) and one per task (`tk=<task>`: how many times the task should have run, `exp`, and how many times it succeeded, `ok`). Disable via `plugins.heartbeat.report_via_user_agent: false`.
+
 ### Added — self-monitoring run timestamps
 
 The `New entry to STATUS.LOG_PROCESSED_MEASUREMENTS` self-monitoring log now carries `dsoa.run.first_timestamp` (the smallest timestamp processed in the execution) and `dsoa.run.last_timestamp` (the timestamp recorded as the new watermark). Either is omitted when the plugin has no data timestamp.

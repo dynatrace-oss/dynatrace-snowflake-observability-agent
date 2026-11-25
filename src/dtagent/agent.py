@@ -27,6 +27,7 @@
 #
 from dtagent import AbstractDynatraceSnowAgentConnector
 from dtagent.otel.export_stats import ExportStatsCollector
+from dtagent.otel.otel_manager import OtelManager
 from dtagent.version import VERSION
 from dtagent.util import is_regular_mode
 
@@ -149,6 +150,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
             c_source = _get_plugin_class(plugin_name)
             run_id = str(uuid.uuid4().hex)
             ExportStatsCollector.set_plugin(plugin_name, run_id)  # export statistics are attributed to the plugin that is running
+            OtelManager.set_current_plugin(plugin_name)  # the plugin is reported in the User-Agent of every request
 
             if inspect.isclass(c_source) and contexts:
                 known_contexts = getattr(c_source, "PLUGIN_CONTEXTS", ())

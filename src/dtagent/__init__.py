@@ -177,6 +177,7 @@ class AbstractDynatraceSnowAgentConnector:
 
     def _set_max_consecutive_fails(self):
         OtelManager.set_max_fail_count(self._configuration.get("max_consecutive_api_fails", context="otel", default_value=10))
+        OtelManager.set_run_environment(self._configuration.get("resource.attributes").get("deployment.environment"))
 
     def _emit_ingest_warnings(self, plugin_name: str, run_id: str) -> None:
         """Emits ingest-quality warning bizevents collected during a plugin run, then resets the collector.

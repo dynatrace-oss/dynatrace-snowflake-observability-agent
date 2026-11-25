@@ -956,6 +956,30 @@ timeseries {
 | fieldsAdd success_rate_pct = 100 * delivered[] / attempted[]
 ```
 
+## Heartbeat summary in the User-Agent
+
+Unless `plugins.heartbeat.report_via_user_agent` is `false`, the plugin also reports a summary in the `User-Agent` of small dedicated
+requests to Dynatrace (empty requests to the metrics endpoint, which answers `400`; only their `User-Agent` matters, and it is routed all
+the same; they are separate from the plugin's own telemetry), which is routed to the DSOA self-monitoring tenant. The `User-Agent` is cut to
+64 characters there, so there is one request per report and each report is complete on its own: filter by `hb` and add up. A report has no
+`plugin` segment and its environment is cut to 16 characters; the time of the report is the time the request arrived.
+
+```text
+dsoa/1.0.0;env=PROD;hb=t;exp=48;ok=47;fail=1
+dsoa/1.0.0;env=PROD;hb=l;exp=1200;dlv=1198
+dsoa/1.0.0;env=PROD;tk=query_history;exp=48;ok=47
+```
+
+- `hb=t` - task runs: `exp` expected, `ok` succeeded and `fail` failed runs in the configured window (`plugins.heartbeat.window_hours`;
+  window total: use the latest report).
+- `hb=l|s|m|e|d|b` - records of a signal (logs, spans, metrics, events, davis events, biz events): `exp` attempted and `dlv` delivered since
+  the previous report (delta: sum the reports).
+- `tk=<task>` - task completion, one report per task: `exp` how many times the task should have run (left out when its schedule cannot be
+  evaluated) and `ok` how many times it succeeded in the configured window (window total: use the latest report). The task name is the name
+  of the task without the `TASK_DTAGENT_` prefix, in lower case, and is shortened, when necessary, so that the counts fit. Tasks that are
+  neither expected to run nor ran are not reported. The reports are sent one after another, and sending stops at the first one that cannot
+  be sent (connection error or timeout); the status of the response does not matter.
+
 [Show semantics for this plugin](SEMANTICS.md#heartbeat_semantics_sec)
 
 ### Heartbeat default configuration
@@ -971,17 +995,19 @@ plugins:
     schedule: USING CRON 0 6 * * * UTC
     window_hours: 24
     is_disabled: false
+    report_via_user_agent: true
     telemetry:
       - metrics
       - logs
 ```
 
-| Key                              | Type   | Default                    | Description                                                                                                                                         |
-| -------------------------------- | ------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugins.heartbeat.window_hours` | int    | `24`                       | Length (in hours) of the rolling window, ending at the heartbeat run, over which expected and actual task runs are compared.                        |
-| `plugins.heartbeat.schedule`     | string | `USING CRON 0 6 * * * UTC` | Cron schedule for the heartbeat task. With the default window, a daily run covers the previous 24 hours; keep the window in line with the schedule. |
-| `plugins.heartbeat.is_disabled`  | bool   | `false`                    | Set to `true` to disable this plugin entirely.                                                                                                      |
-| `plugins.heartbeat.telemetry`    | list   | `["metrics", "logs"]`      | Telemetry types to emit. Remove items to suppress specific output types.                                                                            |
+| Key                                       | Type   | Default                    | Description                                                                                                                                                                                                                        |
+| ----------------------------------------- | ------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.heartbeat.window_hours`          | int    | `24`                       | Length (in hours) of the rolling window, ending at the heartbeat run, over which expected and actual task runs are compared.                                                                                                       |
+| `plugins.heartbeat.schedule`              | string | `USING CRON 0 6 * * * UTC` | Cron schedule for the heartbeat task. With the default window, a daily run covers the previous 24 hours; keep the window in line with the schedule.                                                                                |
+| `plugins.heartbeat.report_via_user_agent` | bool   | `true`                     | Report the heartbeat summary (expected and delivered records per signal, expected and successful task runs) also in the `User-Agent` of small dedicated requests to Dynatrace, which is routed to the DSOA self-monitoring tenant. |
+| `plugins.heartbeat.is_disabled`           | bool   | `false`                    | Set to `true` to disable this plugin entirely.                                                                                                                                                                                     |
+| `plugins.heartbeat.telemetry`             | list   | `["metrics", "logs"]`      | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                           |
 
 > **Note:** `TASK_HISTORY()` is queried with a result limit of 10,000 rows. On accounts where the agent tasks together run more often than
 > that within the window, the counts are truncated; shorten `window_hours` in that case.

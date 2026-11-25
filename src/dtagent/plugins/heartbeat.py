@@ -34,6 +34,7 @@ from zoneinfo import ZoneInfo, available_timezones
 from croniter import croniter
 from dtagent.plugins import Plugin
 from dtagent.otel.export_stats import ExportStatsCollector
+from dtagent.otel.otel_manager import OtelManager
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
@@ -134,6 +135,48 @@ def _expected_runs(schedule: Optional[str], window_hours: float, now: Optional[d
     return _expected_cron_runs(schedule, window_hours, now)
 
 
+_SIGNAL_CODES = {"logs": "l", "spans": "s", "metrics": "m", "events": "e", "davis_events": "d", "biz_events": "b"}
+
+
+_TASK_PREFIX = "TASK_DTAGENT_"
+_TASK_KEY = "tk"  # User-Agent segment holding the task name: the one shortened when a report is too long
+
+
+def _build_user_agent_reports(
+    tasks: Dict[str, int], exports: Dict[str, Dict[str, int]], task_runs: Optional[Dict[str, Dict[str, int]]] = None
+) -> List[Dict[str, Any]]:
+    """Builds the User-Agent reports of a heartbeat: one for the task runs and one per signal, each complete on its own.
+
+    The User-Agent is very short, so the summary cannot be sent at once; every report carries its type (``hb``) and needs
+    no other report to be understood, so the tenant just filters them by type and adds them up.  The period a report ends at is the time the
+    request arrived at the tenant.
+
+    * ``hb=t``: ``exp`` / ``ok`` / ``fail`` - expected, succeeded and failed task runs in the configured window (window total)
+    * ``hb=<l|s|m|e|d|b>``: ``exp`` / ``dlv`` - records attempted / delivered for the signal since the previous report
+    * ``tk=<task>``: ``exp`` / ``ok`` - how many times the task should have run and how many times it succeeded in the configured window
+      (``exp`` is left out when the schedule of the task cannot be evaluated); the task name is shortened when the report would be too long
+
+    Args:
+        tasks (Dict[str, int]): task run totals, keys ``expected``, ``succeeded`` and ``failed``; empty if no task rows were read
+        exports (Dict[str, Dict[str, int]]): ``attempted`` and ``delivered`` totals per signal
+        task_runs (Optional[Dict[str, Dict[str, int]]]): ``expected`` (optional), ``succeeded`` and ``failed`` runs per task name
+
+    Returns:
+        List[Dict[str, Any]]: User-Agent segments of each report
+    """
+    reports: List[Dict[str, Any]] = []
+    if tasks:
+        reports.append({"hb": "t", "exp": tasks.get("expected", 0), "ok": tasks.get("succeeded", 0), "fail": tasks.get("failed", 0)})
+    for signal, counts in sorted(exports.items()):
+        reports.append({"hb": _SIGNAL_CODES.get(signal, signal), "exp": counts.get("attempted", 0), "dlv": counts.get("delivered", 0)})
+    for task, runs in sorted((task_runs or {}).items()):
+        if not runs.get("expected") and not runs.get("succeeded") and not runs.get("failed"):
+            continue  # a task that is neither expected to run nor ran (e.g. of a disabled plugin) has nothing to report
+        report: Dict[str, Any] = {_TASK_KEY: task, "exp": runs.get("expected"), "ok": runs.get("succeeded", 0)}
+        reports.append({key: value for key, value in report.items() if value is not None})
+    return reports
+
+
 def _as_dict(value: Any) -> Dict:
     """Returns a dict from a dict or a JSON string; anything else gives an empty dict"""
     if isinstance(value, dict):
@@ -156,6 +199,11 @@ class HeartbeatPlugin(Plugin):
     # cut-off up to which the export statistics read by the current run report; they are marked as reported once delivered
     _export_stats_reported_until: Optional[str] = None
 
+    # what the current run reports, aggregated while the rows are processed, to be sent in the User-Agent
+    _ua_tasks: Dict[str, int] = {}
+    _ua_exports: Dict[str, Dict[str, int]] = {}
+    _ua_task_runs: Dict[str, Dict[str, int]] = {}
+
     def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
         """Adds the cron/interval based expected_runs to rows delivered by APP.F_HEARTBEAT_INSTRUMENTED();
         rows of the export statistics (APP.F_HEARTBEAT_EXPORTS_INSTRUMENTED()) are passed through as they are,
@@ -163,13 +211,79 @@ class HeartbeatPlugin(Plugin):
         """
         for row_dict in super()._get_table_rows(t_data):
             if t_data == _T_HEARTBEAT:
-                yield self._add_expected_runs(row_dict)
+                row_dict = self._add_expected_runs(row_dict)
+                self._aggregate_tasks(row_dict)
+                yield row_dict
                 continue
             if t_data == _T_HEARTBEAT_EXPORTS:
                 until = _as_dict(row_dict.get("ATTRIBUTES")).get("dsoa.heartbeat.export.reported_until")
                 if until:
                     self._export_stats_reported_until = until
+                self._aggregate_exports(row_dict)
             yield row_dict
+
+    def _aggregate_tasks(self, row_dict: Dict) -> None:
+        """Adds the expected, succeeded and failed runs of a heartbeat row to the totals reported in the User-Agent"""
+        metrics = _as_dict(row_dict.get("METRICS"))
+        for total, metric in (
+            ("expected", "dsoa.heartbeat.expected_runs"),
+            ("succeeded", "dsoa.heartbeat.runs.succeeded"),
+            ("failed", "dsoa.heartbeat.runs.failed"),
+        ):
+            self._ua_tasks[total] = self._ua_tasks.get(total, 0) + int(metrics.get(metric) or 0)
+
+        task = _as_dict(row_dict.get("DIMENSIONS")).get("dsoa.heartbeat.task")
+        if task:
+            runs = {
+                "succeeded": int(metrics.get("dsoa.heartbeat.runs.succeeded") or 0),
+                "failed": int(metrics.get("dsoa.heartbeat.runs.failed") or 0),
+            }
+            if metrics.get("dsoa.heartbeat.expected_runs") is not None:
+                runs["expected"] = int(metrics["dsoa.heartbeat.expected_runs"])
+            self._ua_task_runs[str(task).removeprefix(_TASK_PREFIX).lower()] = runs
+
+    def _aggregate_exports(self, row_dict: Dict) -> None:
+        """Adds the attempted and delivered records of an export statistics row to the per-signal totals reported in the User-Agent"""
+        metrics = _as_dict(row_dict.get("METRICS"))
+        signal = _as_dict(row_dict.get("DIMENSIONS")).get("dsoa.export.signal")
+        if not signal:
+            return
+        counts = self._ua_exports.setdefault(signal, {"attempted": 0, "delivered": 0})
+        counts["attempted"] += int(metrics.get("dsoa.heartbeat.export.attempted") or 0)
+        counts["delivered"] += int(metrics.get("dsoa.heartbeat.export.delivered") or 0)
+
+    def _report_via_user_agent(self) -> None:
+        """Sends the heartbeat summary to the self-monitoring tenant in the User-Agent of dedicated requests, unless this was turned off.
+
+        The User-Agent is too short for the whole summary, so one small, independent request is sent per report (see
+        ``_build_user_agent_reports``).  The requests are separate from the exporters, so a rejected one cannot affect the telemetry
+        of the heartbeat.  Failures are logged and swallowed.
+        """
+        from dtagent import LOG  # COMPILE_REMOVE
+
+        if not self._configuration.get("report_via_user_agent", plugin_name=self.PLUGIN_NAME, default_value=True):
+            return
+
+        url, token = self._configuration.get("metrics.http"), self._configuration.get("dt.token")
+        try:
+            reports = _build_user_agent_reports(self._ua_tasks, self._ua_exports, self._ua_task_runs)
+            sent = {"overview": 0, "signals": 0, "tasks": 0}
+            for report in reports:
+                if not OtelManager.send_user_agent_report(url, token, report, shrink_key=_TASK_KEY):
+                    LOG.warning("Heartbeat summary was not sent completely in the User-Agent: the remaining reports are skipped")
+                    break
+                sent["tasks" if _TASK_KEY in report else "overview" if report.get("hb") == "t" else "signals"] += 1
+            LOG.info(
+                "Heartbeat summary sent in the User-Agent: %d of %d report(s) (overview: %d, signals: %d, tasks: %d of %d known tasks)",
+                sum(sent.values()),
+                len(reports),
+                sent["overview"],
+                sent["signals"],
+                sent["tasks"],
+                len(self._ua_task_runs),
+            )
+        except Exception as e:  # pylint: disable=broad-except
+            LOG.warning("Unable to send the heartbeat summary in the User-Agent: %s", e)
 
     def _mark_export_stats_reported(self, run_id: str) -> None:
         """Marks the export statistics reported by this run in STATUS.EXPORT_STATS, so that the next heartbeat does not report them again.
@@ -268,6 +382,7 @@ class HeartbeatPlugin(Plugin):
         """
         results: Dict[str, Dict[str, int]] = {}
         self._export_stats_reported_until = None
+        self._ua_tasks, self._ua_exports, self._ua_task_runs = {}, {}, {}
 
         if not contexts or "heartbeat" in contexts:
             entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
@@ -296,8 +411,11 @@ class HeartbeatPlugin(Plugin):
                 "metrics": metrics_cnt,
                 "events": events_cnt,
             }
-            if run_proc and entries_cnt > 0:
-                self._mark_export_stats_reported(run_id)
+
+        self._report_via_user_agent()
+
+        if results.get("heartbeat_exports", {}).get("entries", 0) > 0 and run_proc:
+            self._mark_export_stats_reported(run_id)
 
         return self._report_results(results, run_id)
 

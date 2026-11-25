@@ -77,3 +77,25 @@ timeseries {
   by: { dsoa.export.plugin, dsoa.export.signal, deployment.environment.name }
 | fieldsAdd success_rate_pct = 100 * delivered[] / attempted[]
 ```
+
+## Heartbeat summary in the User-Agent
+
+Unless `plugins.heartbeat.report_via_user_agent` is `false`, the plugin also reports a summary in the `User-Agent` of small dedicated requests to
+Dynatrace (empty requests to the metrics endpoint, which answers `400`; only their `User-Agent` matters, and it is routed all the same; they are separate from the plugin's own telemetry), which is routed to the DSOA self-monitoring tenant. The
+`User-Agent` is cut to 64 characters there, so there is one request per report and each report is complete on its own: filter by `hb` and add up.
+A report has no `plugin` segment and its environment is cut to 16 characters; the time of the report is the time the request arrived.
+
+```text
+dsoa/1.0.0;env=PROD;hb=t;exp=48;ok=47;fail=1
+dsoa/1.0.0;env=PROD;hb=l;exp=1200;dlv=1198
+dsoa/1.0.0;env=PROD;tk=query_history;exp=48;ok=47
+```
+
+- `hb=t` - task runs: `exp` expected, `ok` succeeded and `fail` failed runs in the configured window (`plugins.heartbeat.window_hours`; window
+  total: use the latest report).
+- `hb=l|s|m|e|d|b` - records of a signal (logs, spans, metrics, events, davis events, biz events): `exp` attempted and `dlv` delivered since the
+  previous report (delta: sum the reports).
+- `tk=<task>` - task completion, one report per task: `exp` how many times the task should have run (left out when its schedule cannot be
+  evaluated) and `ok` how many times it succeeded in the configured window (window total: use the latest report). The task name is the name of
+  the task without the `TASK_DTAGENT_` prefix, in lower case, and is shortened, when necessary, so that the counts fit. Tasks that are neither
+  expected to run nor ran are not reported. The reports are sent one after another, and sending stops at the first one that cannot be sent (connection error or timeout); the status of the response does not matter.

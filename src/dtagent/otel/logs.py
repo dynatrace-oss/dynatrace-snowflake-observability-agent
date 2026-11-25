@@ -31,7 +31,7 @@ from opentelemetry._logs import SeverityNumber
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
 from dtagent.util import process_timestamps_for_telemetry
-from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
+from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager, SessionUserAgentMixin
 from dtagent.otel.export_stats import ExportStatsCollector
 
 ##endregion COMPILE_REMOVE
@@ -88,7 +88,7 @@ class Logs:
         from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
         from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 
-        class CustomUserAgentOTLPLogExporter(OTLPLogExporter):
+        class CustomUserAgentOTLPLogExporter(SessionUserAgentMixin, OTLPLogExporter):
             """Custom OTLP Log Exporter that sets a custom User-Agent header."""
 
             def __init__(self, *args, **kwargs):
@@ -97,6 +97,7 @@ class Logs:
 
             def export(self, batch):
                 """Exports the batch and records how many log records were attempted and delivered."""
+                self.refresh_user_agent()  # plugin / heartbeat summary may have changed since the exporter was created
                 # attribution is captured once, before exporting: the export runs in a background thread and can finish after
                 # the next plugin started, yet both counters must land in the same row; an exception must not hide the attempt
                 attribution = ExportStatsCollector.get_attribution()
