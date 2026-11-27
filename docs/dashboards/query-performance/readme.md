@@ -91,6 +91,29 @@ This advanced analysis:
 
 This proactive monitoring enables database teams to address performance issues before they impact users.
 
+### Data Volume Dependency
+
+The Advanced Analytics section depends on the presence of the **`snowflake.data.rows`** metric, which tracks the row count for each table over time. This metric is essential for correlating query performance with data volume growth.
+
+**Plugins that provide this metric:**
+
+- **Data Volume Plugin** - The primary source for `snowflake.data.rows` metrics. This plugin monitors table row counts and data storage metrics across your Snowflake environment.
+
+**Configuration requirements:**
+
+If you are using the Data Volume plugin, ensure it is configured to monitor the tables that appear in your query performance analysis. The plugin typically requires:
+
+1. **Enable the Data Volume plugin** in your DSOA configuration
+2. **Configure table inclusion** - Specify which schemas and tables should be monitored for row count metrics:
+   - You may need to explicitly include specific schemas
+   - Refer to the Data Volume plugin documentation for schema inclusion/exclusion patterns
+3. **Verify metric ingestion** - Confirm that `snowflake.data.rows` metrics are being collected for the tables you wish to analyze
+
+If Advanced Analytics tiles appear empty or show no data correlation, verify that:
+- The Data Volume plugin is active and reporting metrics
+- The tables referenced in query history have corresponding `snowflake.data.rows` metrics
+- Sufficient historical data has been collected for both query execution and table row count metrics
+
 ## Execution Phase Breakdown
 
 ![Execution Phase Breakdown](./img/05-execution-phase-breakdown.png)
