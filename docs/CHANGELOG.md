@@ -9,6 +9,12 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in the [development log](../.context/devlog/).
 
+## [Unreleased]
+
+### Fixed
+
+- Memory metric key updated from `dsoa.agent.memory.peak_rss_mb` to `dsoa.agent.memory.peak_rss` to match the actual specification.
+
 ## [1.0.0.3] - 2026-09-24
 
 ### Fixed
