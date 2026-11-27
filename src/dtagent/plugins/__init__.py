@@ -192,7 +192,7 @@ class Plugin(ABC):
             peak_mb = _get_peak_memory_mb()
             self._metrics.report_via_metrics_api(
                 {
-                    "METRICS": {"dsoa.agent.memory.peak_rss_mb": peak_mb},
+                    "METRICS": {"dsoa.agent.memory.peak_rss": peak_mb},
                     "DIMENSIONS": {
                         "dsoa.run.plugin": self._plugin_name,
                         "dsoa.run.context": measurements_source,

@@ -50,6 +50,12 @@ and the `core.tag` multitenancy mechanism:
 
 ### Fixed
 
+- Memory metric key updated from `dsoa.agent.memory.peak_rss_mb` to `dsoa.agent.memory.peak_rss` to match the actual specification.
+
+## [1.0.0.3] - 2026-09-24
+
+### Fixed
+
 - **DQL example queries**: removed invalid `db.system` filter from `timeseries` queries; migrated
   group-by and filter expressions to `deployment.environment.name`.
 - **`plugins.query_history.obfuscation_mode` default value renamed**: the `off` value (no obfuscation)
