@@ -499,6 +499,13 @@ and sending data to the same Dynatrace tenant.
   DQL: `fetch logs | filter dsoa.run.context == "serverless_tasks" | filter db.namespace == "" | summarize count()`
   — expect 0 rows.
 
+- [ ] **C4.13** `[AUTO-EVAL]` — **task_history view: >100 runs, scheduled and
+  long-running tasks reported** (`V_TASK_HISTORY` `RESULT_LIMIT`, no upper time
+  bound, watermark)
+  Pre-requisite: run `test/tools/setup_test_task_history.sql`, wait ≥ 2 agent
+  cycles (> 10 min, so the 600 s long-running task finishes and is re-reported).
+  See AE-C4.13 for the DQL.
+
 - [ ] **C4.13** `[BOTH]` — **DDL change detection on query spans** (BDX-1998)
   DQL: `fetch spans, from: now()-7d | filter deployment.environment == "DEV-{CURR_TAG}" | filter isNotNull(snowflake.object.ddl.operation) | fields snowflake.object.name, snowflake.object.type, snowflake.object.ddl.operation | limit 10`
   — expect rows with `snowflake.object.ddl.operation` in `{CREATE, REPLACE, ALTER, DROP}`.
