@@ -162,6 +162,7 @@ jobs:
           pytest test/core/test_views_structure.py -k "TestViews" --skip-semdict-regen
           pytest test/core/test_connector.py -k "TestTelemetrySender" --skip-semdict-regen
           pytest test/core/test_performance.py -k "TestIsNanOrNone" --skip-semdict-regen
+          pytest test/core/test_report_execution_metrics.py --skip-semdict-regen
       - name: Run OTEL tests
         run: |
           pytest test/otel/test_events.py -k "TestEvents"
