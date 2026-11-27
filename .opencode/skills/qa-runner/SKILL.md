@@ -853,6 +853,31 @@ fetch logs
 
 **Pass:** count == 0.
 
+#### AE-C4.13 — task_history reports >100 runs, scheduled and long-running tasks
+
+`V_TASK_HISTORY` reads `INFORMATION_SCHEMA.TASK_HISTORY()` (not mockable), so the
+`RESULT_LIMIT`, missing upper time bound and watermark filter are only testable here.
+Prerequisite: `setup_test_task_history.sql` run and ≥ 2 agent cycles elapsed
+(the 600 s `T_LONG_RUNNING` must have finished and been re-reported).
+
+```dql
+fetch logs, from: now()-24h
+| filter dsoa.run.context == "task_history"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter snowflake.schema.name == "TASK_HISTORY_SIM"
+| summarize {
+    runs = countDistinct(snowflake.task.run.id),
+    scheduled = countDistinctIf(snowflake.task.name, snowflake.task.run.state == "SCHEDULED"),
+    executing = countDistinctIf(snowflake.task.run.id, snowflake.task.run.state == "EXECUTING"),
+    long_final = countDistinctIf(snowflake.task.run.id, snowflake.task.name == "T_LONG_RUNNING" and snowflake.task.run.state == "SUCCEEDED")
+  }
+```
+
+**Pass:** `runs` > 100 (limit not capped at 100), `scheduled` ≥ 1 (future run reported,
+no upper bound), `executing` ≥ 1 and `long_final` ≥ 1 (a run seen while executing is
+re-reported with its final state once the watermark advances).
+**Skip if:** `setup_test_task_history.sql` was not run.
+
 ---
 
 ### Batch 3 — Events, active queries, shares, plugin lifecycle
