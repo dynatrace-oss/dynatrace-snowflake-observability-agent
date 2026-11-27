@@ -1697,7 +1697,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | DTAGENT_DB.APP.V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED | view            |                                                                                           |
 | DTAGENT_DB.APP.P_GRANT_MONITOR_SNOWPIPES()            | procedure       |                                                                                           |
 | DTAGENT_DB.CONFIG.UPDATE_SNOWPIPES_CONF()             | procedure       |                                                                                           |
-| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES                 | task            | Fast-mode (\*/5)                                                                          |
+| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES                 | task            | Fast-mode (*/5)                                                                           |
 | DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_HISTORY         | task            | Deep-mode (hourly)                                                                        |
 | DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_GRANTS          | task            | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on pipes |
 
