@@ -63,7 +63,11 @@ SELECT
     )                                                       as ATTRIBUTES
 
 FROM
-    TABLE(INFORMATION_SCHEMA.TASK_HISTORY(SCHEDULED_TIME_RANGE_START=>DATEADD(day, -1,current_timestamp()))) th
+    TABLE(INFORMATION_SCHEMA.TASK_HISTORY(
+            SCHEDULED_TIME_RANGE_START => DATEADD('day', -1, CURRENT_TIMESTAMP()),
+            SCHEDULED_TIME_RANGE_END   => CURRENT_TIMESTAMP(),
+            RESULT_LIMIT               => 1000
+    )) th
 where
     GREATEST_IGNORE_NULLS(th.QUERY_START_TIME, th.SCHEDULED_TIME, th.COMPLETED_TIME) > DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('task_history')
 order by
